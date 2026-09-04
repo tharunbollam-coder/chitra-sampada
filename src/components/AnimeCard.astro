@@ -1,0 +1,108 @@
+---
+// src/components/AnimeCard.astro
+import HonestyBadge from './HonestyBadge.astro';
+
+const { anime } = Astro.props;
+
+const isWatched = anime.honestyStatus === 'watched';
+const isZeroFiller = anime.fillerPercentage === 0;
+---
+
+<article
+  class="group relative flex flex-col rounded-2xl overflow-hidden bg-[#0d121f] border border-white/10 hover:border-red-500/40 transition-all duration-300 hover:-translate-y-1.5 hover:shadow-2xl hover:shadow-red-950/30"
+  data-vibe={anime.vibes ? anime.vibes.join(' ') : ''}
+  data-status={anime.honestyStatus}
+  data-filler={anime.fillerPercentage === 0 ? 'zero' : 'has-filler'}
+  data-title={anime.title.toLowerCase()}
+>
+  <!-- Poster Image Container (2:3 aspect ratio) -->
+  <div class="relative w-full aspect-[2/3] overflow-hidden bg-slate-900">
+    <img
+      src={anime.poster}
+      alt={`${anime.title} poster`}
+      loading="lazy"
+      decoding="async"
+      class="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500 ease-out"
+    />
+
+    <!-- Subtle gradient overlays for text readability -->
+    <div class="absolute inset-0 bg-gradient-to-t from-[#0d121f] via-transparent to-black/60 pointer-events-none"></div>
+
+    <!-- Prominent Honesty Badge (Top Banner/Pill) -->
+    <div class="absolute top-3 left-3 right-3 flex items-center justify-between gap-2 z-10">
+      <HonestyBadge status={anime.honestyStatus} size="sm" />
+
+      <!-- Score Pill -->
+      <div class="flex items-center gap-1 px-2 py-0.5 rounded-full bg-black/70 backdrop-blur-md border border-white/15 text-amber-300 text-xs font-black">
+        <svg class="w-3 h-3 fill-current text-amber-400" viewBox="0 0 20 20">
+          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+        </svg>
+        <span>{anime.rating}</span>
+      </div>
+    </div>
+
+    <!-- Filler Status Floating Tag (Bottom of poster) -->
+    <div class="absolute bottom-3 left-3 right-3 flex items-center justify-between z-10">
+      <span
+        class:list={[
+          'text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md backdrop-blur-md border tracking-wider',
+          isZeroFiller
+            ? 'bg-emerald-950/80 text-emerald-300 border-emerald-500/40'
+            : 'bg-rose-950/85 text-rose-300 border-rose-500/40'
+        ]}
+      >
+        {isZeroFiller ? '0% Filler • 100% Canon' : `${anime.fillerPercentage}% Filler Alert`}
+      </span>
+
+      <span class="text-[11px] font-medium text-slate-300 bg-black/60 px-2 py-0.5 rounded backdrop-blur-md">
+        {anime.episodes} eps
+      </span>
+    </div>
+  </div>
+
+  <!-- Content / Info Section -->
+  <div class="p-4 flex-1 flex flex-col justify-between space-y-3">
+    <div>
+      <div class="flex items-center gap-2 text-xs text-slate-400 mb-1">
+        <span>{anime.year}</span>
+        <span>•</span>
+        <span class="truncate">{anime.genres.slice(0, 2).join(' / ')}</span>
+      </div>
+
+      <h3 class="text-base font-bold text-white group-hover:text-red-400 transition-colors line-clamp-1 leading-snug">
+        {anime.title}
+      </h3>
+
+      {anime.nativeTitle && (
+        <p class="text-[11px] text-slate-400 line-clamp-1">
+          {anime.nativeTitle}
+        </p>
+      )}
+    </div>
+
+    <!-- Honest Editorial Verdict Box -->
+    <div class="pt-2 border-t border-white/10">
+      <div class="p-2.5 rounded-xl bg-white/[0.03] border border-white/5 space-y-1">
+        <div class="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-300">
+          <svg class="w-3.5 h-3.5 text-red-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+          </svg>
+          <span>Honest Take</span>
+        </div>
+        <p class="text-xs text-slate-300 line-clamp-2 leading-relaxed italic">
+          "{anime.honestyNote}"
+        </p>
+      </div>
+    </div>
+
+    <!-- Action / Watch order guide trigger -->
+    <div class="pt-1 flex items-center justify-between text-xs text-slate-400 group-hover:text-white transition-colors">
+      <span class="text-[11px] font-semibold text-red-400 group-hover:underline">
+        Watch Guide & Canon Order →
+      </span>
+      <span class="text-[11px] text-slate-400">
+        {anime.status}
+      </span>
+    </div>
+  </div>
+</article>

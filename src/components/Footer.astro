@@ -1,0 +1,129 @@
+---
+// src/components/Footer.astro
+import { siteConfig } from '../config/site.js';
+
+const currentYear = new Date().getFullYear();
+---
+
+<footer class="mt-24 border-t border-white/10 bg-[#06080d] text-slate-400 relative overflow-hidden">
+  <!-- Subtle accent background glow -->
+  <div class="absolute bottom-0 left-1/2 -translate-x-1/2 w-[600px] h-[250px] bg-red-600/5 blur-[120px] rounded-full pointer-events-none"></div>
+
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-10">
+      
+      <!-- Brand column -->
+      <div class="md:col-span-2 space-y-4">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-red-500 to-amber-500 p-0.5 shadow-md shadow-red-500/20">
+            <div class="w-full h-full bg-[#0b0f19] rounded-[6px] flex items-center justify-center">
+              <span class="text-white font-extrabold text-sm tracking-tight">CS</span>
+            </div>
+          </div>
+          <span class="text-lg font-black tracking-tight text-white">
+            {siteConfig.name}
+          </span>
+          <span class="text-[10px] uppercase font-bold tracking-widest px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+            Anime Live
+          </span>
+        </div>
+        
+        <p class="text-sm text-slate-300 leading-relaxed max-w-lg">
+          {siteConfig.tagline}
+        </p>
+
+        <p class="text-xs text-slate-400 leading-relaxed max-w-lg border-l-2 border-red-500/50 pl-3 py-0.5">
+          {siteConfig.footer.editorialPledge}
+        </p>
+      </div>
+
+      <!-- Quick Navigation & Hub Roadmap -->
+      <div>
+        <h3 class="text-xs font-bold uppercase tracking-widest text-white mb-4">
+          Entertainment Hub
+        </h3>
+        <ul class="space-y-2.5 text-sm">
+          <li>
+            <a href="/anime" class="text-slate-300 hover:text-white flex items-center justify-between group">
+              <span class="group-hover:translate-x-1 transition-transform">Anime Catalog</span>
+              <span class="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400">Live</span>
+            </a>
+          </li>
+          <li>
+            <div class="flex items-center justify-between text-slate-400">
+              <span>Movies Hub</span>
+              <span class="text-[10px] uppercase font-semibold text-slate-400 bg-white/5 px-1.5 py-0.2 rounded">Coming Soon</span>
+            </div>
+          </li>
+          <li>
+            <div class="flex items-center justify-between text-slate-400">
+              <span>TV Shows</span>
+              <span class="text-[10px] uppercase font-semibold text-slate-400 bg-white/5 px-1.5 py-0.2 rounded">Coming Soon</span>
+            </div>
+          </li>
+          <li>
+            <div class="flex items-center justify-between text-slate-400">
+              <span>Web Series</span>
+              <span class="text-[10px] uppercase font-semibold text-slate-400 bg-white/5 px-1.5 py-0.2 rounded">Coming Soon</span>
+            </div>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Discovery & Vibes -->
+      <div>
+        <h3 class="text-xs font-bold uppercase tracking-widest text-white mb-4">
+          Discovery Tools
+        </h3>
+        <ul class="space-y-2.5 text-sm">
+          <li>
+            <a href="/anime#vibes" class="text-slate-300 hover:text-white transition-colors">
+              Browse by Vibe
+            </a>
+          </li>
+          <li>
+            <a href="/anime#catalog" class="text-slate-300 hover:text-white transition-colors">
+              Zero-Filler Anime Guide
+            </a>
+          </li>
+          <li>
+            <a href="/anime#catalog" class="text-slate-300 hover:text-white transition-colors">
+              Editor Verified Watchlists
+            </a>
+          </li>
+          <li>
+            <a href="/" class="text-slate-300 hover:text-white transition-colors">
+              Hub Vision & Philosophy
+            </a>
+          </li>
+        </ul>
+      </div>
+
+    </div>
+
+    <!-- TMDB Legal & Copyright Disclaimers (Required) -->
+    <div class="mt-12 pt-8 border-t border-white/10 space-y-4">
+      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-xs text-slate-400">
+        <div class="flex items-center gap-3">
+          <!-- TMDB Logo Icon representation -->
+          <div class="px-2 py-1 rounded bg-[#0d253f] text-[#01b4e4] font-extrabold text-[11px] tracking-wider border border-[#01b4e4]/30">
+            TMDB
+          </div>
+          <p class="leading-relaxed">
+            {siteConfig.footer.tmdbAttribution}
+          </p>
+        </div>
+      </div>
+
+      <div class="text-xs text-slate-400 leading-relaxed">
+        <p>
+          {siteConfig.footer.copyrightNotice}
+        </p>
+        <p class="mt-2 text-[11px] text-slate-400">
+          © {currentYear} {siteConfig.name}. Designed for real viewers who want to spend more time enjoying stories and zero time navigating filler or fake hype.
+        </p>
+      </div>
+    </div>
+
+  </div>
+</footer>
