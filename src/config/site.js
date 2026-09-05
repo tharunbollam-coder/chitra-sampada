@@ -6,9 +6,9 @@ export const siteConfig = {
   // Change this to your preferred brand name:
   name: 'Chitra Sampada',
   shortName: 'Chitra',
-  tagline: 'Honest, no-fluff guides. Filler-free watch orders, real recommendations, nothing sugar-coated.',
-  subTagline: 'The ultimate entertainment companion before and while you watch.',
-  description: 'An entertainment discovery hub built for real viewers. Filler-free watch orders, transparent editor badges, and genuine vibe-driven curation.',
+  tagline: 'A personal list of what to watch and in what order, clearly labeled.',
+  subTagline: 'A personal companion for what to watch and where to start.',
+  description: 'A personal entertainment list focusing on what I have watched and what is next on my watchlist, with clear watch orders and filler guides.',
 
   navLinks: [
     {
@@ -16,34 +16,20 @@ export const siteConfig = {
       href: '/anime',
       status: 'live',
       badge: 'LIVE',
-      description: 'Filler breakdowns, watch orders, and honest verdicts'
+      description: 'Filler lists, watch orders, and what I’ve watched'
     },
     {
-      name: 'Movies',
-      href: '#',
-      status: 'soon',
-      badge: 'COMING SOON',
-      description: 'Franchise chronological orders & real viewing guides'
-    },
-    {
-      name: 'TV Shows',
-      href: '#',
-      status: 'soon',
-      badge: 'COMING SOON',
-      description: 'Season-by-season honesty meters & binge guides'
-    },
-    {
-      name: 'Web Series',
-      href: '#',
-      status: 'soon',
-      badge: 'COMING SOON',
-      description: 'Deep dives, platform trackers, and curated gems'
+      name: 'About',
+      href: '/about',
+      status: 'live',
+      badge: '',
+      description: 'Why I built this and how it works'
     }
   ],
 
   footer: {
     tmdbAttribution: 'This product uses the TMDB API but is not endorsed or certified by TMDB. Posters and imagery are sourced via TMDB.',
     copyrightNotice: 'All titles, character names, imagery, and related media are copyright and trademarks of their respective owners and production studios.',
-    editorialPledge: 'We never accept paid promotions to sugar-coat ratings. What we watch is marked with our verified editor badge; what is in queue is transparently flagged.'
+    editorialPledge: 'I only list what I have personally watched and what is currently on my watchlist, clearly labeled so you always know where each recommendation comes from.'
   }
 };

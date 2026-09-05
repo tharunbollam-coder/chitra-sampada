@@ -1,0 +1,172 @@
+---
+// src/pages/about.astro
+import BaseLayout from '../layouts/BaseLayout.astro';
+import HonestyBadge from '../components/HonestyBadge.astro';
+import { siteConfig } from '../config/site.js';
+---
+
+<BaseLayout
+  title="About — Why I Built This"
+  description="The honest story behind Chitra Sampada: why I built this watch companion, the two problems it solves, and how community suggestions work."
+>
+  <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-20 space-y-16">
+    
+    <!-- Header / Intro -->
+    <header class="space-y-4">
+      <div class="flex items-center gap-2 text-xs text-slate-400">
+        <a href="/" class="hover:text-white transition-colors">Home</a>
+        <span>/</span>
+        <span class="text-red-400 font-medium">About</span>
+      </div>
+
+      <h1 class="text-3xl sm:text-5xl font-black text-white tracking-tight leading-tight">
+        Why I built this site.
+      </h1>
+      <p class="text-lg text-slate-300 leading-relaxed">
+        A personal note on what this project is, the headaches that led me to make it, and how it works.
+      </p>
+    </header>
+
+    <!-- Main Essay / Story Content -->
+    <div class="space-y-12 text-slate-300 text-base sm:text-lg leading-relaxed font-normal">
+      
+      <!-- Section: The Beginner Headache -->
+      <section class="space-y-4">
+        <h2 class="text-xl sm:text-2xl font-bold text-white tracking-tight">
+          Nobody tells you this stuff when you start watching.
+        </h2>
+        <p>
+          I'm an anime, movie, and web series lover myself. But when I first got into anime, I ran into things that nobody ever explains to a beginner up front.
+        </p>
+        <p>
+          For example: I had no idea what "filler" even meant. I'd sit through dozens of episodes where the plot suddenly came to a complete halt, wondering what happened, only to find out months later that it was non-canon filler that never existed in the original story.
+        </p>
+        <p>
+          Then there was the watch order problem. You find a series you want to try, only to discover it has three seasons, two movies, a prequel OVA, and a spin-off. Looking up what order to watch them in is a minefield of spoilers on forums and confusing wiki pages. It shouldn't take research just to figure out what episode to click on first.
+        </p>
+      </section>
+
+      <!-- Section: What to watch next -->
+      <section class="space-y-4 pt-4 border-t border-white/10">
+        <h2 class="text-xl sm:text-2xl font-bold text-white tracking-tight">
+          The post-show exhaustion.
+        </h2>
+        <p>
+          The second big problem happened every time I finished a show I loved. You finish the last episode, feel that void, and sit down to find what to watch next.
+        </p>
+        <p>
+          An hour passes, and you're still scrolling through endless lists on massive databases. Every title has hundreds of mixed reviews, fan debates, and 10/10 scores from people who loved everything. You end up with decision fatigue and watch nothing.
+        </p>
+        <p>
+          That's really why I built this. Not to list every single title in existence — there are already plenty of massive databases out there that do that, and they do it well. This solves a much narrower, practical problem: giving you a clean, honest list with the context you actually need before you start.
+        </p>
+      </section>
+
+      <!-- Section: How this site works -->
+      <section class="space-y-6 pt-4 border-t border-white/10">
+        <h2 class="text-xl sm:text-2xl font-bold text-white tracking-tight">
+          How this site works: Watched vs. Watchlist
+        </h2>
+        <p>
+          Instead of listing thousands of shows I've never touched, this site only has two categories of titles:
+        </p>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+          <div class="p-5 rounded-2xl bg-[#0b0f19] border border-white/10 space-y-2.5">
+            <div class="flex items-center gap-2">
+              <HonestyBadge status="watched" size="sm" />
+            </div>
+            <h3 class="text-base font-bold text-white">Personally Watched</h3>
+            <p class="text-xs sm:text-sm text-slate-400 leading-relaxed">
+              Titles I have actually sat down and finished from start to end. If it's labeled "Watched", you know the recommendation comes from first-hand viewing, with exact filler notes and watch order.
+            </p>
+          </div>
+
+          <div class="p-5 rounded-2xl bg-[#0b0f19] border border-white/10 space-y-2.5">
+            <div class="flex items-center gap-2">
+              <HonestyBadge status="watchlist" size="sm" />
+            </div>
+            <h3 class="text-base font-bold text-white">On My Watchlist</h3>
+            <p class="text-xs sm:text-sm text-slate-400 leading-relaxed">
+              Titles I haven't watched yet, but plan to watch next. I include them so you can see what's on deck and follow along, but I clearly label them so I never pretend I've finished something I haven't.
+            </p>
+          </div>
+        </div>
+
+        <p class="text-sm sm:text-base text-slate-400">
+          That clarity is the whole point. Anyone visiting can make their own choice with real context, without guessing whether the person writing about it ever actually watched it.
+        </p>
+      </section>
+
+      <!-- Section: Community Suggestions -->
+      <section id="suggestions" class="space-y-6 pt-6 border-t border-white/10">
+        <div class="space-y-3">
+          <span class="text-xs font-bold uppercase tracking-wider text-red-400">
+            Real Input
+          </span>
+          <h2 class="text-xl sm:text-2xl font-bold text-white tracking-tight">
+            Suggestions from real people
+          </h2>
+        </div>
+
+        <p>
+          I also want this to grow with input from people who love good stories. If you think an anime, movie, or series is missing, or if you have a better watch order recommendation, I genuinely want to hear it.
+        </p>
+
+        <div class="p-6 rounded-2xl bg-gradient-to-r from-red-950/30 via-[#0d1220] to-[#0b0f19] border border-white/10 space-y-4">
+          <h3 class="text-base font-bold text-white flex items-center gap-2">
+            <svg class="w-5 h-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+            </svg>
+            <span>My Honest Pledge on Suggestions</span>
+          </h3>
+          <p class="text-sm text-slate-300 leading-relaxed">
+            If someone sends in a suggestion and it gets added to the site, <strong>it will always be clearly marked as a user suggestion with your name or username</strong>. It will never be silently blended in as if it was my personal pick. Real attribution matters.
+          </p>
+        </div>
+
+        <!-- Suggestion contact form / mailto box -->
+        <div class="p-6 rounded-2xl bg-white/[0.02] border border-white/10 space-y-4">
+          <h3 class="text-base font-bold text-white">
+            Have a suggestion or correction?
+          </h3>
+          <p class="text-xs sm:text-sm text-slate-400">
+            Send an email with the title, whether you've watched it, and any watch-order notes or filler tips you think others would find helpful.
+          </p>
+          <div class="pt-2 flex flex-col sm:flex-row items-start sm:items-center gap-3">
+            <a
+              href="mailto:suggestions@chitrasampada.com?subject=Anime%20Suggestion%20for%20Chitra%20Sampada"
+              class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white font-semibold text-xs transition-colors"
+            >
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+              <span>Send a Suggestion via Email</span>
+            </a>
+            <span class="text-xs text-slate-400">
+              (Or connect via our upcoming community channels)
+            </span>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- Bottom Navigation -->
+      <div class="pt-10 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <p class="text-sm text-slate-400">
+          Ready to see what's on the list?
+        </p>
+        <a
+          href="/anime"
+          class="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-white/10 hover:bg-white/15 text-white text-sm font-semibold border border-white/10 transition-colors"
+        >
+          <span>Explore the Anime Catalog</span>
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+          </svg>
+        </a>
+      </div>
+
+    </div>
+  </div>
+</BaseLayout>

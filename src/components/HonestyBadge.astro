@@ -15,16 +15,10 @@ const isWatched = status === 'watched';
       ? 'bg-emerald-950/90 text-emerald-300 border border-emerald-500/50 shadow-emerald-950/50 glow-emerald'
       : 'bg-amber-950/90 text-amber-300 border border-amber-500/50 shadow-amber-950/50 glow-amber'
   ]}
-  title={isWatched ? "Editor personally completed and verified this title" : "In the editor's watch queue; verified canon guide prepared"}
+  title={isWatched ? "I've personally watched this" : "On my watchlist to watch next"}
 >
-  {/* Live status dot / icon */}
+  {/* Status indicator dot */}
   <span class="relative flex h-2 w-2">
-    <span
-      class:list={[
-        'animate-ping absolute inline-flex h-full w-full rounded-full opacity-75',
-        isWatched ? 'bg-emerald-400' : 'bg-amber-400'
-      ]}
-    ></span>
     <span
       class:list={[
         'relative inline-flex rounded-full h-2 w-2',
@@ -45,8 +39,8 @@ const isWatched = status === 'watched';
     </svg>
   )}
 
-  <span class="font-bold uppercase tracking-wider">
-    {isWatched ? 'Watched & Vetted' : 'On Watchlist'}
+  <span class="font-bold tracking-wide">
+    {isWatched ? 'Watched' : 'On Watchlist'}
   </span>
 
   {showNote && customNote && (

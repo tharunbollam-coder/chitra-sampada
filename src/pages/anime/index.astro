@@ -38,25 +38,25 @@ const zeroFillerCount = animeList.filter((a) => a.fillerPercentage === 0).length
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-end">
         <div class="lg:col-span-8 space-y-4">
           <h1 class="text-3xl sm:text-5xl lg:text-6xl font-black text-white tracking-tight leading-tight">
-            The Anime Discovery Hub
+            The Anime List
           </h1>
           <p class="text-base sm:text-lg text-slate-300 max-w-2xl leading-relaxed">
-            Every title vetted with an <strong class="text-white">Honesty Badge</strong>, exact filler metrics, and real watch orders. No paid hype. No spoiler traps.
+            What I've personally watched and what is next on my watchlist, with simple watch orders and filler guides so you know what you're getting into.
           </p>
         </div>
 
         <!-- Quick Stats Banner -->
         <div class="lg:col-span-4 flex flex-wrap lg:flex-col gap-2.5">
           <div class="flex-1 flex items-center justify-between p-3 rounded-xl bg-emerald-950/40 border border-emerald-500/30 backdrop-blur-sm">
-            <span class="text-xs font-semibold text-emerald-300">Editor Watched & Vetted</span>
+            <span class="text-xs font-semibold text-emerald-300">Personally Watched</span>
             <span class="text-sm font-black text-emerald-400">{watchedCount} titles</span>
           </div>
           <div class="flex-1 flex items-center justify-between p-3 rounded-xl bg-amber-950/40 border border-amber-500/30 backdrop-blur-sm">
-            <span class="text-xs font-semibold text-amber-300">In Queue on Watchlist</span>
+            <span class="text-xs font-semibold text-amber-300">On Watchlist</span>
             <span class="text-sm font-black text-amber-400">{watchlistCount} titles</span>
           </div>
           <div class="flex-1 flex items-center justify-between p-3 rounded-xl bg-slate-900/60 border border-white/10 backdrop-blur-sm">
-            <span class="text-xs font-semibold text-slate-300">Zero-Filler Stories</span>
+            <span class="text-xs font-semibold text-slate-300">Zero-Filler Shows</span>
             <span class="text-sm font-black text-white">{zeroFillerCount} titles</span>
           </div>
         </div>
@@ -176,7 +176,7 @@ const zeroFillerCount = animeList.filter((a) => a.fillerPercentage === 0).length
           class="filter-tab-btn px-3.5 py-1.5 rounded-lg text-xs font-bold tracking-wide transition-all bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 flex items-center gap-1.5"
         >
           <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-          <span>Watched & Vetted ({watchedCount})</span>
+          <span>Watched ({watchedCount})</span>
         </button>
 
         <button
