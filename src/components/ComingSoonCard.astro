@@ -1,22 +1,18 @@
 ---
 // src/components/ComingSoonCard.astro
-const { title, category, description, features = [], gradient = 'from-slate-900 via-slate-900 to-[#0c121e]', icon = 'film' } = Astro.props;
+const { title, category, description, features = [], icon = 'film' } = Astro.props;
 ---
 
-<div class="relative group rounded-3xl p-7 sm:p-8 bg-[#0b0f19] border border-white/10 hover:border-white/20 transition-all duration-300 flex flex-col justify-between overflow-hidden">
-  <!-- Subtle futuristic ambient background gradient -->
-  <div class:list={['absolute inset-0 bg-gradient-to-br opacity-50 pointer-events-none group-hover:opacity-75 transition-opacity duration-500', gradient]}></div>
-  <div class="absolute -top-12 -right-12 w-36 h-36 rounded-full bg-white/[0.03] blur-3xl pointer-events-none"></div>
-
+<div class="relative group rounded-2xl p-7 sm:p-8 bg-white border border-slate-200/80 hover:border-slate-300 shadow-xs hover:shadow-md transition-all duration-300 flex flex-col justify-between overflow-hidden hover:-translate-y-1">
   <div class="relative z-10 space-y-5">
     
     <!-- Header with Coming Soon Badge -->
     <div class="flex items-center justify-between gap-3">
-      <span class="text-[11px] font-black tracking-widest uppercase px-3 py-1 rounded-full bg-white/5 border border-white/10 text-slate-300 backdrop-blur-md">
+      <span class="text-[10px] font-bold tracking-wider uppercase px-3 py-1 rounded-full bg-slate-100 border border-slate-200 text-slate-700">
         {category}
       </span>
-      <span class="inline-flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-wider px-2.5 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300">
-        <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
+      <span class="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-800">
+        <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
         <span>Coming Soon</span>
       </span>
     </div>
@@ -24,15 +20,15 @@ const { title, category, description, features = [], gradient = 'from-slate-900 
     <!-- Title & Icon -->
     <div class="flex items-start justify-between gap-4">
       <div>
-        <h3 class="text-2xl font-black text-white tracking-tight group-hover:text-slate-100 transition-colors">
+        <h3 class="font-heading text-2xl font-bold text-slate-900 tracking-tight group-hover:text-red-600 transition-colors">
           {title}
         </h3>
-        <p class="text-sm text-slate-400 mt-2 leading-relaxed">
+        <p class="text-sm text-slate-600 mt-2 leading-relaxed font-normal">
           {description}
         </p>
       </div>
 
-      <div class="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center shrink-0 text-slate-300 group-hover:text-white group-hover:scale-105 transition-all">
+      <div class="w-12 h-12 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-center shrink-0 text-slate-700 group-hover:text-red-600 group-hover:border-red-200 group-hover:scale-105 transition-all">
         {icon === 'film' && (
           <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" />
@@ -52,17 +48,19 @@ const { title, category, description, features = [], gradient = 'from-slate-900 
     </div>
 
     <!-- Planned Companion Features list -->
-    <div class="space-y-2 pt-2 border-t border-white/5">
-      <div class="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+    <div class="space-y-2.5 pt-3 border-t border-slate-100">
+      <div class="text-[10px] font-bold uppercase tracking-wider text-slate-500">
         Planned Companion Features:
       </div>
-      <ul class="space-y-1.5 text-xs text-slate-300">
+      <ul class="space-y-2 text-xs text-slate-600">
         {features.map((feature) => (
-          <li class="flex items-center gap-2">
-            <svg class="w-3.5 h-3.5 text-red-400 shrink-0" viewBox="0 0 20 20" fill="currentColor">
-              <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
-            </svg>
-            <span>{feature}</span>
+          <li class="flex items-center gap-2.5">
+            <div class="w-4 h-4 rounded-full bg-red-50 border border-red-200 flex items-center justify-center shrink-0">
+              <svg class="w-2.5 h-2.5 text-red-600" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+              </svg>
+            </div>
+            <span class="leading-normal font-normal text-slate-700">{feature}</span>
           </li>
         ))}
       </ul>
@@ -70,11 +68,11 @@ const { title, category, description, features = [], gradient = 'from-slate-900 
 
   </div>
 
-  <div class="relative z-10 pt-6 mt-6 border-t border-white/10 flex items-center justify-between">
-    <span class="text-xs font-semibold text-slate-400">
+  <div class="relative z-10 pt-5 mt-6 border-t border-slate-100 flex items-center justify-between">
+    <span class="text-xs font-medium text-slate-500">
       Under editorial architecture
     </span>
-    <span class="text-xs font-bold text-slate-400 group-hover:text-slate-300">
+    <span class="text-xs font-semibold text-slate-600 group-hover:text-red-600 transition-colors">
       Stay Tuned →
     </span>
   </div>

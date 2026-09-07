@@ -1,0 +1,103 @@
+---
+// src/components/anime/TabFillerList.astro
+const { anime } = Astro.props;
+const fillerData = anime.fillerList || {};
+const ranges = fillerData.ranges || [];
+const isZeroFiller = anime.fillerPercentage === 0;
+---
+
+<div class="space-y-6">
+  <!-- Filler Summary Banner -->
+  <div class:list={[
+    'rounded-2xl border p-6 sm:p-7 shadow-xs',
+    isZeroFiller
+      ? 'bg-emerald-50/50 border-emerald-200'
+      : 'bg-white border-slate-200'
+  ]}>
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-5 border-b border-slate-200/80">
+      <div>
+        <div class="flex items-center gap-2 mb-1">
+          <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Filler Breakdown</span>
+          <span class:list={[
+            'text-[11px] font-bold px-2.5 py-0.5 rounded-full border',
+            isZeroFiller
+              ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+              : 'bg-rose-100 text-rose-800 border-rose-300'
+          ]}>
+            {isZeroFiller ? '0% Filler' : `${anime.fillerPercentage}% Filler Content`}
+          </span>
+        </div>
+        <h2 class="font-heading text-xl sm:text-2xl font-bold text-slate-900">
+          Canon & Filler Episode Guide
+        </h2>
+        <p class="text-xs sm:text-sm text-slate-600 font-normal mt-1 max-w-2xl">
+          {fillerData.summary || `Breakdown of manga canon vs anime filler ranges for ${anime.title}.`}
+        </p>
+      </div>
+
+      <!-- Quick Metrics Matrix -->
+      <div class="flex items-center gap-3 shrink-0">
+        <div class="px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-center min-w-[90px]">
+          <span class="block text-[10px] font-bold uppercase tracking-wider text-slate-500">Total</span>
+          <span class="text-base font-extrabold text-slate-900">{anime.episodes} eps</span>
+        </div>
+        <div class="px-4 py-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-center min-w-[90px]">
+          <span class="block text-[10px] font-bold uppercase tracking-wider text-emerald-700">Canon</span>
+          <span class="text-base font-extrabold text-emerald-900">{fillerData.canonEpisodes || (anime.episodes - (fillerData.fillerEpisodes || 0))} eps</span>
+        </div>
+        {!isZeroFiller && (
+          <div class="px-4 py-2.5 rounded-xl bg-rose-50 border border-rose-200 text-center min-w-[90px]">
+            <span class="block text-[10px] font-bold uppercase tracking-wider text-rose-700">Filler</span>
+            <span class="text-base font-extrabold text-rose-900">{fillerData.fillerEpisodes || 0} eps</span>
+          </div>
+        )}
+      </div>
+    </div>
+
+    <!-- Numbered Ranges List (Lean & Scannable) -->
+    <div class="mt-6 space-y-3">
+      <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3">
+        Episode Ranges ({ranges.length} Blocks)
+      </h3>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        {ranges.map((block) => {
+          const isCanon = block.type === 'Canon';
+          const isFiller = block.type === 'Filler';
+          const isMixed = block.type === 'Mixed';
+
+          return (
+            <div class:list={[
+              'flex items-center justify-between gap-3 p-3.5 rounded-xl border transition-colors',
+              isCanon ? 'bg-emerald-50/40 border-emerald-200/80 text-emerald-950' : '',
+              isFiller ? 'bg-rose-50/50 border-rose-200 text-rose-950' : '',
+              isMixed ? 'bg-amber-50/50 border-amber-200 text-amber-950' : ''
+            ]}>
+              <div class="space-y-0.5 min-w-0">
+                <div class="flex items-center gap-2">
+                  <span class="font-extrabold text-sm text-slate-900 tracking-tight">
+                    Episodes {block.range}
+                  </span>
+                </div>
+                {block.arc && (
+                  <p class="text-xs text-slate-600 truncate font-normal">
+                    {block.arc}
+                  </p>
+                )}
+              </div>
+
+              <span class:list={[
+                'text-[10px] font-bold uppercase px-2.5 py-1 rounded-md border shrink-0 tracking-wider',
+                isCanon ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : '',
+                isFiller ? 'bg-rose-100 text-rose-800 border-rose-300' : '',
+                isMixed ? 'bg-amber-100 text-amber-800 border-amber-300' : ''
+              ]}>
+                {block.type}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  </div>
+</div>

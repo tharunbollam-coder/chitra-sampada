@@ -2,392 +2,159 @@
 // src/pages/anime/index.astro
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import AnimeCard from '../../components/AnimeCard.astro';
-import HonestyBadge from '../../components/HonestyBadge.astro';
 import VibeCard from '../../components/VibeCard.astro';
 import { animeList } from '../../data/anime.js';
 import { vibes } from '../../data/vibes.js';
 import { siteConfig } from '../../config/site.js';
 
-// Trending anime for the horizontal showcase row
-const trendingAnime = animeList.filter((a) => a.trending);
-
-// Metrics
-const watchedCount = animeList.filter((a) => a.honestyStatus === 'watched').length;
-const watchlistCount = animeList.filter((a) => a.honestyStatus === 'watchlist').length;
-const zeroFillerCount = animeList.filter((a) => a.fillerPercentage === 0).length;
+// Featured selection for the static grid (top 8 titles)
+const featuredAnime = animeList.filter((a) => a.trending).slice(0, 8);
 ---
 
 <BaseLayout
   title={`Anime Section — Filler-Free Guides & Discovery`}
   description="Explore honest anime recommendations, filler-free watch orders, and verified editor reviews without hype or spoilers."
 >
-  <!-- WELCOMING SECTION HEADER -->
-  <section class="relative pt-8 pb-12 sm:pt-14 sm:pb-16 overflow-hidden border-b border-white/10 bg-gradient-to-b from-[#0e1322]/80 to-transparent">
+  <!-- 1. IMPROVED HERO SECTION -->
+  <section class="relative pt-10 pb-14 sm:pt-16 sm:pb-20 overflow-hidden border-b border-slate-200 bg-gradient-to-b from-slate-100/70 via-white to-transparent">
+    <!-- Ambient top glow -->
+    <div class="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[260px] bg-red-500/5 blur-[120px] rounded-full pointer-events-none -z-10"></div>
+
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       
-      <!-- Breadcrumb & Status -->
-      <div class="flex items-center gap-2 text-xs text-slate-400 mb-4">
-        <a href="/" class="hover:text-white transition-colors">Home</a>
+      <!-- Breadcrumb & Status Indicator -->
+      <div class="flex items-center gap-2 text-xs text-slate-500 mb-6">
+        <a href="/" class="hover:text-slate-900 transition-colors">Home</a>
         <span>/</span>
-        <span class="text-red-400 font-bold">Anime Section</span>
-        <span class="text-[10px] uppercase font-black px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 ml-2">
+        <span class="text-red-600 font-semibold">Anime Section</span>
+        <span class="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200 ml-2">
           Flagship Live
         </span>
       </div>
 
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-end">
-        <div class="lg:col-span-8 space-y-4">
-          <h1 class="text-3xl sm:text-5xl lg:text-6xl font-black text-white tracking-tight leading-tight">
-            The Anime List
-          </h1>
-          <p class="text-base sm:text-lg text-slate-300 max-w-2xl leading-relaxed">
-            What I've personally watched and what is next on my watchlist, with simple watch orders and filler guides so you know what you're getting into.
-          </p>
+      <!-- Main Headline & Narrative -->
+      <div class="max-w-3xl space-y-5">
+        <h1 class="text-3xl sm:text-5xl lg:text-6xl font-extrabold text-slate-900 tracking-tight leading-[1.15] font-heading">
+          The Anime List
+        </h1>
+
+        <p class="text-base sm:text-lg text-slate-600 leading-relaxed font-normal">
+          What I've personally watched and what is next on my watchlist, with simple watch orders and filler guides so you know what you're getting into.
+        </p>
+
+        <!-- Simple single-line counter replacing the old 3 stat boxes -->
+        <div class="pt-1 flex flex-wrap items-center gap-4">
+          <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white border border-slate-200 text-xs font-semibold text-slate-700 shadow-2xs">
+            <span class="w-2 h-2 rounded-full bg-red-500"></span>
+            <span>{animeList.length} anime listed and counting</span>
+          </div>
         </div>
 
-        <!-- Quick Stats Banner -->
-        <div class="lg:col-span-4 flex flex-wrap lg:flex-col gap-2.5">
-          <div class="flex-1 flex items-center justify-between p-3 rounded-xl bg-emerald-950/40 border border-emerald-500/30 backdrop-blur-sm">
-            <span class="text-xs font-semibold text-emerald-300">Personally Watched</span>
-            <span class="text-sm font-black text-emerald-400">{watchedCount} titles</span>
-          </div>
-          <div class="flex-1 flex items-center justify-between p-3 rounded-xl bg-amber-950/40 border border-amber-500/30 backdrop-blur-sm">
-            <span class="text-xs font-semibold text-amber-300">On Watchlist</span>
-            <span class="text-sm font-black text-amber-400">{watchlistCount} titles</span>
-          </div>
-          <div class="flex-1 flex items-center justify-between p-3 rounded-xl bg-slate-900/60 border border-white/10 backdrop-blur-sm">
-            <span class="text-xs font-semibold text-slate-300">Zero-Filler Shows</span>
-            <span class="text-sm font-black text-white">{zeroFillerCount} titles</span>
-          </div>
+        <!-- Hero Actions -->
+        <div class="pt-3 flex flex-col sm:flex-row items-stretch sm:items-center gap-3.5">
+          <a
+            href="/anime/catalog"
+            class="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl bg-red-600 hover:bg-red-500 text-white font-bold text-sm shadow-md shadow-red-600/25 hover:shadow-red-600/40 hover:-translate-y-0.5 transition-all duration-200"
+          >
+            <span>Browse Full Catalog</span>
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+            </svg>
+          </a>
+
+          <a
+            href="#vibes"
+            class="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 font-semibold text-sm border border-slate-200 shadow-xs hover:-translate-y-0.5 transition-all duration-200"
+          >
+            <span>Browse by Vibe ↓</span>
+          </a>
         </div>
       </div>
 
     </div>
   </section>
 
-  <!-- 1. TRENDING / RECENTLY ADDED ROW -->
-  <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-    <div class="flex items-center justify-between mb-6">
+  <!-- 2. RECENTLY ADDED & FEATURED (CLEAN STATIC GRID REPLACING HORIZONTAL SCROLL) -->
+  <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
+    <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
       <div>
         <div class="flex items-center gap-2">
-          <span class="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping"></span>
-          <h2 class="text-xl sm:text-2xl font-black text-white tracking-tight">
+          <span class="w-2.5 h-2.5 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)] animate-pulse"></span>
+          <h2 class="font-heading text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
             Trending & Recently Added
           </h2>
         </div>
-        <p class="text-xs text-slate-400 mt-0.5">
-          What the community is watching right now, complete with transparent editor status.
+        <p class="text-xs text-slate-500 mt-1 font-normal">
+          A look at some of the latest additions with verified watch orders and filler guides.
         </p>
       </div>
 
-      <!-- Quick status legend -->
-      <div class="hidden sm:flex items-center gap-3">
-        <HonestyBadge status="watched" size="sm" />
-        <HonestyBadge status="watchlist" size="sm" />
-      </div>
-    </div>
-
-    <!-- Scrollable Showcase Row -->
-    <div class="flex gap-5 overflow-x-auto pb-6 pt-2 custom-scrollbar snap-x snap-mandatory">
-      {trendingAnime.map((anime) => (
-        <div class="w-[260px] sm:w-[280px] shrink-0 snap-start">
-          <AnimeCard anime={anime} />
-        </div>
-      ))}
-    </div>
-  </section>
-
-  <!-- 2. STANDOUT "BROWSE BY VIBE" SECTION -->
-  <section id="vibes" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 border-t border-white/10">
-    <div class="mb-8 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
-      <div>
-        <span class="text-xs font-black uppercase tracking-widest text-red-400">
-          Discovery by Mood
-        </span>
-        <h2 class="text-2xl sm:text-3xl font-black text-white tracking-tight mt-1">
-          Browse by Vibe
-        </h2>
-        <p class="text-sm text-slate-300 mt-1 max-w-xl">
-          Forget generic genres. Choose how you want to feel right now — click any card to filter the catalog instantly.
-        </p>
-      </div>
-
-      <button
-        type="button"
-        id="reset-vibes-btn"
-        class="hidden text-xs font-bold text-slate-300 hover:text-white px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/10 transition-colors"
+      <a
+        href="/anime/catalog"
+        class="inline-flex items-center gap-1.5 text-xs font-bold text-red-600 hover:text-red-700 transition-colors"
       >
-        ✕ Reset Vibe Filter
-      </button>
+        <span>View all {animeList.length} titles in catalog →</span>
+      </a>
     </div>
 
-    <!-- 6 Interactive Clickable Vibe Cards -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-      {vibes.map((vibe) => (
-        <VibeCard vibe={vibe} />
-      ))}
-    </div>
-  </section>
-
-  <!-- 3. FULL BROWSABLE GRID OF ALL ANIME IN CATALOG -->
-  <section id="catalog" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 border-t border-white/10">
-    
-    <!-- Catalog Header & Live Interactive Filters -->
-    <div class="space-y-6 mb-10">
-      
-      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h2 class="text-2xl sm:text-3xl font-black text-white tracking-tight">
-            Full Anime Catalog
-          </h2>
-          <p class="text-xs text-slate-400 mt-1">
-            Showing <span id="visible-count" class="font-bold text-white">{animeList.length}</span> titles
-            <span id="active-vibe-pill" class="hidden ml-2 px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 border border-red-500/30 text-[11px] font-bold"></span>
-          </p>
-        </div>
-
-        <!-- Search Bar -->
-        <div class="relative w-full md:w-80">
-          <input
-            type="text"
-            id="search-input"
-            placeholder="Search anime by title..."
-            class="w-full px-4 py-2.5 pl-10 rounded-xl bg-[#0b0f19] border border-white/10 focus:border-red-500 focus:outline-none text-sm text-white placeholder:text-slate-500 transition-colors"
-          />
-          <svg class="w-4 h-4 text-slate-500 absolute left-3.5 top-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
-        </div>
-      </div>
-
-      <!-- Filter Tabs -->
-      <div class="flex flex-wrap items-center gap-2 pt-2 border-t border-white/5" id="filter-tabs">
-        <button
-          type="button"
-          data-filter="all"
-          class="filter-tab-btn active px-3.5 py-1.5 rounded-lg text-xs font-bold tracking-wide transition-all bg-red-600 text-white shadow-md shadow-red-600/30"
-        >
-          All Titles ({animeList.length})
-        </button>
-
-        <button
-          type="button"
-          data-filter="watched"
-          class="filter-tab-btn px-3.5 py-1.5 rounded-lg text-xs font-bold tracking-wide transition-all bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 flex items-center gap-1.5"
-        >
-          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-          <span>Watched ({watchedCount})</span>
-        </button>
-
-        <button
-          type="button"
-          data-filter="watchlist"
-          class="filter-tab-btn px-3.5 py-1.5 rounded-lg text-xs font-bold tracking-wide transition-all bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 flex items-center gap-1.5"
-        >
-          <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
-          <span>On Watchlist ({watchlistCount})</span>
-        </button>
-
-        <button
-          type="button"
-          data-filter="zero"
-          class="filter-tab-btn px-3.5 py-1.5 rounded-lg text-xs font-bold tracking-wide transition-all bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 flex items-center gap-1.5"
-        >
-          <span class="w-1.5 h-1.5 rounded-full bg-cyan-400"></span>
-          <span>Zero Filler ({zeroFillerCount})</span>
-        </button>
-      </div>
-
-    </div>
-
-    <!-- The Grid of All Anime Cards -->
-    <div id="anime-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-      {animeList.map((anime) => (
+    <!-- Static Grid of Anime Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-7">
+      {featuredAnime.map((anime) => (
         <AnimeCard anime={anime} />
       ))}
     </div>
+  </section>
 
-    <!-- Empty State Message when no cards match -->
-    <div id="empty-state" class="hidden text-center py-20 bg-white/[0.02] rounded-3xl border border-white/10 p-8">
-      <div class="w-16 h-16 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mx-auto mb-4 text-slate-400">
-        <svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
+  <!-- 3. STANDOUT "BROWSE BY VIBE" SECTION -->
+  <section id="vibes" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 border-t border-slate-200">
+    <div class="mb-8 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+      <div>
+        <span class="text-[11px] font-bold uppercase tracking-wider text-red-600">
+          Discovery by Mood
+        </span>
+        <h2 class="font-heading text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight mt-1">
+          Browse by Vibe
+        </h2>
+        <p class="text-sm text-slate-600 mt-1 max-w-xl font-normal leading-relaxed">
+          Forget generic genres. Choose how you want to feel right now — click any vibe card to open filtered picks in the catalog.
+        </p>
       </div>
-      <h3 class="text-lg font-bold text-white mb-1">No anime found matching your filter</h3>
-      <p class="text-xs text-slate-400 max-w-sm mx-auto mb-5">
-        Try resetting the search or selecting another vibe or status tab.
-      </p>
-      <button
-        type="button"
-        id="clear-filters-btn"
-        class="px-4 py-2 rounded-xl bg-red-600 text-white text-xs font-bold hover:bg-red-500 transition-colors"
-      >
-        Clear All Filters
-      </button>
     </div>
 
+    <!-- 6 Interactive Clickable Vibe Cards linking to dedicated /anime/tag/[slug] pages -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
+      {vibes.map((vibe) => (
+        <VibeCard vibe={vibe} href={`/anime/tag/${vibe.slug}`} />
+      ))}
+    </div>
+  </section>
+
+  <!-- 4. DEDICATED FULL CATALOG PROMO CTA (REPLACING EMBEDDED CATALOG GRID ON HOMEPAGE) -->
+  <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
+    <div class="p-8 sm:p-12 rounded-3xl bg-white border border-slate-200 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-8">
+      <div class="space-y-3 max-w-2xl">
+        <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+          Complete Directory
+        </span>
+        <h3 class="font-heading text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+          Explore the Full Anime Catalog
+        </h3>
+        <p class="text-sm sm:text-base text-slate-600 leading-relaxed font-normal">
+          Search by title, filter by what I've finished vs. queued next, or find 100% zero-filler series. All with verified chronological watch orders.
+        </p>
+      </div>
+
+      <div class="shrink-0 flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
+        <a
+          href="/anime/catalog"
+          class="inline-flex items-center justify-center gap-2 px-7 py-4 rounded-2xl bg-red-600 hover:bg-red-500 text-white text-sm font-bold shadow-md shadow-red-600/25 hover:shadow-red-600/40 hover:-translate-y-0.5 transition-all duration-200 text-center"
+        >
+          <span>Open Full Catalog ({animeList.length})</span>
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+          </svg>
+        </a>
+      </div>
+    </div>
   </section>
 </BaseLayout>
-
-<script>
-  // Pure JavaScript Client Filter & Vibe Connector
-  function setupAnimeCatalog() {
-    const cards = Array.from(document.querySelectorAll('#anime-grid > article'));
-    const tabBtns = Array.from(document.querySelectorAll('.filter-tab-btn'));
-    const vibeCards = Array.from(document.querySelectorAll('.vibe-card-btn'));
-    const searchInput = document.getElementById('search-input');
-    const visibleCount = document.getElementById('visible-count');
-    const emptyState = document.getElementById('empty-state');
-    const clearFiltersBtn = document.getElementById('clear-filters-btn');
-    const activeVibePill = document.getElementById('active-vibe-pill');
-    const resetVibesBtn = document.getElementById('reset-vibes-btn');
-
-    let currentFilter = 'all';
-    let currentVibe = null;
-    let searchQuery = '';
-
-    function filterCards() {
-      let count = 0;
-
-      cards.forEach((card) => {
-        const cardStatus = card.getAttribute('data-status');
-        const cardFiller = card.getAttribute('data-filler');
-        const cardVibes = (card.getAttribute('data-vibe') || '').split(' ');
-        const cardTitle = card.getAttribute('data-title') || '';
-
-        // Status / Tab filter match
-        let matchesTab = true;
-        if (currentFilter === 'watched') matchesTab = (cardStatus === 'watched');
-        if (currentFilter === 'watchlist') matchesTab = (cardStatus === 'watchlist');
-        if (currentFilter === 'zero') matchesTab = (cardFiller === 'zero');
-
-        // Vibe match
-        let matchesVibe = true;
-        if (currentVibe) {
-          matchesVibe = cardVibes.includes(currentVibe);
-        }
-
-        // Search match
-        let matchesSearch = true;
-        if (searchQuery.trim()) {
-          matchesSearch = cardTitle.includes(searchQuery.toLowerCase().trim());
-        }
-
-        if (matchesTab && matchesVibe && matchesSearch) {
-          card.classList.remove('hidden');
-          count++;
-        } else {
-          card.classList.add('hidden');
-        }
-      });
-
-      if (visibleCount) {
-        visibleCount.textContent = count;
-      }
-
-      if (emptyState) {
-        if (count === 0) {
-          emptyState.classList.remove('hidden');
-        } else {
-          emptyState.classList.add('hidden');
-        }
-      }
-
-      // Update vibe UI indicator
-      if (activeVibePill) {
-        if (currentVibe) {
-          activeVibePill.classList.remove('hidden');
-          activeVibePill.textContent = `Vibe: ${currentVibe.replace('-', ' ')} ✕`;
-          if (resetVibesBtn) resetVibesBtn.classList.remove('hidden');
-        } else {
-          activeVibePill.classList.add('hidden');
-          if (resetVibesBtn) resetVibesBtn.classList.add('hidden');
-        }
-      }
-    }
-
-    // Tab buttons click handler
-    tabBtns.forEach((btn) => {
-      btn.onclick = () => {
-        tabBtns.forEach((b) => {
-          b.classList.remove('bg-red-600', 'text-white', 'shadow-md', 'shadow-red-600/30');
-          b.classList.add('bg-white/5', 'text-slate-300');
-        });
-        btn.classList.remove('bg-white/5', 'text-slate-300');
-        btn.classList.add('bg-red-600', 'text-white', 'shadow-md', 'shadow-red-600/30');
-
-        currentFilter = btn.getAttribute('data-filter') || 'all';
-        filterCards();
-      };
-    });
-
-    // Vibe cards click handler
-    vibeCards.forEach((btn) => {
-      btn.onclick = () => {
-        const vibeId = btn.getAttribute('data-filter-vibe');
-        if (currentVibe === vibeId) {
-          currentVibe = null;
-        } else {
-          currentVibe = vibeId;
-        }
-
-        filterCards();
-
-        // Smooth scroll down to the catalog grid
-        const catalogEl = document.getElementById('catalog');
-        if (catalogEl) {
-          catalogEl.scrollIntoView({ behavior: 'smooth' });
-        }
-      };
-    });
-
-    // Click active vibe pill to clear
-    if (activeVibePill) {
-      activeVibePill.onclick = () => {
-        currentVibe = null;
-        filterCards();
-      };
-    }
-
-    if (resetVibesBtn) {
-      resetVibesBtn.onclick = () => {
-        currentVibe = null;
-        filterCards();
-      };
-    }
-
-    // Search input handler
-    if (searchInput) {
-      searchInput.oninput = (e) => {
-        searchQuery = e.target.value;
-        filterCards();
-      };
-    }
-
-    // Clear filters button
-    if (clearFiltersBtn) {
-      clearFiltersBtn.onclick = () => {
-        currentFilter = 'all';
-        currentVibe = null;
-        searchQuery = '';
-        if (searchInput) searchInput.value = '';
-
-        tabBtns.forEach((b, idx) => {
-          if (idx === 0) {
-            b.classList.add('bg-red-600', 'text-white');
-            b.classList.remove('bg-white/5', 'text-slate-300');
-          } else {
-            b.classList.remove('bg-red-600', 'text-white');
-            b.classList.add('bg-white/5', 'text-slate-300');
-          }
-        });
-
-        filterCards();
-      };
-    }
-  }
-
-  setupAnimeCatalog();
-  document.addEventListener('astro:page-load', setupAnimeCatalog);
-</script>

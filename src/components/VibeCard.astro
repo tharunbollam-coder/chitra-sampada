@@ -1,30 +1,69 @@
 ---
 // src/components/VibeCard.astro
-const { vibe } = Astro.props;
+const { vibe, href } = Astro.props;
+
+// Light mode styling helpers
+const vibeStyles = {
+  'op-mc': {
+    badge: 'bg-purple-50 text-purple-800 border-purple-200',
+    iconBg: 'bg-purple-50 text-purple-700 border-purple-200',
+    accent: 'text-purple-700',
+    hoverBorder: 'hover:border-purple-300',
+  },
+  'slow-burn-romance': {
+    badge: 'bg-rose-50 text-rose-800 border-rose-200',
+    iconBg: 'bg-rose-50 text-rose-700 border-rose-200',
+    accent: 'text-rose-700',
+    hoverBorder: 'hover:border-rose-300',
+  },
+  'zero-filler': {
+    badge: 'bg-emerald-50 text-emerald-800 border-emerald-200',
+    iconBg: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+    accent: 'text-emerald-700',
+    hoverBorder: 'hover:border-emerald-300',
+  },
+  'like-naruto': {
+    badge: 'bg-amber-50 text-amber-800 border-amber-200',
+    iconBg: 'bg-amber-50 text-amber-700 border-amber-200',
+    accent: 'text-amber-700',
+    hoverBorder: 'hover:border-amber-300',
+  },
+  'hidden-gems': {
+    badge: 'bg-cyan-50 text-cyan-800 border-cyan-200',
+    iconBg: 'bg-cyan-50 text-cyan-700 border-cyan-200',
+    accent: 'text-cyan-700',
+    hoverBorder: 'hover:border-cyan-300',
+  },
+  'beginners': {
+    badge: 'bg-fuchsia-50 text-fuchsia-800 border-fuchsia-200',
+    iconBg: 'bg-fuchsia-50 text-fuchsia-700 border-fuchsia-200',
+    accent: 'text-fuchsia-700',
+    hoverBorder: 'hover:border-fuchsia-300',
+  }
+};
+
+const style = vibeStyles[vibe.id] || vibeStyles['op-mc'];
+const Component = href ? 'a' : 'button';
 ---
 
-<button
-  type="button"
+<Component
+  href={href}
+  type={href ? undefined : 'button'}
   data-filter-vibe={vibe.id}
   class:list={[
-    'vibe-card-btn group text-left relative overflow-hidden rounded-2xl p-5 sm:p-6 transition-all duration-300 border border-white/10 bg-gradient-to-br',
-    vibe.gradient,
-    vibe.borderHover,
-    'hover:-translate-y-1.5 hover:shadow-xl cursor-pointer w-full'
+    'vibe-card-btn group text-left relative overflow-hidden rounded-2xl p-5 sm:p-6 transition-all duration-300 bg-white border border-slate-200/80 shadow-xs hover:shadow-md hover:-translate-y-1 cursor-pointer w-full flex flex-col justify-between h-full',
+    style.hoverBorder
   ]}
 >
-  <!-- Background Glow & Pattern Accent -->
-  <div class="absolute -right-6 -bottom-6 w-28 h-28 rounded-full bg-white/5 blur-2xl pointer-events-none group-hover:scale-150 transition-transform duration-500"></div>
-
   <div class="relative z-10 flex flex-col justify-between h-full space-y-4">
     
     <!-- Top badge + Icon Header -->
     <div class="flex items-center justify-between gap-2">
-      <span class:list={['text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full bg-black/40 border border-white/10 backdrop-blur-md', vibe.accentText]}>
+      <span class:list={['text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full border', style.badge]}>
         {vibe.badge}
       </span>
 
-      <div class="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center text-white/80 group-hover:text-white group-hover:scale-110 transition-all">
+      <div class:list={['w-8 h-8 rounded-xl border flex items-center justify-center group-hover:scale-105 transition-all', style.iconBg]}>
         {vibe.icon === 'lightning' && (
           <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
@@ -60,31 +99,31 @@ const { vibe } = Astro.props;
 
     <!-- Title & Tagline -->
     <div>
-      <h4 class="text-lg sm:text-xl font-black text-white group-hover:text-white tracking-tight">
+      <h4 class="font-heading text-lg sm:text-xl font-bold text-slate-900 group-hover:text-slate-950 tracking-tight leading-snug">
         {vibe.title}
       </h4>
-      <p class:list={['text-xs font-semibold tracking-wide mt-1', vibe.accentText]}>
+      <p class:list={['text-xs font-semibold tracking-wide mt-1', style.accent]}>
         {vibe.tagline}
       </p>
     </div>
 
     <!-- Description -->
-    <p class="text-xs text-slate-300 leading-relaxed">
+    <p class="text-xs text-slate-600 leading-relaxed font-normal">
       {vibe.description}
     </p>
 
     <!-- Bottom Action Cue -->
-    <div class="pt-2 flex items-center justify-between text-xs font-bold text-slate-400 group-hover:text-white transition-colors">
-      <span class="inline-flex items-center gap-1">
+    <div class="pt-2 flex items-center justify-between text-xs font-semibold text-slate-500 group-hover:text-slate-900 transition-colors">
+      <span class="inline-flex items-center gap-1.5">
         <span>Filter this vibe</span>
-        <svg class="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <svg class="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform duration-200 text-slate-400 group-hover:text-slate-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
         </svg>
       </span>
-      <span class="text-[10px] px-2 py-0.5 rounded bg-white/10 text-slate-300">
+      <span class="text-[10px] px-2 py-0.5 rounded-md bg-slate-100 border border-slate-200/80 text-slate-600 font-medium">
         Curated Picks
       </span>
     </div>
 
   </div>
-</button>
+</Component>

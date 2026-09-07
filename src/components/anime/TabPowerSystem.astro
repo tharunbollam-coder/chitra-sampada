@@ -1,0 +1,33 @@
+---
+// src/components/anime/TabPowerSystem.astro
+const { anime } = Astro.props;
+const power = anime.powerSystem || {};
+const paragraphs = Array.isArray(power.paragraphs)
+  ? power.paragraphs
+  : (typeof power === 'string' ? [power] : []);
+---
+
+<div class="space-y-6">
+  <div class="bg-white rounded-2xl border border-slate-200 p-6 sm:p-7 shadow-xs space-y-6">
+    <div class="pb-5 border-b border-slate-100">
+      <div class="flex items-center gap-2 mb-1">
+        <span class="text-xs font-bold uppercase tracking-wider text-red-600">Universe Lore</span>
+      </div>
+      <h2 class="font-heading text-xl sm:text-2xl font-bold text-slate-900">
+        {power.name || `${anime.title} Power System & Ability Mechanics`}
+      </h2>
+      <p class="text-xs sm:text-sm text-slate-500 font-normal mt-1">
+        An honest breakdown of how superhuman abilities, rules, constraints, and energy systems function in this universe.
+      </p>
+    </div>
+
+    <!-- Power System Explanation (Plain Text, Multi-Paragraph) -->
+    <div class="prose prose-slate max-w-none space-y-4">
+      {paragraphs.map((p) => (
+        <p class="text-sm sm:text-base text-slate-700 leading-relaxed font-normal">
+          {p}
+        </p>
+      ))}
+    </div>
+  </div>
+</div>

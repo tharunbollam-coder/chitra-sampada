@@ -1,0 +1,318 @@
+---
+// src/pages/anime/catalog.astro
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import AnimeCard from '../../components/AnimeCard.astro';
+import HonestyBadge from '../../components/HonestyBadge.astro';
+import { animeList } from '../../data/anime.js';
+import { vibes } from '../../data/vibes.js';
+
+// Metrics
+const watchedCount = animeList.filter((a) => a.honestyStatus === 'watched').length;
+const watchlistCount = animeList.filter((a) => a.honestyStatus === 'watchlist').length;
+const zeroFillerCount = animeList.filter((a) => a.fillerPercentage === 0).length;
+---
+
+<BaseLayout
+  title="Full Anime Catalog — Filler-Free Watch Orders & Honest Lists"
+  description="Search and filter through all anime titles on Chitra Sampada. Clear watch orders, filler percentages, and honest personal viewing status."
+>
+  <!-- BROWSE HEADER -->
+  <section class="relative pt-8 pb-10 sm:pt-12 sm:pb-12 border-b border-slate-200 bg-gradient-to-b from-slate-100/80 to-transparent">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+      
+      <!-- Breadcrumb & Back Navigation -->
+      <nav class="flex items-center justify-between gap-4">
+        <div class="flex items-center gap-2 text-xs text-slate-500 flex-wrap">
+          <a href="/" class="hover:text-slate-900 transition-colors">Home</a>
+          <span>/</span>
+          <a href="/anime" class="hover:text-slate-900 transition-colors">Anime Section</a>
+          <span>/</span>
+          <span id="breadcrumb-page-label" class="text-red-600 font-semibold">Full Catalog</span>
+        </div>
+
+        <a
+          href="/anime"
+          class="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-red-600 transition-colors shrink-0"
+        >
+          <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          </svg>
+          <span>Back to Anime Section</span>
+        </a>
+      </nav>
+
+      <!-- Title & Live Search Bar Row -->
+      <div class="flex flex-col md:flex-row md:items-start justify-between gap-6">
+        <div class="space-y-3 max-w-3xl">
+          <div id="vibe-badge-container" class="hidden">
+            <span id="vibe-category-badge" class="text-[10px] font-extrabold uppercase tracking-wider px-3 py-1 rounded-full bg-red-50 text-red-700 border border-red-200"></span>
+          </div>
+
+          <h1 id="catalog-h1" class="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-slate-900 tracking-tight font-heading leading-tight">
+            Full Anime Catalog
+          </h1>
+
+          <p id="catalog-intro-desc" class="text-sm sm:text-base text-slate-600 font-normal leading-relaxed">
+            Search and filter through every anime title on the site with chronological watch orders, filler percentage guides, and honest viewer notes.
+          </p>
+
+          <p class="text-xs sm:text-sm text-slate-500 font-normal pt-1">
+            Showing <span id="visible-count" class="font-bold text-slate-900">{animeList.length}</span> of {animeList.length} anime listed and counting
+            <button
+              type="button"
+              id="active-vibe-pill"
+              class="hidden ml-2 px-2.5 py-0.5 rounded-full bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 text-[11px] font-bold cursor-pointer transition-colors"
+              title="Click to clear vibe filter"
+            ></button>
+          </p>
+        </div>
+
+        <!-- Live Search Bar -->
+        <div class="relative w-full md:w-80 shrink-0">
+          <input
+            type="text"
+            id="search-input"
+            placeholder="Search anime by title..."
+            class="w-full px-4 py-2.5 pl-10 rounded-full bg-white border border-slate-200 focus:border-red-500 focus:ring-2 focus:ring-red-500/20 focus:outline-none text-sm text-slate-900 placeholder:text-slate-400 transition-all shadow-xs"
+          />
+          <svg class="w-4 h-4 text-slate-400 absolute left-3.5 top-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+        </div>
+      </div>
+
+      <!-- Filter Tabs -->
+      <div class="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-200/60" id="filter-tabs">
+        <button
+          type="button"
+          data-filter="all"
+          class="filter-tab-btn active px-4 py-1.5 rounded-full text-xs font-bold tracking-wide transition-all bg-red-600 text-white shadow-xs"
+        >
+          All Titles ({animeList.length})
+        </button>
+
+        <button
+          type="button"
+          data-filter="watched"
+          class="filter-tab-btn px-4 py-1.5 rounded-full text-xs font-semibold tracking-wide transition-all bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 flex items-center gap-1.5 shadow-2xs"
+        >
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+          <span>I've Watched This ({watchedCount})</span>
+        </button>
+
+        <button
+          type="button"
+          data-filter="watchlist"
+          class="filter-tab-btn px-4 py-1.5 rounded-full text-xs font-semibold tracking-wide transition-all bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 flex items-center gap-1.5 shadow-2xs"
+        >
+          <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+          <span>On My Watchlist ({watchlistCount})</span>
+        </button>
+
+        <button
+          type="button"
+          data-filter="zero"
+          class="filter-tab-btn px-4 py-1.5 rounded-full text-xs font-semibold tracking-wide transition-all bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 flex items-center gap-1.5 shadow-2xs"
+        >
+          <span class="w-1.5 h-1.5 rounded-full bg-cyan-500"></span>
+          <span>Zero Filler ({zeroFillerCount})</span>
+        </button>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- CATALOG GRID -->
+  <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <!-- The Grid of All Anime Cards -->
+    <div id="anime-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 sm:gap-7">
+      {animeList.map((anime) => (
+        <AnimeCard anime={anime} />
+      ))}
+    </div>
+
+    <!-- Empty State Message when no cards match -->
+    <div id="empty-state" class="hidden text-center py-20 bg-white rounded-3xl border border-slate-200 p-8 shadow-xs">
+      <div class="w-16 h-16 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center mx-auto mb-4 text-slate-400">
+        <svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      </div>
+      <h3 class="text-lg font-bold text-slate-900 mb-1 font-heading">No anime found matching your filter</h3>
+      <p class="text-xs text-slate-500 max-w-sm mx-auto mb-5 font-normal">
+        Try resetting the search or selecting another vibe or status tab.
+      </p>
+      <button
+        type="button"
+        id="clear-filters-btn"
+        class="px-4 py-2 rounded-xl bg-red-600 text-white text-xs font-bold hover:bg-red-500 transition-colors shadow-xs"
+      >
+        Clear All Filters
+      </button>
+    </div>
+  </section>
+</BaseLayout>
+
+<script is:inline define:vars={{ vibes }}>
+  function setupAnimeCatalog() {
+    const cards = Array.from(document.querySelectorAll('#anime-grid > article'));
+    const tabBtns = Array.from(document.querySelectorAll('.filter-tab-btn'));
+    const searchInput = document.getElementById('search-input');
+    const visibleCount = document.getElementById('visible-count');
+    const emptyState = document.getElementById('empty-state');
+    const clearFiltersBtn = document.getElementById('clear-filters-btn');
+    const activeVibePill = document.getElementById('active-vibe-pill');
+    const catalogH1 = document.getElementById('catalog-h1');
+    const catalogIntroDesc = document.getElementById('catalog-intro-desc');
+    const vibeBadgeContainer = document.getElementById('vibe-badge-container');
+    const vibeCategoryBadge = document.getElementById('vibe-category-badge');
+    const breadcrumbPageLabel = document.getElementById('breadcrumb-page-label');
+
+    const defaultTitle = "Full Anime Catalog";
+    const defaultDesc = "Search and filter through every anime title on the site with chronological watch orders, filler percentage guides, and honest viewer notes.";
+
+    const urlParams = new URLSearchParams(window.location.search);
+    let currentFilter = urlParams.get('filter') || 'all';
+    let currentVibe = urlParams.get('vibe') || null;
+    let searchQuery = urlParams.get('q') || '';
+
+    if (searchInput && searchQuery) {
+      searchInput.value = searchQuery;
+    }
+
+    function updateHeaderForVibe(vibeObj) {
+      if (vibeObj) {
+        if (catalogH1) catalogH1.textContent = vibeObj.h1 || vibeObj.fullName || vibeObj.title;
+        if (catalogIntroDesc) catalogIntroDesc.textContent = vibeObj.intro || vibeObj.description;
+        if (vibeBadgeContainer && vibeCategoryBadge) {
+          vibeBadgeContainer.classList.remove('hidden');
+          vibeCategoryBadge.textContent = vibeObj.badge || 'CURATED VIBE';
+        }
+        if (breadcrumbPageLabel) {
+          breadcrumbPageLabel.textContent = vibeObj.title;
+        }
+        document.title = (vibeObj.pageTitle || vibeObj.title) + " — Chitra Sampada";
+      } else {
+        if (catalogH1) catalogH1.textContent = defaultTitle;
+        if (catalogIntroDesc) catalogIntroDesc.textContent = defaultDesc;
+        if (vibeBadgeContainer) vibeBadgeContainer.classList.add('hidden');
+        if (breadcrumbPageLabel) breadcrumbPageLabel.textContent = "Full Catalog";
+        document.title = "Full Anime Catalog — Chitra Sampada";
+      }
+    }
+
+    function updateTabButtonUI() {
+      tabBtns.forEach((btn) => {
+        const filterVal = btn.getAttribute('data-filter');
+        if (filterVal === currentFilter) {
+          btn.classList.add('bg-red-600', 'text-white', 'shadow-xs');
+          btn.classList.remove('bg-white', 'text-slate-700');
+        } else {
+          btn.classList.remove('bg-red-600', 'text-white', 'shadow-xs');
+          btn.classList.add('bg-white', 'text-slate-700');
+        }
+      });
+    }
+
+    function filterCards() {
+      let count = 0;
+      const vibeObj = vibes.find((v) => v.id === currentVibe || v.slug === currentVibe);
+      updateHeaderForVibe(vibeObj);
+
+      cards.forEach((card) => {
+        const cardStatus = card.getAttribute('data-status');
+        const cardFiller = card.getAttribute('data-filler');
+        const cardVibes = (card.getAttribute('data-vibe') || '').split(' ');
+        const cardTitle = card.getAttribute('data-title') || '';
+
+        // Status match
+        let matchesTab = true;
+        if (currentFilter === 'watched') matchesTab = (cardStatus === 'watched');
+        if (currentFilter === 'watchlist') matchesTab = (cardStatus === 'watchlist');
+        if (currentFilter === 'zero') matchesTab = (cardFiller === 'zero');
+
+        // Vibe match
+        let matchesVibe = true;
+        if (currentVibe) {
+          matchesVibe = cardVibes.includes(currentVibe) || (vibeObj && cardVibes.includes(vibeObj.id));
+        }
+
+        // Search match
+        let matchesSearch = true;
+        if (searchQuery.trim()) {
+          matchesSearch = cardTitle.includes(searchQuery.toLowerCase().trim());
+        }
+
+        if (matchesTab && matchesVibe && matchesSearch) {
+          card.classList.remove('hidden');
+          count++;
+        } else {
+          card.classList.add('hidden');
+        }
+      });
+
+      if (visibleCount) {
+        visibleCount.textContent = count;
+      }
+
+      if (emptyState) {
+        if (count === 0) {
+          emptyState.classList.remove('hidden');
+        } else {
+          emptyState.classList.add('hidden');
+        }
+      }
+
+      // Update active vibe pill
+      if (activeVibePill) {
+        if (currentVibe) {
+          activeVibePill.classList.remove('hidden');
+          activeVibePill.textContent = `Vibe: ${vibeObj ? vibeObj.title : currentVibe} ✕`;
+        } else {
+          activeVibePill.classList.add('hidden');
+        }
+      }
+    }
+
+    tabBtns.forEach((btn) => {
+      btn.onclick = () => {
+        currentFilter = btn.getAttribute('data-filter') || 'all';
+        updateTabButtonUI();
+        filterCards();
+      };
+    });
+
+    if (activeVibePill) {
+      activeVibePill.onclick = () => {
+        currentVibe = null;
+        window.history.pushState({}, '', '/anime/catalog');
+        filterCards();
+      };
+    }
+
+    if (searchInput) {
+      searchInput.oninput = (e) => {
+        searchQuery = e.target.value;
+        filterCards();
+      };
+    }
+
+    if (clearFiltersBtn) {
+      clearFiltersBtn.onclick = () => {
+        currentFilter = 'all';
+        currentVibe = null;
+        searchQuery = '';
+        if (searchInput) searchInput.value = '';
+        window.history.pushState({}, '', '/anime/catalog');
+        updateTabButtonUI();
+        filterCards();
+      };
+    }
+
+    updateTabButtonUI();
+    filterCards();
+  }
+
+  setupAnimeCatalog();
+  document.addEventListener('astro:page-load', setupAnimeCatalog);
+</script>

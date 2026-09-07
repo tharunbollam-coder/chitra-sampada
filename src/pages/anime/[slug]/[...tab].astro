@@ -1,0 +1,361 @@
+---
+// src/pages/anime/[slug]/[...tab].astro
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import HonestyBadge from '../../../components/HonestyBadge.astro';
+import TabWatchOrder from '../../../components/anime/TabWatchOrder.astro';
+import TabFillerList from '../../../components/anime/TabFillerList.astro';
+import TabCharacters from '../../../components/anime/TabCharacters.astro';
+import TabSource from '../../../components/anime/TabSource.astro';
+import TabPowerSystem from '../../../components/anime/TabPowerSystem.astro';
+import TabLessons from '../../../components/anime/TabLessons.astro';
+import TabReview from '../../../components/anime/TabReview.astro';
+import { animeList, getAvailableTabs, getDefaultTabKey } from '../../../data/anime.js';
+
+export function getStaticPaths() {
+  const paths = [];
+
+  for (const anime of animeList) {
+    const availableTabs = getAvailableTabs(anime);
+    const defaultTabKey = getDefaultTabKey(anime, availableTabs) || 'watch-order';
+
+    // 1. Root route: /anime/${anime.slug} (renders the preferred default tab — 'review' if available, otherwise first tab)
+    paths.push({
+      params: { slug: anime.slug, tab: undefined },
+      props: { anime, activeTabKey: defaultTabKey, availableTabs }
+    });
+
+    // 2. Tab-specific routes: /anime/${anime.slug}/${tab.key}
+    for (const tab of availableTabs) {
+      paths.push({
+        params: { slug: anime.slug, tab: tab.key },
+        props: { anime, activeTabKey: tab.key, availableTabs }
+      });
+    }
+  }
+
+  return paths;
+}
+
+const { anime, activeTabKey, availableTabs } = Astro.props;
+
+const isZeroFiller = anime.fillerPercentage === 0;
+const activeTab = availableTabs.find((t) => t.key === activeTabKey) || availableTabs[0];
+
+// Dynamic Title & Description based on active tab
+const tabTitleMap = {
+  'watch-order': 'Watch Order & Franchise Sequence',
+  'filler-list': 'Filler List & Canon Breakdown',
+  'characters': 'Ranked Characters',
+  'source': 'Manga & Light Novel Source Guide',
+  'power-system': 'Power System & Lore',
+  'lessons': 'What I Learned (Reflections)',
+  'review': 'My Honest Take & Review'
+};
+
+const currentTabLabel = tabTitleMap[activeTab?.key] || 'Honest Guide';
+const pageTitle = `${anime.title} — ${currentTabLabel}`;
+const pageDescription = `Complete guide for ${anime.title}. ${currentTabLabel} with honest, no-fluff viewer insights.`;
+---
+
+<BaseLayout title={pageTitle} description={pageDescription}>
+  <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-10">
+    
+    <!-- 1. BREADCRUMB NAVIGATION -->
+    <nav class="flex items-center justify-between gap-4 border-b border-slate-200 pb-4">
+      <div class="flex items-center gap-2 text-xs text-slate-500 flex-wrap">
+        <a href="/" class="hover:text-slate-900 transition-colors">Home</a>
+        <span>/</span>
+        <a href="/anime" class="hover:text-slate-900 transition-colors">Anime Section</a>
+        <span>/</span>
+        <span class="text-slate-700 font-semibold truncate max-w-[180px] sm:max-w-sm">{anime.title}</span>
+        {activeTab && (
+          <>
+            <span>/</span>
+            <span id="breadcrumb-current-tab" class="text-red-600 font-semibold">{activeTab.label}</span>
+          </>
+        )}
+      </div>
+
+      <a
+        href="/anime"
+        class="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-red-600 transition-colors shrink-0"
+      >
+        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+        </svg>
+        <span>Back to Anime Home</span>
+      </a>
+    </nav>
+
+    <!-- 2. SHARED TOP SECTION (Fixed across all sub-pages/tabs) -->
+    <section class="space-y-6">
+      <div class="grid grid-cols-1 md:grid-cols-12 gap-8 items-start">
+        
+        <!-- Framed Poster Artwork -->
+        <div class="md:col-span-4 max-w-[280px] mx-auto md:mx-0 w-full">
+          <div class="relative aspect-[2/3] rounded-2xl overflow-hidden bg-slate-100 border border-slate-200/90 shadow-sm">
+            <img
+              src={anime.poster}
+              alt={`${anime.title} poster`}
+              class="w-full h-full object-cover"
+              loading="eager"
+            />
+          </div>
+        </div>
+
+        <!-- Title, Badges & Metadata -->
+        <div class="md:col-span-8 space-y-5">
+          
+          <!-- Status, Filler & Optional Personal Rating Badges Row -->
+          <div class="flex items-center gap-2 flex-wrap">
+            <HonestyBadge status={anime.honestyStatus} size="md" />
+
+            <span
+              class:list={[
+                'text-xs font-bold px-3 py-1 rounded-full border tracking-wide select-none',
+                isZeroFiller
+                  ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                  : 'bg-rose-50 text-rose-800 border-rose-200'
+              ]}
+            >
+              {isZeroFiller ? '0% Filler (Pure Canon)' : `${anime.fillerPercentage}% Filler Warning`}
+            </span>
+
+            <!-- Personal Rating Badge (Only rendered if personalRating exists) -->
+            {anime.personalRating && (
+              <span class="text-xs font-bold px-3 py-1 rounded-full bg-amber-50 text-amber-900 border border-amber-200/90 flex items-center gap-1.5 shadow-2xs">
+                <span class="text-amber-500 font-bold">★</span>
+                <span>{anime.personalRating} / 10</span>
+                <span class="text-[10px] text-amber-700/80 font-medium">(My Rating)</span>
+              </span>
+            )}
+          </div>
+
+          <!-- Titles (English + Original) -->
+          <div class="space-y-1">
+            <h1 class="text-2xl sm:text-4xl font-extrabold text-slate-900 tracking-tight font-heading leading-tight">
+              {anime.title}
+            </h1>
+            {anime.originalTitle && (
+              <p class="text-sm sm:text-base text-slate-500 font-normal">
+                {anime.originalTitle}
+              </p>
+            )}
+          </div>
+
+          <!-- Key Metadata Matrix -->
+          <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-1">
+            <div class="p-3 rounded-xl bg-slate-50 border border-slate-200/70">
+              <span class="block text-[10px] font-bold uppercase tracking-wider text-slate-500">Episodes</span>
+              <span class="text-sm font-bold text-slate-900">{anime.episodes} Total</span>
+            </div>
+            <div class="p-3 rounded-xl bg-slate-50 border border-slate-200/70">
+              <span class="block text-[10px] font-bold uppercase tracking-wider text-slate-500">Release Year</span>
+              <span class="text-sm font-bold text-slate-900">{anime.year}</span>
+            </div>
+            <div class="p-3 rounded-xl bg-slate-50 border border-slate-200/70 col-span-2 sm:col-span-1">
+              <span class="block text-[10px] font-bold uppercase tracking-wider text-slate-500">Status</span>
+              <span class="text-sm font-bold text-slate-900">{anime.status}</span>
+            </div>
+          </div>
+
+          <!-- Genres -->
+          <div class="flex items-center gap-1.5 flex-wrap pt-1">
+            {anime.genres.map((genre) => (
+              <span class="text-xs font-medium px-2.5 py-1 rounded-lg bg-white border border-slate-200 text-slate-700">
+                {genre}
+              </span>
+            ))}
+          </div>
+
+          <!-- Synopsis / Premise -->
+          <div class="pt-1">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Premise</h3>
+            <p class="text-sm sm:text-base text-slate-700 leading-relaxed font-normal">
+              {anime.synopsis}
+            </p>
+          </div>
+
+          <!-- Small Metadata Line (Added & Last Updated) -->
+          <div class="flex items-center gap-3 text-xs text-slate-500 pt-1 border-t border-slate-100 flex-wrap">
+            {anime.addedDate && <span>Added: <strong class="text-slate-700 font-semibold">{anime.addedDate}</strong></span>}
+            {anime.addedDate && anime.lastUpdated && <span>•</span>}
+            {anime.lastUpdated && <span>Last updated: <strong class="text-slate-700 font-semibold">{anime.lastUpdated}</strong></span>}
+          </div>
+
+        </div>
+      </div>
+
+      <!-- 3. TAB NAVIGATION BAR (Only renders available tabs for this anime) -->
+      <div id="anime-tabs-nav" class="pt-4 border-b border-slate-200">
+        <div class="flex items-center gap-1 sm:gap-2 overflow-x-auto no-scrollbar py-1">
+          {availableTabs.map((tab) => {
+            const isActive = tab.key === activeTab?.key;
+            const tabUrl = `/anime/${anime.slug}/${tab.key}`;
+
+            return (
+              <a
+                href={tabUrl}
+                data-tab-link={tab.key}
+                class:list={[
+                  'anime-tab-link px-3.5 sm:px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap transition-all duration-150 shrink-0 select-none flex items-center gap-1.5 cursor-pointer',
+                  isActive
+                    ? 'active-tab bg-red-600 text-white shadow-sm shadow-red-600/25 ring-1 ring-red-600'
+                    : 'inactive-tab bg-white hover:bg-slate-100 text-slate-600 hover:text-slate-900 border border-slate-200/80'
+                ]}
+              >
+                <span>{tab.label}</span>
+                {tab.count !== undefined && (
+                  <span class:list={[
+                    'tab-counter text-[10px] font-bold px-1.5 py-0.2 rounded-full',
+                    isActive ? 'bg-red-700 text-white' : 'bg-slate-100 text-slate-500'
+                  ]}>
+                    {tab.count}
+                  </span>
+                )}
+              </a>
+            );
+          })}
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. DYNAMIC BOTTOM SECTION (All available tabs rendered, in-place toggle with 0 scroll jump) -->
+    <main class="min-h-[250px] relative">
+      <div class="tab-panels">
+        {availableTabs.map((t) => (
+          <div
+            id={`panel-${t.key}`}
+            class:list={[
+              'tab-panel transition-opacity duration-150',
+              t.key === activeTab?.key ? 'block' : 'hidden'
+            ]}
+            data-panel={t.key}
+            role="tabpanel"
+          >
+            {t.key === 'watch-order' && <TabWatchOrder anime={anime} />}
+            {t.key === 'filler-list' && <TabFillerList anime={anime} />}
+            {t.key === 'characters' && <TabCharacters anime={anime} />}
+            {t.key === 'source' && <TabSource anime={anime} />}
+            {t.key === 'power-system' && <TabPowerSystem anime={anime} />}
+            {t.key === 'lessons' && <TabLessons anime={anime} />}
+            {t.key === 'review' && <TabReview anime={anime} />}
+          </div>
+        ))}
+      </div>
+    </main>
+
+    <!-- 5. END-OF-PAGE BUTTON (Back to Anime Home + Explore Full Catalog) -->
+    <footer class="pt-8 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <p class="text-sm text-slate-500 font-normal text-center sm:text-left">
+        Finished reading this section? Explore other anime titles and watch orders.
+      </p>
+
+      <div class="flex items-center gap-3 flex-wrap justify-center">
+        <!-- Back to Anime Home Button -->
+        <a
+          href="/anime"
+          class="inline-flex items-center gap-2 px-6 py-3.5 rounded-2xl bg-red-600 hover:bg-red-500 text-white font-bold text-sm shadow-md shadow-red-600/25 hover:shadow-red-600/40 hover:-translate-y-0.5 transition-all duration-200"
+        >
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          </svg>
+          <span>Back to Anime Home</span>
+        </a>
+
+        <!-- Companion Full Catalog Link -->
+        <a
+          href="/anime/catalog"
+          class="inline-flex items-center gap-2 px-6 py-3.5 rounded-2xl bg-white hover:bg-slate-50 text-slate-800 font-semibold text-sm border border-slate-200 shadow-xs hover:-translate-y-0.5 transition-all duration-200"
+        >
+          <span>Explore Full Catalog →</span>
+        </a>
+      </div>
+    </footer>
+
+  </div>
+
+  <!-- Client-side Tab In-Place Switching Script (Preserves Scroll Position & URL Sync) -->
+  <script is:inline>
+    (function () {
+      const tabLinks = document.querySelectorAll('[data-tab-link]');
+      const panels = document.querySelectorAll('[data-panel]');
+      const breadcrumbTab = document.getElementById('breadcrumb-current-tab');
+
+      const tabTitleMap = {
+        'watch-order': 'Watch Order',
+        'filler-list': 'Filler List',
+        'characters': 'Characters',
+        'source': 'Manga & Light Novel',
+        'power-system': 'Power System',
+        'lessons': 'What I Learned',
+        'review': 'My Take'
+      };
+
+      function activateTab(tabKey, updateHistory, newHref) {
+        if (!tabKey) return;
+
+        // 1. Update Tab Buttons styling
+        tabLinks.forEach(function (link) {
+          const isMatch = link.getAttribute('data-tab-link') === tabKey;
+          const counter = link.querySelector('.tab-counter');
+
+          if (isMatch) {
+            link.classList.remove('inactive-tab', 'bg-white', 'hover:bg-slate-100', 'text-slate-600', 'hover:text-slate-900', 'border', 'border-slate-200/80');
+            link.classList.add('active-tab', 'bg-red-600', 'text-white', 'shadow-sm', 'shadow-red-600/25', 'ring-1', 'ring-red-600');
+            if (counter) {
+              counter.classList.remove('bg-slate-100', 'text-slate-500');
+              counter.classList.add('bg-red-700', 'text-white');
+            }
+          } else {
+            link.classList.remove('active-tab', 'bg-red-600', 'text-white', 'shadow-sm', 'shadow-red-600/25', 'ring-1', 'ring-red-600');
+            link.classList.add('inactive-tab', 'bg-white', 'hover:bg-slate-100', 'text-slate-600', 'hover:text-slate-900', 'border', 'border-slate-200/80');
+            if (counter) {
+              counter.classList.remove('bg-red-700', 'text-white');
+              counter.classList.add('bg-slate-100', 'text-slate-500');
+            }
+          }
+        });
+
+        // 2. Toggle Tab Panels in place (zero scroll jump)
+        panels.forEach(function (panel) {
+          const isMatch = panel.getAttribute('data-panel') === tabKey;
+          if (isMatch) {
+            panel.classList.remove('hidden');
+            panel.classList.add('block');
+          } else {
+            panel.classList.add('hidden');
+            panel.classList.remove('block');
+          }
+        });
+
+        // 3. Update Breadcrumb label
+        if (breadcrumbTab && tabTitleMap[tabKey]) {
+          breadcrumbTab.textContent = tabTitleMap[tabKey];
+        }
+
+        // 4. Update browser URL history without reload or scroll jump
+        if (updateHistory && newHref) {
+          window.history.pushState({ tabKey: tabKey }, '', newHref);
+        }
+      }
+
+      tabLinks.forEach(function (link) {
+        link.addEventListener('click', function (e) {
+          e.preventDefault();
+          const tabKey = link.getAttribute('data-tab-link');
+          const targetHref = link.getAttribute('href');
+          activateTab(tabKey, true, targetHref);
+        });
+      });
+
+      window.addEventListener('popstate', function () {
+        const pathParts = window.location.pathname.replace(/\/$/, '').split('/');
+        const lastPart = pathParts[pathParts.length - 1];
+        if (document.querySelector('[data-panel="' + lastPart + '"]')) {
+          activateTab(lastPart, false);
+        }
+      });
+    })();
+  </script>
+</BaseLayout>

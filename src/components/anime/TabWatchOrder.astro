@@ -1,0 +1,89 @@
+---
+// src/components/anime/TabWatchOrder.astro
+const { anime } = Astro.props;
+const watchOrder = anime.watchOrder || [];
+---
+
+<div class="space-y-6">
+  <div class="bg-white rounded-2xl border border-slate-200 p-6 sm:p-7 shadow-xs">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-5 border-b border-slate-100">
+      <div>
+        <h2 class="font-heading text-xl sm:text-2xl font-bold text-slate-900">
+          Chronological Watch Order
+        </h2>
+        <p class="text-xs sm:text-sm text-slate-500 font-normal mt-1">
+          Follow this sequential roadmap to watch the series without skipping mandatory canon storylines or confusing timeline jumps.
+        </p>
+      </div>
+      <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-red-50 text-red-700 border border-red-200 shrink-0 self-start sm:self-auto">
+        <span class="w-1.5 h-1.5 rounded-full bg-red-600"></span>
+        {watchOrder.length} {watchOrder.length === 1 ? 'Entry' : 'Sequential Entries'}
+      </span>
+    </div>
+
+    <!-- Sequential Timeline List -->
+    <div class="relative mt-6 space-y-4 before:absolute before:inset-0 before:left-5 before:top-4 before:bottom-4 before:w-0.5 before:bg-slate-200 before:hidden sm:before:block">
+      {watchOrder.map((item, index) => (
+        <div class:list={[
+          'relative flex flex-col sm:flex-row sm:items-start gap-4 p-4 sm:p-5 rounded-2xl border transition-all duration-200',
+          item.isCurrent
+            ? 'bg-red-50/40 border-red-300 ring-1 ring-red-200/80 shadow-xs'
+            : 'bg-white hover:bg-slate-50/70 border-slate-200/90'
+        ]}>
+          <!-- Order Number Badge -->
+          <div class="flex items-center gap-3 shrink-0">
+            <div class:list={[
+              'w-10 h-10 rounded-xl flex items-center justify-center font-extrabold text-sm z-10 border transition-all',
+              item.isCurrent
+                ? 'bg-red-600 text-white border-red-600 shadow-sm shadow-red-600/30'
+                : 'bg-slate-100 text-slate-700 border-slate-200'
+            ]}>
+              {String(item.order || index + 1).padStart(2, '0')}
+            </div>
+            <!-- Mobile Title & Badges Row -->
+            <div class="sm:hidden flex-1">
+              <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">{item.type}</span>
+              <h3 class="font-bold text-slate-900 text-sm leading-tight">{item.title}</h3>
+            </div>
+          </div>
+
+          <!-- Content Details -->
+          <div class="flex-1 space-y-1.5">
+            <div class="hidden sm:flex items-center gap-2.5 flex-wrap">
+              <h3 class="font-heading font-bold text-base text-slate-900 leading-snug">
+                {item.title}
+              </h3>
+              <span class="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 border border-slate-200">
+                {item.type}
+              </span>
+              <span class="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 border border-slate-200">
+                {item.episodes}
+              </span>
+              {item.isCurrent && (
+                <span class="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-red-600 text-white tracking-wider">
+                  Current Title
+                </span>
+              )}
+            </div>
+
+            <!-- Mobile secondary badges -->
+            <div class="sm:hidden flex items-center gap-2 flex-wrap text-xs text-slate-600 pt-0.5">
+              <span class="font-medium bg-slate-100 px-2 py-0.5 rounded border border-slate-200">{item.episodes}</span>
+              {item.isCurrent && (
+                <span class="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-red-600 text-white tracking-wider">
+                  Current Title
+                </span>
+              )}
+            </div>
+
+            {item.note && (
+              <p class="text-xs sm:text-sm text-slate-600 font-normal leading-relaxed pt-1">
+                {item.note}
+              </p>
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+</div>

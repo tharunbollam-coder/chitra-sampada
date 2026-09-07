@@ -9,75 +9,78 @@ const isZeroFiller = anime.fillerPercentage === 0;
 ---
 
 <article
-  class="group relative flex flex-col rounded-2xl overflow-hidden bg-[#0d121f] border border-white/10 hover:border-red-500/40 transition-all duration-300 hover:-translate-y-1.5 hover:shadow-2xl hover:shadow-red-950/30"
+  class="group relative flex flex-col rounded-2xl bg-white border border-slate-200/80 hover:border-slate-300 shadow-xs hover:shadow-md transition-all duration-300 hover:-translate-y-1 p-3.5 sm:p-4 h-full"
   data-vibe={anime.vibes ? anime.vibes.join(' ') : ''}
   data-status={anime.honestyStatus}
   data-filler={anime.fillerPercentage === 0 ? 'zero' : 'has-filler'}
   data-title={anime.title.toLowerCase()}
 >
-  <!-- Poster Image Container (2:3 aspect ratio) -->
-  <div class="relative w-full aspect-[2/3] overflow-hidden bg-slate-900">
+  <!-- Poster Image Container (Cleanly contained with defined boundary, NO badges/overlays over artwork) -->
+  <a href={`/anime/${anime.slug}`} class="relative w-full aspect-[2/3] rounded-xl overflow-hidden bg-slate-100 border border-slate-200/80 shadow-2xs mb-3.5 shrink-0 block group/poster">
     <img
       src={anime.poster}
       alt={`${anime.title} poster`}
       loading="lazy"
       decoding="async"
-      class="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500 ease-out"
+      class="w-full h-full object-cover object-center group-hover/poster:scale-[1.03] transition-transform duration-300 ease-out"
     />
+  </a>
 
-    <!-- Subtle gradient overlays for text readability -->
-    <div class="absolute inset-0 bg-gradient-to-t from-[#0d121f] via-transparent to-black/60 pointer-events-none"></div>
+  <!-- Content / Info Section (All status info, badges, and metadata below artwork) -->
+  <div class="flex-1 flex flex-col justify-between space-y-3">
+    <div class="space-y-2">
+      
+      <!-- Badges Row: Watched/Watchlist & Filler Percentage -->
+      <div class="flex items-center justify-between gap-1.5 flex-wrap">
+        <HonestyBadge status={anime.honestyStatus} size="sm" />
 
-    <!-- Simple Watched / Watchlist Badge (Top Overlay) -->
-    <div class="absolute top-3 left-3 z-10">
-      <HonestyBadge status={anime.honestyStatus} size="sm" />
-    </div>
-
-    <!-- Filler Status & Episode Count (Bottom of poster) -->
-    <div class="absolute bottom-3 left-3 right-3 flex items-center justify-between z-10">
-      <span
-        class:list={[
-          'text-[10px] font-bold px-2 py-0.5 rounded-md backdrop-blur-md border tracking-wide',
-          isZeroFiller
-            ? 'bg-emerald-950/80 text-emerald-300 border-emerald-500/40'
-            : 'bg-rose-950/85 text-rose-300 border-rose-500/40'
-        ]}
-      >
-        {isZeroFiller ? '0% Filler' : `${anime.fillerPercentage}% Filler`}
-      </span>
-
-      <span class="text-[11px] font-medium text-slate-300 bg-black/60 px-2 py-0.5 rounded backdrop-blur-md">
-        {anime.episodes} eps
-      </span>
-    </div>
-  </div>
-
-  <!-- Content / Info Section -->
-  <div class="p-4 flex-1 flex flex-col justify-between space-y-3">
-    <div>
-      <div class="flex items-center gap-2 text-xs text-slate-400 mb-1">
-        <span>{anime.year}</span>
-        <span>•</span>
-        <span class="truncate">{anime.genres.slice(0, 2).join(' / ')}</span>
+        <span
+          class:list={[
+            'text-[10px] font-bold px-2.5 py-0.5 rounded-full border tracking-wide select-none',
+            isZeroFiller
+              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+              : 'bg-rose-50 text-rose-700 border-rose-200'
+          ]}
+        >
+          {isZeroFiller ? '0% Filler' : `${anime.fillerPercentage}% Filler`}
+        </span>
       </div>
 
-      <h3 class="text-base font-bold text-white group-hover:text-red-400 transition-colors line-clamp-1 leading-snug">
-        {anime.title}
-      </h3>
+      <!-- Title & Native Title -->
+      <div>
+        <h3 class="text-base font-bold text-slate-900 group-hover:text-red-600 transition-colors line-clamp-1 leading-snug font-heading tracking-tight">
+          <a href={`/anime/${anime.slug}`} class="hover:underline">
+            {anime.title}
+          </a>
+        </h3>
 
-      {anime.nativeTitle && (
-        <p class="text-[11px] text-slate-400 line-clamp-1">
-          {anime.nativeTitle}
-        </p>
-      )}
+        {anime.nativeTitle && (
+          <p class="text-xs text-slate-500 font-normal line-clamp-1 mt-0.5">
+            {anime.nativeTitle}
+          </p>
+        )}
+      </div>
+
+      <!-- Metadata (Year, Episodes, Genres) -->
+      <div class="flex items-center gap-2 text-xs text-slate-500 font-medium">
+        <span>{anime.year}</span>
+        <span class="text-slate-300">•</span>
+        <span>{anime.episodes} eps</span>
+        <span class="text-slate-300">•</span>
+        <span class="truncate">{anime.genres.slice(0, 2).join(', ')}</span>
+      </div>
+
     </div>
 
-    <!-- Watch order cue -->
-    <div class="pt-2 border-t border-white/5 flex items-center justify-between text-xs text-slate-400 group-hover:text-white transition-colors">
-      <span class="text-[11px] font-semibold text-red-400 group-hover:underline">
+    <!-- Watch order cue & Status -->
+    <div class="pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs">
+      <a
+        href={`/anime/${anime.slug}`}
+        class="text-[11px] font-semibold text-red-600 hover:text-red-700 hover:underline transition-colors"
+      >
         Watch Order & Guide →
-      </span>
-      <span class="text-[11px] text-slate-400">
+      </a>
+      <span class="text-[10px] font-medium text-slate-600 bg-slate-100 px-2 py-0.5 rounded border border-slate-200/60">
         {anime.status}
       </span>
     </div>

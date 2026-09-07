@@ -13,26 +13,26 @@ import { siteConfig } from '../config/site.js';
     
     <!-- Header / Intro -->
     <header class="space-y-4">
-      <div class="flex items-center gap-2 text-xs text-slate-400">
-        <a href="/" class="hover:text-white transition-colors">Home</a>
+      <div class="flex items-center gap-2 text-xs text-slate-500">
+        <a href="/" class="hover:text-slate-900 transition-colors">Home</a>
         <span>/</span>
-        <span class="text-red-400 font-medium">About</span>
+        <span class="text-red-600 font-medium">About</span>
       </div>
 
-      <h1 class="text-3xl sm:text-5xl font-black text-white tracking-tight leading-tight">
+      <h1 class="text-3xl sm:text-5xl font-extrabold text-slate-900 tracking-tight leading-tight font-heading">
         Why I built this site.
       </h1>
-      <p class="text-lg text-slate-300 leading-relaxed">
+      <p class="text-lg text-slate-600 leading-relaxed font-normal">
         A personal note on what this project is, the headaches that led me to make it, and how it works.
       </p>
     </header>
 
     <!-- Main Essay / Story Content -->
-    <div class="space-y-12 text-slate-300 text-base sm:text-lg leading-relaxed font-normal">
+    <div class="space-y-12 text-slate-700 text-base sm:text-lg leading-relaxed font-normal">
       
       <!-- Section: The Beginner Headache -->
       <section class="space-y-4">
-        <h2 class="text-xl sm:text-2xl font-bold text-white tracking-tight">
+        <h2 class="font-heading text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
           Nobody tells you this stuff when you start watching.
         </h2>
         <p>
@@ -47,8 +47,8 @@ import { siteConfig } from '../config/site.js';
       </section>
 
       <!-- Section: What to watch next -->
-      <section class="space-y-4 pt-4 border-t border-white/10">
-        <h2 class="text-xl sm:text-2xl font-bold text-white tracking-tight">
+      <section class="space-y-4 pt-6 border-t border-slate-200">
+        <h2 class="font-heading text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
           The post-show exhaustion.
         </h2>
         <p>
@@ -63,8 +63,8 @@ import { siteConfig } from '../config/site.js';
       </section>
 
       <!-- Section: How this site works -->
-      <section class="space-y-6 pt-4 border-t border-white/10">
-        <h2 class="text-xl sm:text-2xl font-bold text-white tracking-tight">
+      <section class="space-y-6 pt-6 border-t border-slate-200">
+        <h2 class="font-heading text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
           How this site works: Watched vs. Watchlist
         </h2>
         <p>
@@ -72,39 +72,39 @@ import { siteConfig } from '../config/site.js';
         </p>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-          <div class="p-5 rounded-2xl bg-[#0b0f19] border border-white/10 space-y-2.5">
+          <div class="p-6 rounded-2xl bg-white border border-slate-200/80 shadow-xs hover:shadow-md transition-all space-y-3">
             <div class="flex items-center gap-2">
               <HonestyBadge status="watched" size="sm" />
             </div>
-            <h3 class="text-base font-bold text-white">Personally Watched</h3>
-            <p class="text-xs sm:text-sm text-slate-400 leading-relaxed">
-              Titles I have actually sat down and finished from start to end. If it's labeled "Watched", you know the recommendation comes from first-hand viewing, with exact filler notes and watch order.
+            <h3 class="font-heading text-base font-bold text-slate-900">Personally Watched</h3>
+            <p class="text-xs sm:text-sm text-slate-600 leading-relaxed font-normal">
+              Titles I have actually sat down and finished from start to end. If it's labeled "I've Watched This", you know the recommendation comes from first-hand viewing, with exact filler notes and watch order.
             </p>
           </div>
 
-          <div class="p-5 rounded-2xl bg-[#0b0f19] border border-white/10 space-y-2.5">
+          <div class="p-6 rounded-2xl bg-white border border-slate-200/80 shadow-xs hover:shadow-md transition-all space-y-3">
             <div class="flex items-center gap-2">
               <HonestyBadge status="watchlist" size="sm" />
             </div>
-            <h3 class="text-base font-bold text-white">On My Watchlist</h3>
-            <p class="text-xs sm:text-sm text-slate-400 leading-relaxed">
+            <h3 class="font-heading text-base font-bold text-slate-900">On My Watchlist</h3>
+            <p class="text-xs sm:text-sm text-slate-600 leading-relaxed font-normal">
               Titles I haven't watched yet, but plan to watch next. I include them so you can see what's on deck and follow along, but I clearly label them so I never pretend I've finished something I haven't.
             </p>
           </div>
         </div>
 
-        <p class="text-sm sm:text-base text-slate-400">
+        <p class="text-sm sm:text-base text-slate-600 font-normal">
           That clarity is the whole point. Anyone visiting can make their own choice with real context, without guessing whether the person writing about it ever actually watched it.
         </p>
       </section>
 
       <!-- Section: Community Suggestions -->
-      <section id="suggestions" class="space-y-6 pt-6 border-t border-white/10">
-        <div class="space-y-3">
-          <span class="text-xs font-bold uppercase tracking-wider text-red-400">
+      <section id="suggestions" class="space-y-6 pt-6 border-t border-slate-200">
+        <div class="space-y-2">
+          <span class="text-[11px] font-bold uppercase tracking-wider text-red-600">
             Real Input
           </span>
-          <h2 class="text-xl sm:text-2xl font-bold text-white tracking-tight">
+          <h2 class="font-heading text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
             Suggestions from real people
           </h2>
         </div>
@@ -113,37 +113,37 @@ import { siteConfig } from '../config/site.js';
           I also want this to grow with input from people who love good stories. If you think an anime, movie, or series is missing, or if you have a better watch order recommendation, I genuinely want to hear it.
         </p>
 
-        <div class="p-6 rounded-2xl bg-gradient-to-r from-red-950/30 via-[#0d1220] to-[#0b0f19] border border-white/10 space-y-4">
-          <h3 class="text-base font-bold text-white flex items-center gap-2">
-            <svg class="w-5 h-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+        <div class="p-6 sm:p-7 rounded-2xl bg-gradient-to-r from-red-50/70 via-white to-slate-50 border border-slate-200 space-y-4 shadow-xs">
+          <h3 class="font-heading text-base font-bold text-slate-900 flex items-center gap-2">
+            <svg class="w-5 h-5 text-red-600" viewBox="0 0 20 20" fill="currentColor">
               <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
             </svg>
             <span>My Honest Pledge on Suggestions</span>
           </h3>
-          <p class="text-sm text-slate-300 leading-relaxed">
-            If someone sends in a suggestion and it gets added to the site, <strong>it will always be clearly marked as a user suggestion with your name or username</strong>. It will never be silently blended in as if it was my personal pick. Real attribution matters.
+          <p class="text-sm text-slate-700 leading-relaxed font-normal">
+            If someone sends in a suggestion and it gets added to the site, <strong class="text-slate-900 font-semibold">it will always be clearly marked as a user suggestion with your name or username</strong>. It will never be silently blended in as if it was my personal pick. Real attribution matters.
           </p>
         </div>
 
         <!-- Suggestion contact form / mailto box -->
-        <div class="p-6 rounded-2xl bg-white/[0.02] border border-white/10 space-y-4">
-          <h3 class="text-base font-bold text-white">
+        <div class="p-6 sm:p-7 rounded-2xl bg-white border border-slate-200 space-y-4 shadow-xs">
+          <h3 class="font-heading text-base font-bold text-slate-900">
             Have a suggestion or correction?
           </h3>
-          <p class="text-xs sm:text-sm text-slate-400">
+          <p class="text-xs sm:text-sm text-slate-600 font-normal leading-relaxed">
             Send an email with the title, whether you've watched it, and any watch-order notes or filler tips you think others would find helpful.
           </p>
           <div class="pt-2 flex flex-col sm:flex-row items-start sm:items-center gap-3">
             <a
               href="mailto:suggestions@chitrasampada.com?subject=Anime%20Suggestion%20for%20Chitra%20Sampada"
-              class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white font-semibold text-xs transition-colors"
+              class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-xs shadow-md shadow-red-600/20 transition-all duration-200"
             >
               <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
               </svg>
               <span>Send a Suggestion via Email</span>
             </a>
-            <span class="text-xs text-slate-400">
+            <span class="text-xs text-slate-500">
               (Or connect via our upcoming community channels)
             </span>
           </div>
@@ -152,16 +152,16 @@ import { siteConfig } from '../config/site.js';
       </section>
 
       <!-- Bottom Navigation -->
-      <div class="pt-10 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4">
-        <p class="text-sm text-slate-400">
+      <div class="pt-10 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <p class="text-sm text-slate-600 font-normal">
           Ready to see what's on the list?
         </p>
         <a
           href="/anime"
-          class="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-white/10 hover:bg-white/15 text-white text-sm font-semibold border border-white/10 transition-colors"
+          class="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-white hover:bg-slate-50 text-slate-800 text-sm font-semibold border border-slate-200 shadow-xs transition-all duration-200"
         >
           <span>Explore the Anime Catalog</span>
-          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg class="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
           </svg>
         </a>
