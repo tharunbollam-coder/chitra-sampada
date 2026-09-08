@@ -7,8 +7,8 @@ import { animeList } from '../../data/anime.js';
 import { vibes } from '../../data/vibes.js';
 import { siteConfig } from '../../config/site.js';
 
-// Featured selection for the static grid (top 8 titles)
-const featuredAnime = animeList.filter((a) => a.trending).slice(0, 8);
+// Featured selection for the static grid (top 4 titles to reduce mobile scroll fatigue)
+const featuredAnime = animeList.filter((a) => a.trending).slice(0, 4);
 ---
 
 <BaseLayout

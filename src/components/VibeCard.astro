@@ -97,25 +97,20 @@ const Component = href ? 'a' : 'button';
       </div>
     </div>
 
-    <!-- Title & Tagline -->
-    <div>
+    <!-- Title & Subtitle Tagline (Clean, Fast to Scan) -->
+    <div class="space-y-1">
       <h4 class="font-heading text-lg sm:text-xl font-bold text-slate-900 group-hover:text-slate-950 tracking-tight leading-snug">
         {vibe.title}
       </h4>
-      <p class:list={['text-xs font-semibold tracking-wide mt-1', style.accent]}>
+      <p class:list={['text-xs font-semibold tracking-wide', style.accent]}>
         {vibe.tagline}
       </p>
     </div>
 
-    <!-- Description -->
-    <p class="text-xs text-slate-600 leading-relaxed font-normal">
-      {vibe.description}
-    </p>
-
     <!-- Bottom Action Cue -->
-    <div class="pt-2 flex items-center justify-between text-xs font-semibold text-slate-500 group-hover:text-slate-900 transition-colors">
+    <div class="pt-2 flex items-center justify-between text-xs font-semibold text-slate-500 group-hover:text-slate-900 transition-colors border-t border-slate-100">
       <span class="inline-flex items-center gap-1.5">
-        <span>Filter this vibe</span>
+        <span>Explore collection</span>
         <svg class="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform duration-200 text-slate-400 group-hover:text-slate-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
         </svg>
