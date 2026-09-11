@@ -41,12 +41,12 @@ const otherVibes = vibes.filter((v) => v.slug !== vibe.slug);
           <span>/</span>
           <a href="/anime" class="hover:text-slate-900 transition-colors">Anime Section</a>
           <span>/</span>
-          <span class="text-red-600 font-semibold">{vibe.title}</span>
+          <span class="text-[#C2610A] font-bold">{vibe.title}</span>
         </div>
 
         <a
           href="/anime"
-          class="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-red-600 transition-colors shrink-0"
+          class="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-[#C2610A] transition-colors shrink-0"
         >
           <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -58,7 +58,7 @@ const otherVibes = vibes.filter((v) => v.slug !== vibe.slug);
       <!-- Vibe Category Badge, H1 Heading & Rich Intro Paragraph -->
       <div class="max-w-3xl space-y-3">
         <div class="flex items-center gap-2">
-          <span class="text-[10px] font-extrabold uppercase tracking-wider px-3 py-1 rounded-full bg-red-50 text-red-700 border border-red-200">
+          <span class="text-[10px] font-extrabold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-50 text-[#C2610A] border border-amber-200 shadow-2xs">
             {vibe.badge}
           </span>
           <span class="text-xs font-semibold text-slate-500">
@@ -89,7 +89,7 @@ const otherVibes = vibes.filter((v) => v.slug !== vibe.slug);
             type="text"
             id="search-input"
             placeholder="Search within this vibe..."
-            class="w-full px-4 py-2.5 pl-9 rounded-full bg-white border border-slate-200 focus:border-red-500 focus:ring-2 focus:ring-red-500/20 focus:outline-none text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 transition-all shadow-xs"
+            class="w-full px-4 py-2.5 pl-9 rounded-full bg-white border border-slate-200 focus:border-[#C2610A] focus:ring-2 focus:ring-[#C2610A]/25 focus:outline-none text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 transition-all shadow-xs"
           />
           <svg class="w-4 h-4 text-slate-400 absolute left-3 top-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -103,7 +103,7 @@ const otherVibes = vibes.filter((v) => v.slug !== vibe.slug);
         <button
           type="button"
           data-filter="all"
-          class="filter-tab-btn active px-4 py-1.5 rounded-full text-xs font-bold tracking-wide transition-all bg-red-600 text-white shadow-xs"
+          class="filter-tab-btn active px-4 py-1.5 rounded-full text-xs font-bold tracking-wide transition-all bg-[#C2610A] text-white shadow-sm shadow-amber-950/20"
         >
           All ({matchingAnime.length})
         </button>
@@ -113,7 +113,7 @@ const otherVibes = vibes.filter((v) => v.slug !== vibe.slug);
           data-filter="watched"
           class="filter-tab-btn px-4 py-1.5 rounded-full text-xs font-semibold tracking-wide transition-all bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 flex items-center gap-1.5 shadow-2xs"
         >
-          <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+          <span class="w-1.5 h-1.5 rounded-full bg-[#C2610A]"></span>
           <span>I've Watched This ({watchedCount})</span>
         </button>
 
@@ -122,7 +122,7 @@ const otherVibes = vibes.filter((v) => v.slug !== vibe.slug);
           data-filter="watchlist"
           class="filter-tab-btn px-4 py-1.5 rounded-full text-xs font-semibold tracking-wide transition-all bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 flex items-center gap-1.5 shadow-2xs"
         >
-          <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+          <span class="w-1.5 h-1.5 rounded-full bg-stone-500"></span>
           <span>On My Watchlist ({watchlistCount})</span>
         </button>
 
@@ -131,7 +131,7 @@ const otherVibes = vibes.filter((v) => v.slug !== vibe.slug);
           data-filter="zero"
           class="filter-tab-btn px-4 py-1.5 rounded-full text-xs font-semibold tracking-wide transition-all bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 flex items-center gap-1.5 shadow-2xs"
         >
-          <span class="w-1.5 h-1.5 rounded-full bg-cyan-500"></span>
+          <span class="w-1.5 h-1.5 rounded-full bg-amber-600"></span>
           <span>Zero Filler ({zeroFillerCount})</span>
         </button>
       </div>
@@ -161,7 +161,7 @@ const otherVibes = vibes.filter((v) => v.slug !== vibe.slug);
       <button
         type="button"
         id="clear-filters-btn"
-        class="px-4 py-2 rounded-xl bg-red-600 text-white text-xs font-bold hover:bg-red-500 transition-colors shadow-xs"
+        class="px-4 py-2 rounded-xl bg-[#C2610A] hover:bg-[#9A4C06] text-white text-xs font-bold transition-all shadow-md shadow-amber-950/20"
       >
         Clear Search & Filters
       </button>
@@ -208,7 +208,7 @@ const otherVibes = vibes.filter((v) => v.slug !== vibe.slug);
 
       <a
         href="/anime/catalog"
-        class="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-red-600 hover:bg-red-500 text-white font-bold text-xs sm:text-sm shadow-md shadow-red-600/25 transition-all"
+        class="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-[#C2610A] hover:bg-[#9A4C06] text-white font-bold text-xs sm:text-sm shadow-md shadow-amber-950/20 transition-all"
       >
         <span>Open Full Catalog ({animeList.length}) →</span>
       </a>
@@ -232,10 +232,10 @@ const otherVibes = vibes.filter((v) => v.slug !== vibe.slug);
       tabBtns.forEach((btn) => {
         const filterVal = btn.getAttribute('data-filter');
         if (filterVal === currentFilter) {
-          btn.classList.add('bg-red-600', 'text-white', 'shadow-xs');
+          btn.classList.add('bg-[#C2610A]', 'text-white', 'shadow-sm', 'shadow-amber-950/20');
           btn.classList.remove('bg-white', 'text-slate-700');
         } else {
-          btn.classList.remove('bg-red-600', 'text-white', 'shadow-xs');
+          btn.classList.remove('bg-[#C2610A]', 'text-white', 'shadow-sm', 'shadow-amber-950/20');
           btn.classList.add('bg-white', 'text-slate-700');
         }
       });

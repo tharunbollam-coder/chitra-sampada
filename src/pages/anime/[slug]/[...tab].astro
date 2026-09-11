@@ -71,14 +71,14 @@ const pageDescription = `Complete guide for ${anime.title}. ${currentTabLabel} w
         {activeTab && (
           <>
             <span>/</span>
-            <span id="breadcrumb-current-tab" class="text-red-600 font-semibold">{activeTab.label}</span>
+            <span id="breadcrumb-current-tab" class="text-[#C2610A] font-bold">{activeTab.label}</span>
           </>
         )}
       </div>
 
       <a
         href="/anime"
-        class="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-red-600 transition-colors shrink-0"
+        class="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-[#C2610A] transition-colors shrink-0"
       >
         <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -114,8 +114,8 @@ const pageDescription = `Complete guide for ${anime.title}. ${currentTabLabel} w
               class:list={[
                 'text-xs font-bold px-3 py-1 rounded-full border tracking-wide select-none',
                 isZeroFiller
-                  ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                  : 'bg-rose-50 text-rose-800 border-rose-200'
+                  ? 'bg-amber-50 text-[#C2610A] border-amber-200'
+                  : 'bg-stone-100 text-stone-700 border-stone-200'
               ]}
             >
               {isZeroFiller ? '0% Filler (Pure Canon)' : `${anime.fillerPercentage}% Filler Warning`}
@@ -200,7 +200,7 @@ const pageDescription = `Complete guide for ${anime.title}. ${currentTabLabel} w
                 class:list={[
                   'anime-tab-link px-3.5 sm:px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap transition-all duration-150 shrink-0 select-none flex items-center gap-1.5 cursor-pointer',
                   isActive
-                    ? 'active-tab bg-red-600 text-white shadow-sm shadow-red-600/25 ring-1 ring-red-600'
+                    ? 'active-tab bg-[#C2610A] text-white shadow-sm shadow-amber-950/20'
                     : 'inactive-tab bg-white hover:bg-slate-100 text-slate-600 hover:text-slate-900 border border-slate-200/80'
                 ]}
               >
@@ -208,7 +208,7 @@ const pageDescription = `Complete guide for ${anime.title}. ${currentTabLabel} w
                 {tab.count !== undefined && (
                   <span class:list={[
                     'tab-counter text-[10px] font-bold px-1.5 py-0.2 rounded-full',
-                    isActive ? 'bg-red-700 text-white' : 'bg-slate-100 text-slate-500'
+                    isActive ? 'bg-amber-900/60 text-white' : 'bg-slate-100 text-slate-500'
                   ]}>
                     {tab.count}
                   </span>
@@ -255,7 +255,7 @@ const pageDescription = `Complete guide for ${anime.title}. ${currentTabLabel} w
         <!-- Back to Anime Home Button -->
         <a
           href="/anime"
-          class="inline-flex items-center gap-2 px-6 py-3.5 rounded-2xl bg-red-600 hover:bg-red-500 text-white font-bold text-sm shadow-md shadow-red-600/25 hover:shadow-red-600/40 hover:-translate-y-0.5 transition-all duration-200"
+          class="inline-flex items-center gap-2 px-6 py-3.5 rounded-2xl bg-[#C2610A] hover:bg-[#9A4C06] text-white font-bold text-sm shadow-md shadow-amber-950/20 hover:shadow-amber-950/30 hover:-translate-y-0.5 transition-all duration-200"
         >
           <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -302,16 +302,16 @@ const pageDescription = `Complete guide for ${anime.title}. ${currentTabLabel} w
 
           if (isMatch) {
             link.classList.remove('inactive-tab', 'bg-white', 'hover:bg-slate-100', 'text-slate-600', 'hover:text-slate-900', 'border', 'border-slate-200/80');
-            link.classList.add('active-tab', 'bg-red-600', 'text-white', 'shadow-sm', 'shadow-red-600/25', 'ring-1', 'ring-red-600');
+            link.classList.add('active-tab', 'bg-[#C2610A]', 'text-white', 'shadow-sm', 'shadow-amber-950/20');
             if (counter) {
               counter.classList.remove('bg-slate-100', 'text-slate-500');
-              counter.classList.add('bg-red-700', 'text-white');
+              counter.classList.add('bg-amber-900/60', 'text-white');
             }
           } else {
-            link.classList.remove('active-tab', 'bg-red-600', 'text-white', 'shadow-sm', 'shadow-red-600/25', 'ring-1', 'ring-red-600');
+            link.classList.remove('active-tab', 'bg-[#C2610A]', 'text-white', 'shadow-sm', 'shadow-amber-950/20');
             link.classList.add('inactive-tab', 'bg-white', 'hover:bg-slate-100', 'text-slate-600', 'hover:text-slate-900', 'border', 'border-slate-200/80');
             if (counter) {
-              counter.classList.remove('bg-red-700', 'text-white');
+              counter.classList.remove('bg-amber-900/60', 'text-white');
               counter.classList.add('bg-slate-100', 'text-slate-500');
             }
           }
@@ -324,8 +324,9 @@ const pageDescription = `Complete guide for ${anime.title}. ${currentTabLabel} w
             panel.classList.remove('hidden');
             panel.classList.add('block');
           } else {
-            panel.classList.add('hidden');
+            panel.classList.hidden = true;
             panel.classList.remove('block');
+            panel.classList.add('hidden');
           }
         });
 

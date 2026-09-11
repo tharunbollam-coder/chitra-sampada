@@ -11,7 +11,7 @@ const isZeroFiller = anime.fillerPercentage === 0;
   <div class:list={[
     'rounded-2xl border p-6 sm:p-7 shadow-xs',
     isZeroFiller
-      ? 'bg-emerald-50/50 border-emerald-200'
+      ? 'bg-amber-50/50 border-amber-200'
       : 'bg-white border-slate-200'
   ]}>
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-5 border-b border-slate-200/80">
@@ -21,8 +21,8 @@ const isZeroFiller = anime.fillerPercentage === 0;
           <span class:list={[
             'text-[11px] font-bold px-2.5 py-0.5 rounded-full border',
             isZeroFiller
-              ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
-              : 'bg-rose-100 text-rose-800 border-rose-300'
+              ? 'bg-amber-50 text-[#C2610A] border-amber-200'
+              : 'bg-stone-100 text-stone-800 border-stone-300'
           ]}>
             {isZeroFiller ? '0% Filler' : `${anime.fillerPercentage}% Filler Content`}
           </span>
@@ -41,14 +41,14 @@ const isZeroFiller = anime.fillerPercentage === 0;
           <span class="block text-[10px] font-bold uppercase tracking-wider text-slate-500">Total</span>
           <span class="text-base font-extrabold text-slate-900">{anime.episodes} eps</span>
         </div>
-        <div class="px-4 py-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-center min-w-[90px]">
-          <span class="block text-[10px] font-bold uppercase tracking-wider text-emerald-700">Canon</span>
-          <span class="text-base font-extrabold text-emerald-900">{fillerData.canonEpisodes || (anime.episodes - (fillerData.fillerEpisodes || 0))} eps</span>
+        <div class="px-4 py-2.5 rounded-xl bg-amber-50/90 border border-amber-200 text-center min-w-[90px]">
+          <span class="block text-[10px] font-bold uppercase tracking-wider text-[#C2610A]">Canon</span>
+          <span class="text-base font-extrabold text-amber-950">{fillerData.canonEpisodes || (anime.episodes - (fillerData.fillerEpisodes || 0))} eps</span>
         </div>
         {!isZeroFiller && (
-          <div class="px-4 py-2.5 rounded-xl bg-rose-50 border border-rose-200 text-center min-w-[90px]">
-            <span class="block text-[10px] font-bold uppercase tracking-wider text-rose-700">Filler</span>
-            <span class="text-base font-extrabold text-rose-900">{fillerData.fillerEpisodes || 0} eps</span>
+          <div class="px-4 py-2.5 rounded-xl bg-stone-50 border border-stone-200 text-center min-w-[90px]">
+            <span class="block text-[10px] font-bold uppercase tracking-wider text-stone-700">Filler</span>
+            <span class="text-base font-extrabold text-stone-900">{fillerData.fillerEpisodes || 0} eps</span>
           </div>
         )}
       </div>
@@ -69,9 +69,9 @@ const isZeroFiller = anime.fillerPercentage === 0;
           return (
             <div class:list={[
               'flex items-center justify-between gap-3 p-3.5 rounded-xl border transition-colors',
-              isCanon ? 'bg-emerald-50/40 border-emerald-200/80 text-emerald-950' : '',
-              isFiller ? 'bg-rose-50/50 border-rose-200 text-rose-950' : '',
-              isMixed ? 'bg-amber-50/50 border-amber-200 text-amber-950' : ''
+              isCanon ? 'bg-amber-50/60 border-amber-200 text-amber-950' : '',
+              isFiller ? 'bg-stone-100/60 border-stone-200 text-stone-950' : '',
+              isMixed ? 'bg-orange-50/50 border-orange-200 text-orange-950' : ''
             ]}>
               <div class="space-y-0.5 min-w-0">
                 <div class="flex items-center gap-2">
@@ -88,9 +88,9 @@ const isZeroFiller = anime.fillerPercentage === 0;
 
               <span class:list={[
                 'text-[10px] font-bold uppercase px-2.5 py-1 rounded-md border shrink-0 tracking-wider',
-                isCanon ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : '',
-                isFiller ? 'bg-rose-100 text-rose-800 border-rose-300' : '',
-                isMixed ? 'bg-amber-100 text-amber-800 border-amber-300' : ''
+                isCanon ? 'bg-amber-50 text-[#C2610A] border-amber-200' : '',
+                isFiller ? 'bg-stone-100 text-stone-800 border-stone-300' : '',
+                isMixed ? 'bg-orange-100 text-orange-800 border-orange-300' : ''
               ]}>
                 {block.type}
               </span>

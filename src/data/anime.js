@@ -49,7 +49,7 @@ export const animeList = [
 
     // SECTION 3: Filler List (Numbered Ranges Only)
     fillerList: {
-      summary: '205 out of 500 episodes are filler (41%). Skip all red filler ranges without missing any core storyline.',
+      summary: '205 out of 500 episodes are filler (41%). Skip all filler ranges without missing any core storyline.',
       totalEpisodes: 500,
       fillerEpisodes: 205,
       canonEpisodes: 295,

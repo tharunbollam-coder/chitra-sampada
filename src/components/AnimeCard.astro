@@ -38,8 +38,8 @@ const isZeroFiller = anime.fillerPercentage === 0;
           class:list={[
             'text-[10px] font-bold px-2.5 py-0.5 rounded-full border tracking-wide select-none',
             isZeroFiller
-              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-              : 'bg-rose-50 text-rose-700 border-rose-200'
+              ? 'bg-amber-50 text-[#C2610A] border-amber-200'
+              : 'bg-stone-100 text-stone-700 border-stone-200'
           ]}
         >
           {isZeroFiller ? '0% Filler' : `${anime.fillerPercentage}% Filler`}
@@ -48,7 +48,7 @@ const isZeroFiller = anime.fillerPercentage === 0;
 
       <!-- Title & Native Title -->
       <div>
-        <h3 class="text-base font-bold text-slate-900 group-hover:text-red-600 transition-colors line-clamp-1 leading-snug font-heading tracking-tight">
+        <h3 class="text-base font-bold text-slate-900 group-hover:text-[#C2610A] transition-colors line-clamp-1 leading-snug font-heading tracking-tight">
           <a href={`/anime/${anime.slug}`} class="hover:underline">
             {anime.title}
           </a>
@@ -76,7 +76,7 @@ const isZeroFiller = anime.fillerPercentage === 0;
     <div class="pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs">
       <a
         href={`/anime/${anime.slug}`}
-        class="text-[11px] font-semibold text-red-600 hover:text-red-700 hover:underline transition-colors"
+        class="text-[11px] font-bold text-[#C2610A] hover:text-[#9A4C06] hover:underline transition-colors"
       >
         Watch Order & Guide →
       </a>
