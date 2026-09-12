@@ -6,14 +6,17 @@ const review = anime.review || {};
 // Normalize paragraphs whether array, string, or legacy summary
 let paragraphs = [];
 if (Array.isArray(review.paragraphs) && review.paragraphs.length > 0) {
-  paragraphs = review.paragraphs;
-} else if (typeof review === 'string') {
-  paragraphs = [review];
-} else if (review.summary) {
-  paragraphs = [review.summary];
+  paragraphs = review.paragraphs.filter((p) => typeof p === 'string' && p.trim().length > 0);
+} else if (typeof review === 'string' && review.trim().length > 0) {
+  paragraphs = [review.trim()];
+} else if (review.summary && typeof review.summary === 'string' && review.summary.trim().length > 0) {
+  paragraphs = [review.summary.trim()];
 }
 
+const isWatched = anime.honestyStatus === 'watched';
 const score = review.score || anime.personalRating;
+const hasFullReview = paragraphs.length > 0;
+const showComingSoonNote = isWatched && score && !hasFullReview;
 ---
 
 <div class="space-y-6">
@@ -37,14 +40,32 @@ const score = review.score || anime.personalRating;
       </div>
     </div>
 
-    <!-- Flowing conversational written paragraphs -->
-    <div class="space-y-4">
-      {paragraphs.map((p) => (
-        <p class="text-sm sm:text-base text-slate-700 leading-relaxed font-normal">
-          {p}
-        </p>
-      ))}
-    </div>
+    <!-- Review content: either full written review or friendly coming soon note -->
+    {hasFullReview ? (
+      <div class="space-y-4">
+        {paragraphs.map((p) => (
+          <p class="text-sm sm:text-base text-slate-700 leading-relaxed font-normal">
+            {p}
+          </p>
+        ))}
+      </div>
+    ) : showComingSoonNote ? (
+      <div class="p-5 sm:p-6 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row items-start sm:items-center gap-4 text-slate-700 shadow-2xs">
+        <div class="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center shrink-0 text-[#4F46E5] shadow-2xs">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+          </svg>
+        </div>
+        <div class="space-y-1">
+          <span class="text-xs font-bold uppercase tracking-wider text-[#4F46E5] block">
+            Written Review in Progress
+          </span>
+          <p class="text-xs sm:text-sm text-slate-600 leading-relaxed font-normal">
+            Every anime I've watched gets a rating right away — that's quick and honest. The full written review takes a bit more time, since I want to actually say something worth reading, not just fill space. It's coming, just not instantly — thanks for your patience.
+          </p>
+        </div>
+      </div>
+    ) : null}
 
   </div>
 </div>

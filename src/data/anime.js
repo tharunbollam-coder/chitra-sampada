@@ -118,14 +118,10 @@ export const animeList = [
       ]
     },
 
-    // SECTION 7: What I Learned From This Anime (Reflections)
+    // What I Learned (Compact Takeaway)
     lessons: {
-      heading: 'Lessons in Empathy, Loneliness, and the Cycle of Hatred',
-      paragraphs: [
-        'Naruto taught me that true strength is not the ability to overpower your enemies, but the endurance to understand why they are hurting in the first place. Every single antagonist in Shippuden is a warped reflection of Naruto himself — someone who faced the exact same cruelty and abandoned hope when the world refused to love them back.',
-        'The concept of "Talk no Jutsu" gets memed on the internet, but beneath the jokes lies a profound truth: violence ends battles, but only mutual vulnerability and acknowledged grief can actually end wars. Watching Naruto acknowledge Pain’s agony rather than merely slaughtering him changed how I look at conflict resolution in real life.',
-        'Lastly, Might Guy’s journey showed me that talent is cheap compared to consistent, back-breaking daily dedication. When everyone else relies on inherited eyes or divine prophecy, the person who worked every single day without an excuse will always command respect.'
-      ]
+      heading: 'Empathy & Consistent Dedication',
+      takeaway: 'True strength is not the ability to overpower enemies, but the endurance to understand why they are hurting. Talent is cheap compared to consistent, daily dedication.'
     }
   },
 
@@ -202,12 +198,10 @@ export const animeList = [
       ]
     },
 
+    // What I Learned (Compact Takeaway)
     lessons: {
-      heading: 'The Precious Value of Ordinary Time and Ephemeral Bonds',
-      paragraphs: [
-        'Frieren completely reframed how I think about time. We live as if we have an infinite supply of tomorrows, putting off conversations and taking people for granted until one day their chapter ends.',
-        'Himmel did not save the world just for glory; he planted flowers and helped strangers so that when he was gone, people would remember that living is worth the effort. It made me realize that kindness is the only thing that truly survives us.'
-      ]
+      heading: 'The Precious Value of Ordinary Time',
+      takeaway: 'We live as if we have an infinite supply of tomorrows. Kindness, shared memories, and small everyday moments are the only things that truly survive us.'
     }
   },
 
@@ -390,12 +384,10 @@ export const animeList = [
       notes: 'To continue reading after Season 2, start at Chapter 101 (Eastern Expedition Arc).'
     },
 
+    // What I Learned (Compact Takeaway)
     lessons: {
-      heading: '“I Have No Enemies” — On Guilt, Atonement, and True Strength',
-      paragraphs: [
-        'Vinland Saga fundamentally challenges the romanticization of violence. Season 1 gives you all the kinetic revenge dopamine you could ask for, and Season 2 forces you to sit with the harrowing human cost of that revenge.',
-        'Thorfinn’s realization that revenge leaves you empty and dead inside is a lesson on forgiving oneself. True strength isn’t holding a sharper blade — it is refusing to strike even when striking is the easiest option.'
-      ]
+      heading: 'True Strength & Empathy',
+      takeaway: 'Revenge leaves you empty. True strength isn’t holding a sharper blade — it is having the courage to refuse violence and choose empathy even when striking is easiest.'
     }
   },
 
@@ -531,12 +523,10 @@ export const animeList = [
       notes: 'Read from Chapter 114 to continue the story in high school.'
     },
 
+    // What I Learned (Compact Takeaway)
     lessons: {
-      heading: 'Understanding That Vulnerability Is Not Weakness',
-      paragraphs: [
-        'The series is a masterclass in shedding self-defense mechanisms. Ichikawa hides behind a "dark, edgy" persona because he is terrified of being rejected by people he secretly admires.',
-        'Real connection only begins when we drop the defensive armor and risk looking foolish in front of someone we care about.'
-      ]
+      heading: 'Vulnerability Over Defensive Armor',
+      takeaway: 'Vulnerability is not weakness. Real connection only begins when we drop the defensive armor and risk looking foolish in front of someone we care about.'
     }
   },
 
@@ -675,12 +665,10 @@ export const animeList = [
       ]
     },
 
+    // What I Learned (Compact Takeaway)
     lessons: {
-      heading: 'Having a Special Talent Doesn’t Make You Better Than Anyone Else',
-      paragraphs: [
-        'Reigen’s core lesson to Mob is unforgettable: psychic powers are no different than having good posture or being fast at math. It doesn’t make you inherently superior to anyone else, nor does it excuse treating people badly.',
-        'Mob joining the Body Improvement Club instead of the Telepathy Club proves that true self-esteem comes from working on the things that are genuinely difficult for you.'
-      ]
+      heading: 'Humility & Working on What’s Difficult',
+      takeaway: 'Having a special talent doesn’t make you better than anyone else. True self-esteem comes from working hard on the things that are genuinely difficult for you.'
     }
   },
 
@@ -876,8 +864,17 @@ export function getAvailableTabs(anime) {
   if (!anime) return [];
   const tabs = [];
 
-  // 1. My Take (FIRST position when present)
-  if (anime.review && (anime.review.heading || anime.review.paragraphs?.length > 0 || (typeof anime.review === 'string' && anime.review.trim().length > 0) || anime.review.summary || anime.review.verdict)) {
+  // 1. My Take (FIRST position when present or when watched with a personal rating)
+  const hasReviewContent = anime.review && (
+    anime.review.heading ||
+    (Array.isArray(anime.review.paragraphs) && anime.review.paragraphs.length > 0) ||
+    (typeof anime.review === 'string' && anime.review.trim().length > 0) ||
+    anime.review.summary ||
+    anime.review.verdict
+  );
+  const isWatchedWithRating = anime.honestyStatus === 'watched' && (anime.personalRating !== undefined && anime.personalRating !== null);
+
+  if (hasReviewContent || isWatchedWithRating) {
     tabs.push({ key: 'review', label: 'My Take' });
   }
 
@@ -904,11 +901,6 @@ export function getAvailableTabs(anime) {
   // 6. Power System
   if (anime.powerSystem && (typeof anime.powerSystem === 'string' || anime.powerSystem.paragraphs?.length > 0 || anime.powerSystem.name)) {
     tabs.push({ key: 'power-system', label: 'Power System' });
-  }
-
-  // 7. What I Learned
-  if (anime.lessons && (anime.lessons.heading || (typeof anime.lessons === 'string' && anime.lessons.trim().length > 0) || anime.lessons.paragraphs?.length > 0)) {
-    tabs.push({ key: 'lessons', label: 'What I Learned' });
   }
 
   return tabs;

@@ -47,19 +47,13 @@ const isZeroFiller = anime.fillerPercentage === 0;
         </span>
       </div>
 
-      <!-- Title & Native Title -->
+      <!-- Title -->
       <div>
         <h3 class="text-base font-bold text-[#0F172A] group-hover:text-[#6366F1] transition-colors line-clamp-1 leading-snug font-heading tracking-tight">
           <a href={`/anime/${anime.slug}`} class="hover:underline">
             {anime.title}
           </a>
         </h3>
-
-        {anime.nativeTitle && (
-          <p class="text-xs text-slate-500 font-normal line-clamp-1 mt-0.5">
-            {anime.nativeTitle}
-          </p>
-        )}
       </div>
 
       <!-- Metadata (Year, Episodes, Genres) -->

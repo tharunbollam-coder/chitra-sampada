@@ -7,7 +7,6 @@ import TabFillerList from '../../../components/anime/TabFillerList.astro';
 import TabCharacters from '../../../components/anime/TabCharacters.astro';
 import TabSource from '../../../components/anime/TabSource.astro';
 import TabPowerSystem from '../../../components/anime/TabPowerSystem.astro';
-import TabLessons from '../../../components/anime/TabLessons.astro';
 import TabReview from '../../../components/anime/TabReview.astro';
 import { animeList, getAvailableTabs, getDefaultTabKey } from '../../../data/anime.js';
 import { theme } from '../../../config/theme.js';
@@ -42,6 +41,11 @@ const { anime, activeTabKey, availableTabs } = Astro.props;
 const isZeroFiller = anime.fillerPercentage === 0;
 const activeTab = availableTabs.find((t) => t.key === activeTabKey) || availableTabs[0];
 
+const lessonText = typeof anime.lessons === 'string'
+  ? anime.lessons
+  : (anime.lessons?.takeaway || (Array.isArray(anime.lessons?.paragraphs) && anime.lessons.paragraphs[0] ? anime.lessons.paragraphs[0] : null));
+const lessonHeading = typeof anime.lessons === 'object' ? anime.lessons?.heading : null;
+
 // Dynamic Title & Description based on active tab
 const tabTitleMap = {
   'watch-order': 'Watch Order & Franchise Sequence',
@@ -49,7 +53,6 @@ const tabTitleMap = {
   'characters': 'Ranked Characters',
   'source': 'Manga & Light Novel Source Guide',
   'power-system': 'Power System & Lore',
-  'lessons': 'What I Learned (Reflections)',
   'review': 'My Honest Take & Review'
 };
 
@@ -137,11 +140,6 @@ const pageDescription = `Complete guide for ${anime.title}. ${currentTabLabel} w
             <h1 class="text-2xl sm:text-4xl lg:text-5xl font-extrabold text-[#0F172A] tracking-tight font-heading leading-tight">
               {anime.title}
             </h1>
-            {anime.originalTitle && (
-              <p class="text-sm sm:text-base text-slate-500 font-medium mt-1">
-                {anime.originalTitle}
-              </p>
-            )}
           </div>
 
           <!-- Quick Synopsis -->
@@ -161,6 +159,27 @@ const pageDescription = `Complete guide for ${anime.title}. ${currentTabLabel} w
             <span class="text-slate-300">•</span>
             <span>{anime.genres.join(', ')}</span>
           </div>
+
+          <!-- Optional Compact "What I Learned" Highlighted Quote Callout -->
+          {lessonText && (
+            <div class="p-4 sm:p-4.5 rounded-2xl bg-[#EEF2FF]/40 border border-[#C7D2FE]/70 shadow-2xs space-y-2 mt-3">
+              <div class="flex items-center gap-2 text-[#4F46E5]">
+                <svg class="w-4 h-4 shrink-0 text-[#4F46E5]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                </svg>
+                <span class="text-[11px] font-extrabold uppercase tracking-wider text-[#4F46E5]">What I Learned</span>
+                {lessonHeading && (
+                  <>
+                    <span class="text-indigo-300">•</span>
+                    <span class="text-xs font-semibold text-slate-700 truncate">{lessonHeading}</span>
+                  </>
+                )}
+              </div>
+              <p class="text-xs sm:text-sm text-slate-700 leading-relaxed font-normal italic">
+                “{lessonText}”
+              </p>
+            </div>
+          )}
 
         </div>
 
@@ -222,7 +241,6 @@ const pageDescription = `Complete guide for ${anime.title}. ${currentTabLabel} w
             {t.key === 'characters' && <TabCharacters anime={anime} />}
             {t.key === 'source' && <TabSource anime={anime} />}
             {t.key === 'power-system' && <TabPowerSystem anime={anime} />}
-            {t.key === 'lessons' && <TabLessons anime={anime} />}
             {t.key === 'review' && <TabReview anime={anime} />}
           </div>
         ))}
@@ -272,7 +290,6 @@ const pageDescription = `Complete guide for ${anime.title}. ${currentTabLabel} w
         'characters': 'Characters',
         'source': 'Manga & Light Novel',
         'power-system': 'Power System',
-        'lessons': 'What I Learned',
         'review': 'My Take'
       };
 
