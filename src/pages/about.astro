@@ -3,6 +3,7 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import HonestyBadge from '../components/HonestyBadge.astro';
 import { siteConfig } from '../config/site.js';
+import { theme } from '../config/theme.js';
 ---
 
 <BaseLayout
@@ -16,10 +17,10 @@ import { siteConfig } from '../config/site.js';
       <div class="flex items-center gap-2 text-xs text-slate-500">
         <a href="/" class="hover:text-slate-900 transition-colors">Home</a>
         <span>/</span>
-        <span class="text-[#C2610A] font-bold">About</span>
+        <span class="text-[#4F46E5] font-bold">About</span>
       </div>
 
-      <h1 class="text-3xl sm:text-5xl font-extrabold text-slate-900 tracking-tight leading-tight font-heading">
+      <h1 class="text-3xl sm:text-5xl font-extrabold text-[#0F172A] tracking-tight leading-tight font-heading">
         Why I built this site.
       </h1>
       <p class="text-lg text-slate-600 leading-relaxed font-normal">
@@ -28,11 +29,11 @@ import { siteConfig } from '../config/site.js';
     </header>
 
     <!-- Main Essay / Story Content -->
-    <div class="space-y-12 text-slate-700 text-base sm:text-lg leading-relaxed font-normal">
+    <div class="space-y-12 text-[#334155] text-base sm:text-lg leading-relaxed font-normal">
       
       <!-- Section: The Beginner Headache -->
       <section class="space-y-4">
-        <h2 class="font-heading text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
+        <h2 class="font-heading text-xl sm:text-2xl font-extrabold text-[#0F172A] tracking-tight">
           Nobody tells you this stuff when you start watching.
         </h2>
         <p>
@@ -48,7 +49,7 @@ import { siteConfig } from '../config/site.js';
 
       <!-- Section: What to watch next -->
       <section class="space-y-4 pt-6 border-t border-slate-200">
-        <h2 class="font-heading text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
+        <h2 class="font-heading text-xl sm:text-2xl font-extrabold text-[#0F172A] tracking-tight">
           The post-show exhaustion.
         </h2>
         <p>
@@ -64,7 +65,7 @@ import { siteConfig } from '../config/site.js';
 
       <!-- Section: How this site works -->
       <section class="space-y-6 pt-6 border-t border-slate-200">
-        <h2 class="font-heading text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
+        <h2 class="font-heading text-xl sm:text-2xl font-extrabold text-[#0F172A] tracking-tight">
           How this site works: Watched vs. Watchlist
         </h2>
         <p>
@@ -76,7 +77,7 @@ import { siteConfig } from '../config/site.js';
             <div class="flex items-center gap-2">
               <HonestyBadge status="watched" size="sm" />
             </div>
-            <h3 class="font-heading text-base font-bold text-slate-900">Personally Watched</h3>
+            <h3 class="font-heading text-base font-bold text-[#0F172A]">Personally Watched</h3>
             <p class="text-xs sm:text-sm text-slate-600 leading-relaxed font-normal">
               Titles I have actually sat down and finished from start to end. If it's labeled "I've Watched This", you know the recommendation comes from first-hand viewing, with exact filler notes and watch order.
             </p>
@@ -86,7 +87,7 @@ import { siteConfig } from '../config/site.js';
             <div class="flex items-center gap-2">
               <HonestyBadge status="watchlist" size="sm" />
             </div>
-            <h3 class="font-heading text-base font-bold text-slate-900">On My Watchlist</h3>
+            <h3 class="font-heading text-base font-bold text-[#0F172A]">On My Watchlist</h3>
             <p class="text-xs sm:text-sm text-slate-600 leading-relaxed font-normal">
               Titles I haven't watched yet, but plan to watch next. I include them so you can see what's on deck and follow along, but I clearly label them so I never pretend I've finished something I haven't.
             </p>
@@ -101,10 +102,10 @@ import { siteConfig } from '../config/site.js';
       <!-- Section: Community Suggestions -->
       <section id="suggestions" class="space-y-6 pt-6 border-t border-slate-200">
         <div class="space-y-2">
-          <span class="text-[11px] font-bold uppercase tracking-wider text-[#C2610A]">
+          <span class="text-[11px] font-bold uppercase tracking-wider text-[#4F46E5]">
             Real Input
           </span>
-          <h2 class="font-heading text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
+          <h2 class="font-heading text-xl sm:text-2xl font-extrabold text-[#0F172A] tracking-tight">
             Suggestions from real people
           </h2>
         </div>
@@ -113,9 +114,9 @@ import { siteConfig } from '../config/site.js';
           I also want this to grow with input from people who love good stories. If you think an anime, movie, or series is missing, or if you have a better watch order recommendation, I genuinely want to hear it.
         </p>
 
-        <div class="p-6 sm:p-7 rounded-2xl bg-amber-50/40 border border-slate-200 space-y-4 shadow-xs">
-          <h3 class="font-heading text-base font-bold text-slate-900 flex items-center gap-2">
-            <svg class="w-5 h-5 text-[#C2610A]" viewBox="0 0 20 20" fill="currentColor">
+        <div class="p-6 sm:p-7 rounded-2xl bg-[#EEF2FF]/40 border border-slate-200 space-y-4 shadow-xs">
+          <h3 class="font-heading text-base font-bold text-[#0F172A] flex items-center gap-2">
+            <svg class="w-5 h-5 text-[#4F46E5]" viewBox="0 0 20 20" fill="currentColor">
               <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
             </svg>
             <span>My Honest Pledge on Suggestions</span>
@@ -127,7 +128,7 @@ import { siteConfig } from '../config/site.js';
 
         <!-- Suggestion contact form / mailto box -->
         <div class="p-6 sm:p-7 rounded-2xl bg-white border border-slate-200 space-y-4 shadow-xs">
-          <h3 class="font-heading text-base font-bold text-slate-900">
+          <h3 class="font-heading text-base font-bold text-[#0F172A]">
             Have a suggestion or correction?
           </h3>
           <p class="text-xs sm:text-sm text-slate-600 font-normal leading-relaxed">
@@ -136,7 +137,7 @@ import { siteConfig } from '../config/site.js';
           <div class="pt-2 flex flex-col sm:flex-row items-start sm:items-center gap-3">
             <a
               href="mailto:suggestions@chitrasampada.com?subject=Anime%20Suggestion%20for%20Chitra%20Sampada"
-              class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#C2610A] hover:bg-[#9A4C06] text-white font-bold text-xs shadow-md shadow-amber-950/20 transition-all duration-200"
+              class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#6366F1] hover:bg-[#4F46E5] text-white font-bold text-xs shadow-md shadow-indigo-500/20 transition-all duration-200"
             >
               <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />

@@ -6,6 +6,7 @@ import ComingSoonCard from '../components/ComingSoonCard.astro';
 import HonestyBadge from '../components/HonestyBadge.astro';
 import { animeList } from '../data/anime.js';
 import { siteConfig } from '../config/site.js';
+import { theme } from '../config/theme.js';
 
 // Top titles for the homepage spotlight
 const spotlightAnime = animeList.filter((a) => a.trending).slice(0, 4);
@@ -16,7 +17,7 @@ const spotlightAnime = animeList.filter((a) => a.trending).slice(0, 4);
   <section class="relative pt-16 pb-20 sm:pt-24 sm:pb-32 overflow-hidden">
     <!-- Ambient Depth: Faint Light Grid Pattern & Soft Glow -->
     <div class="absolute inset-0 bg-[linear-gradient(to_right,#00000006_1px,transparent_1px),linear-gradient(to_bottom,#00000006_1px,transparent_1px)] bg-[size:36px_36px] [mask-image:radial-gradient(ellipse_70%_60%_at_50%_35%,#000_60%,transparent_100%)] pointer-events-none -z-10"></div>
-    <div class="absolute top-20 left-1/2 -translate-x-1/2 w-[650px] sm:w-[900px] h-[380px] bg-[#C2610A]/8 blur-[140px] rounded-full pointer-events-none -z-10"></div>
+    <div class="absolute top-20 left-1/2 -translate-x-1/2 w-[650px] sm:w-[900px] h-[380px] bg-[#6366F1]/6 blur-[140px] rounded-full pointer-events-none -z-10"></div>
 
     <!-- Subtle Faint Floating Poster Accents (Left & Right desktop depth) -->
     <div class="hidden lg:block absolute left-8 xl:left-16 top-28 w-44 rounded-2xl overflow-hidden border border-slate-200/80 opacity-40 -rotate-6 pointer-events-none -z-10 shadow-lg bg-white p-1">
@@ -30,15 +31,15 @@ const spotlightAnime = animeList.filter((a) => a.trending).slice(0, 4);
       
       <!-- Top Badge Pill with Breathing Room -->
       <div class="mb-6 sm:mb-8 inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-white border border-slate-200 text-xs font-semibold text-slate-700 shadow-xs transition-colors">
-        <span class="w-1.5 h-1.5 rounded-full bg-[#C2610A] shadow-[0_0_8px_rgba(194,97,10,0.7)]"></span>
+        <span class="w-1.5 h-1.5 rounded-full bg-[#6366F1] shadow-[0_0_8px_rgba(99,102,241,0.6)]"></span>
         <span>A personal watch companion</span>
       </div>
 
-      <!-- Main Headline & Emotional Core with Solid Amber Emphasis -->
+      <!-- Main Headline & Emotional Core with Solid Theme Accent Emphasis -->
       <div class="space-y-3 sm:space-y-4 mb-8 sm:mb-10">
-        <h1 class="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-slate-900 leading-[1.15] font-heading">
+        <h1 class="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-[#0F172A] leading-[1.15] font-heading">
           Finding what to watch next takes too long. <br class="hidden sm:inline" />
-          <span class="block mt-2 sm:mt-3 text-[#C2610A]">
+          <span class="block mt-2 sm:mt-3 text-[#6366F1]">
             And nobody gives you the real context before you commit your time.
           </span>
         </h1>
@@ -47,7 +48,7 @@ const spotlightAnime = animeList.filter((a) => a.trending).slice(0, 4);
       <!-- Distinguishable Body Elements -->
       <div class="max-w-2xl mx-auto mb-10 sm:mb-12">
         <!-- Lead personal narrative -->
-        <p class="text-base sm:text-xl text-slate-700 font-normal leading-relaxed">
+        <p class="text-base sm:text-xl text-[#334155] font-normal leading-relaxed">
           I love anime, movies, and series. When I started watching anime, I didn't even know what "filler" was, or that there was a correct order to watch when movies and seasons are mixed together. 
         </p>
       </div>
@@ -56,7 +57,7 @@ const spotlightAnime = animeList.filter((a) => a.trending).slice(0, 4);
       <div class="flex flex-col sm:flex-row items-center justify-center gap-4 pt-1 mb-16 sm:mb-20">
         <a
           href="/anime"
-          class="w-full sm:w-auto px-8 py-4 rounded-2xl bg-[#C2610A] hover:bg-[#9A4C06] text-white font-bold text-sm tracking-wide shadow-md shadow-amber-950/20 hover:shadow-amber-950/30 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 flex items-center justify-center gap-2.5 group"
+          class="w-full sm:w-auto px-8 py-4 rounded-2xl bg-[#6366F1] hover:bg-[#4F46E5] text-white font-bold text-sm tracking-wide shadow-md shadow-indigo-500/20 hover:shadow-indigo-500/30 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 flex items-center justify-center gap-2.5 group"
         >
           <span>Browse Anime List</span>
           <svg class="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -78,8 +79,8 @@ const spotlightAnime = animeList.filter((a) => a.trending).slice(0, 4);
       <!-- 3 Core Principles with Elevated Surface Styling -->
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-left">
         <div class="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs hover:shadow-md transition-all duration-300 group">
-          <div class="flex items-center gap-2 text-[#C2610A] font-bold text-xs uppercase tracking-wide mb-2">
-            <span class="w-2 h-2 rounded-full bg-[#C2610A]"></span>
+          <div class="flex items-center gap-2 text-[#4F46E5] font-bold text-xs uppercase tracking-wide mb-2">
+            <span class="w-2 h-2 rounded-full bg-[#6366F1]"></span>
             <span>Watched vs Watchlist</span>
           </div>
           <p class="text-xs text-slate-600 leading-relaxed font-normal">
@@ -89,7 +90,7 @@ const spotlightAnime = animeList.filter((a) => a.trending).slice(0, 4);
 
         <div class="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs hover:shadow-md transition-all duration-300 group">
           <div class="flex items-center gap-2 text-slate-800 font-bold text-xs uppercase tracking-wide mb-2">
-            <span class="w-2 h-2 rounded-full bg-[#C2610A]"></span>
+            <span class="w-2 h-2 rounded-full bg-[#6366F1]"></span>
             <span>Watch Orders & Filler</span>
           </div>
           <p class="text-xs text-slate-600 leading-relaxed font-normal">
@@ -98,8 +99,8 @@ const spotlightAnime = animeList.filter((a) => a.trending).slice(0, 4);
         </div>
 
         <div class="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs hover:shadow-md transition-all duration-300 group">
-          <div class="flex items-center gap-2 text-amber-700 font-semibold text-xs uppercase tracking-wide mb-2">
-            <span class="w-2 h-2 rounded-full bg-amber-600"></span>
+          <div class="flex items-center gap-2 text-slate-800 font-semibold text-xs uppercase tracking-wide mb-2">
+            <span class="w-2 h-2 rounded-full bg-slate-400"></span>
             <span>Community Suggestions</span>
           </div>
           <p class="text-xs text-slate-600 leading-relaxed font-normal">
@@ -113,16 +114,16 @@ const spotlightAnime = animeList.filter((a) => a.trending).slice(0, 4);
 
   <!-- LIVE SECTION: ANIME -->
   <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-    <div class="relative rounded-3xl overflow-hidden bg-amber-50/40 border border-slate-200 p-8 sm:p-12 shadow-xs">
+    <div class="relative rounded-3xl overflow-hidden bg-[#EEF2FF]/40 border border-slate-200 p-8 sm:p-12 shadow-xs">
       <div class="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
         
         <div class="lg:col-span-7 space-y-5">
-          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-50 border border-amber-200 text-[#C2610A] text-xs font-bold shadow-2xs">
-            <span class="w-1.5 h-1.5 rounded-full bg-[#C2610A]"></span>
+          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#EEF2FF] border border-[#C7D2FE] text-[#4F46E5] text-xs font-bold shadow-2xs">
+            <span class="w-1.5 h-1.5 rounded-full bg-[#6366F1]"></span>
             <span>First Section Live</span>
           </div>
 
-          <h2 class="font-heading text-2xl sm:text-4xl font-extrabold text-slate-900 tracking-tight leading-tight">
+          <h2 class="font-heading text-2xl sm:text-4xl font-extrabold text-[#0F172A] tracking-tight leading-tight">
             Starting with Anime.
           </h2>
 
@@ -133,7 +134,7 @@ const spotlightAnime = animeList.filter((a) => a.trending).slice(0, 4);
           <div class="pt-2">
             <a
               href="/anime"
-              class="inline-flex items-center gap-2 px-6 py-3.5 rounded-2xl bg-[#C2610A] hover:bg-[#9A4C06] text-white font-bold text-sm shadow-md shadow-amber-950/20 hover:shadow-amber-950/30 hover:-translate-y-0.5 transition-all duration-200"
+              class="inline-flex items-center gap-2 px-6 py-3.5 rounded-2xl bg-[#6366F1] hover:bg-[#4F46E5] text-white font-bold text-sm shadow-md shadow-indigo-500/20 hover:shadow-indigo-500/30 hover:-translate-y-0.5 transition-all duration-200"
             >
               <span>Explore the Anime Section</span>
               <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -156,7 +157,7 @@ const spotlightAnime = animeList.filter((a) => a.trending).slice(0, 4);
               </div>
               <div class="space-y-1">
                 <HonestyBadge status={item.honestyStatus} size="sm" />
-                <h4 class="font-heading text-xs font-bold text-slate-900 mt-1 line-clamp-1">{item.title}</h4>
+                <h4 class="font-heading text-xs font-bold text-[#0F172A] mt-1 line-clamp-1">{item.title}</h4>
                 <p class="text-[10px] text-slate-500 font-medium">{item.episodes} episodes</p>
               </div>
             </div>
@@ -171,7 +172,7 @@ const spotlightAnime = animeList.filter((a) => a.trending).slice(0, 4);
   <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
     <div class="flex flex-col sm:flex-row items-start sm:items-end justify-between gap-4 mb-8">
       <div>
-        <h2 class="font-heading text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
+        <h2 class="font-heading text-xl sm:text-2xl font-extrabold text-[#0F172A] tracking-tight">
           Recently Watched & Queued
         </h2>
         <p class="text-xs text-slate-500 mt-1 font-normal">
@@ -181,7 +182,7 @@ const spotlightAnime = animeList.filter((a) => a.trending).slice(0, 4);
 
       <a
         href="/anime"
-        class="inline-flex items-center gap-1.5 text-xs font-bold text-[#C2610A] hover:text-[#9A4C06] transition-colors"
+        class="inline-flex items-center gap-1.5 text-xs font-bold text-[#4F46E5] hover:text-[#4338CA] transition-colors"
       >
         <span>View full list</span>
         <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -203,7 +204,7 @@ const spotlightAnime = animeList.filter((a) => a.trending).slice(0, 4);
       <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">
         Coming Later
       </span>
-      <h2 class="font-heading text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+      <h2 class="font-heading text-2xl sm:text-3xl font-extrabold text-[#0F172A] tracking-tight">
         Movies, TV Shows, and Web Series
       </h2>
       <p class="text-sm text-slate-600 leading-relaxed font-normal">
@@ -257,7 +258,7 @@ const spotlightAnime = animeList.filter((a) => a.trending).slice(0, 4);
   <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
     <div class="p-7 sm:p-10 rounded-3xl bg-white border border-slate-200 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
       <div class="space-y-2 max-w-xl">
-        <h3 class="font-heading text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
+        <h3 class="font-heading text-xl sm:text-2xl font-extrabold text-[#0F172A] tracking-tight">
           Want to suggest something I should watch?
         </h3>
         <p class="text-sm text-slate-600 leading-relaxed font-normal">

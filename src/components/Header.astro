@@ -1,6 +1,7 @@
 ---
 // src/components/Header.astro
 import { siteConfig } from '../config/site.js';
+import { theme } from '../config/theme.js';
 
 const currentPath = Astro.url.pathname;
 ---
@@ -10,16 +11,16 @@ const currentPath = Astro.url.pathname;
     
     <!-- Logo & Brand Identity -->
     <a href="/" class="flex items-center gap-3 group shrink-0">
-      <div class="w-10 h-10 rounded-xl bg-[#C2610A] p-0.5 shadow-md shadow-amber-950/20 transition-all duration-300">
+      <div class="w-10 h-10 rounded-xl bg-[#6366F1] p-0.5 shadow-md shadow-indigo-500/20 transition-all duration-300">
         <div class="w-full h-full bg-white rounded-[10px] flex items-center justify-center">
-          <span class="text-[#C2610A] font-extrabold text-xl tracking-tighter group-hover:scale-110 transition-transform">
+          <span class="text-[#6366F1] font-extrabold text-xl tracking-tighter group-hover:scale-110 transition-transform">
             CS
           </span>
         </div>
       </div>
       <div>
         <div class="flex items-center gap-2">
-          <span class="text-lg sm:text-xl font-bold tracking-tight text-slate-900 group-hover:text-[#C2610A] transition-colors font-heading">
+          <span class="text-lg sm:text-xl font-bold tracking-tight text-[#0F172A] group-hover:text-[#6366F1] transition-colors font-heading">
             {siteConfig.name}
           </span>
           <span class="text-[10px] uppercase font-bold tracking-widest px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200">
@@ -46,7 +47,7 @@ const currentPath = Astro.url.pathname;
             class:list={[
               'relative px-3.5 py-2 rounded-xl text-sm font-semibold flex items-center gap-2 transition-all duration-200',
               isActive
-                ? 'bg-amber-50 text-[#C2610A] border border-amber-200 font-bold shadow-2xs'
+                ? 'bg-[#EEF2FF] text-[#4F46E5] border border-[#C7D2FE] font-bold shadow-2xs'
                 : isLive
                   ? 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80'
                   : 'text-slate-400 hover:text-slate-500 hover:bg-slate-50 cursor-not-allowed opacity-75'
@@ -58,7 +59,7 @@ const currentPath = Astro.url.pathname;
                 class:list={[
                   'text-[10px] font-extrabold uppercase px-1.5 py-0.5 rounded tracking-wider',
                   link.status === 'live'
-                    ? 'bg-amber-50 text-[#C2610A] border border-amber-200 font-bold'
+                    ? 'bg-[#EEF2FF] text-[#4F46E5] border border-[#C7D2FE] font-bold'
                     : 'bg-slate-100 text-slate-500 border border-slate-200 text-[9px]'
                 ]}
               >
@@ -74,7 +75,7 @@ const currentPath = Astro.url.pathname;
     <div class="flex items-center gap-3">
       <a
         href="/anime"
-        class="hidden sm:inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider text-white bg-[#C2610A] hover:bg-[#9A4C06] shadow-md shadow-amber-950/20 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
+        class="hidden sm:inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider text-white bg-[#6366F1] hover:bg-[#4F46E5] shadow-md shadow-indigo-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
       >
         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
@@ -117,7 +118,7 @@ const currentPath = Astro.url.pathname;
             class:list={[
               'text-[10px] font-extrabold uppercase px-2 py-0.5 rounded tracking-wider',
               link.status === 'live'
-                ? 'bg-amber-50 text-[#C2610A] border border-amber-200 font-bold'
+                ? 'bg-[#EEF2FF] text-[#4F46E5] border border-[#C7D2FE] font-bold'
                 : 'bg-slate-100 text-slate-500 border border-slate-200'
             ]}
           >
@@ -129,7 +130,7 @@ const currentPath = Astro.url.pathname;
     <div class="pt-3 border-t border-slate-200">
       <a
         href="/anime"
-        class="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold text-white bg-[#C2610A] hover:bg-[#9A4C06] shadow-md shadow-amber-950/20"
+        class="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold text-white bg-[#6366F1] hover:bg-[#4F46E5] shadow-md shadow-indigo-500/20"
       >
         Launch Anime Hub
       </a>

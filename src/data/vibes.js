@@ -51,10 +51,10 @@ export const vibes = [
     pageTitle: 'Zero Filler Anime (100% Pure Canon) — Complete Episode & Watch Guides',
     metaDescription: 'Browse 100% pure canon anime with zero filler episodes. High-density storytelling with verified chronological watch orders and episode breakdowns.',
     badge: 'PURE STORY',
-    gradient: 'from-amber-950/60 via-stone-900/40 to-slate-900/80',
-    borderHover: 'group-hover:border-[#C2610A]/80',
-    glowColor: 'group-hover:shadow-amber-900/25',
-    accentText: 'text-[#C2610A]',
+    gradient: 'from-indigo-950/60 via-slate-900/40 to-slate-900/80',
+    borderHover: 'group-hover:border-[#6366F1]/80',
+    glowColor: 'group-hover:shadow-indigo-500/25',
+    accentText: 'text-[#4F46E5]',
     icon: 'shield-check'
   },
   {

@@ -4,6 +4,7 @@ import { ClientRouter } from 'astro:transitions';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 import { siteConfig } from '../config/site.js';
+import { theme } from '../config/theme.js';
 import '../styles/global.css';
 
 const {
@@ -16,7 +17,7 @@ const pageTitle = title === siteConfig.name ? `${title} — ${siteConfig.subTagl
 ---
 
 <!DOCTYPE html>
-<html lang="en" class="scroll-smooth bg-[#fafafa] text-slate-900">
+<html lang="en" class="scroll-smooth bg-[#F8FAFC] text-slate-900">
   <head>
     <meta charset="utf-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
@@ -51,9 +52,9 @@ const pageTitle = title === siteConfig.name ? `${title} — ${siteConfig.subTagl
     <ClientRouter />
   </head>
 
-  <body class="min-h-screen flex flex-col antialiased bg-[#fafafa] text-slate-800 selection:bg-[#C2610A] selection:text-white">
+  <body class="min-h-screen flex flex-col antialiased bg-[#F8FAFC] text-[#334155]">
     <!-- Subtle ambient top glow for light mode -->
-    <div class="fixed top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[300px] bg-[#C2610A]/5 blur-[140px] pointer-events-none -z-10"></div>
+    <div class="fixed top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[300px] bg-[#6366F1]/5 blur-[140px] pointer-events-none -z-10"></div>
     
     <Header />
 

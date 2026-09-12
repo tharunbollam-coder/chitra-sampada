@@ -8,15 +8,15 @@ const watchOrder = anime.watchOrder || [];
   <div class="bg-white rounded-2xl border border-slate-200 p-6 sm:p-7 shadow-xs">
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-5 border-b border-slate-100">
       <div>
-        <h2 class="font-heading text-xl sm:text-2xl font-bold text-slate-900">
+        <h2 class="font-heading text-xl sm:text-2xl font-bold text-[#0F172A]">
           Chronological Watch Order
         </h2>
         <p class="text-xs sm:text-sm text-slate-500 font-normal mt-1">
           Follow this sequential roadmap to watch the series without skipping mandatory canon storylines or confusing timeline jumps.
         </p>
       </div>
-      <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-[#C2610A] border border-amber-200 shrink-0 self-start sm:self-auto shadow-2xs">
-        <span class="w-1.5 h-1.5 rounded-full bg-[#C2610A]"></span>
+      <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-[#EEF2FF] text-[#4F46E5] border border-[#C7D2FE] shrink-0 self-start sm:self-auto shadow-2xs">
+        <span class="w-1.5 h-1.5 rounded-full bg-[#6366F1]"></span>
         {watchOrder.length} {watchOrder.length === 1 ? 'Entry' : 'Sequential Entries'}
       </span>
     </div>
@@ -27,7 +27,7 @@ const watchOrder = anime.watchOrder || [];
         <div class:list={[
           'relative flex flex-col sm:flex-row sm:items-start gap-4 p-4 sm:p-5 rounded-2xl border transition-all duration-200',
           item.isCurrent
-            ? 'bg-amber-50/50 border-amber-300 ring-1 ring-amber-200 shadow-xs'
+            ? 'bg-[#EEF2FF]/50 border-[#C7D2FE] ring-1 ring-[#C7D2FE] shadow-xs'
             : 'bg-white hover:bg-slate-50/70 border-slate-200/90'
         ]}>
           <!-- Order Number Badge -->
@@ -35,7 +35,7 @@ const watchOrder = anime.watchOrder || [];
             <div class:list={[
               'w-10 h-10 rounded-xl flex items-center justify-center font-extrabold text-sm z-10 border transition-all',
               item.isCurrent
-                ? 'bg-[#C2610A] text-white border-amber-700 shadow-sm shadow-amber-950/20'
+                ? 'bg-[#6366F1] text-white border-[#4F46E5] shadow-sm shadow-indigo-500/20'
                 : 'bg-slate-100 text-slate-700 border-slate-200'
             ]}>
               {String(item.order || index + 1).padStart(2, '0')}
@@ -43,14 +43,14 @@ const watchOrder = anime.watchOrder || [];
             <!-- Mobile Title & Badges Row -->
             <div class="sm:hidden flex-1">
               <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">{item.type}</span>
-              <h3 class="font-bold text-slate-900 text-sm leading-tight">{item.title}</h3>
+              <h3 class="font-bold text-[#0F172A] text-sm leading-tight">{item.title}</h3>
             </div>
           </div>
 
           <!-- Content Details -->
           <div class="flex-1 space-y-1.5">
             <div class="hidden sm:flex items-center gap-2.5 flex-wrap">
-              <h3 class="font-heading font-bold text-base text-slate-900 leading-snug">
+              <h3 class="font-heading font-bold text-base text-[#0F172A] leading-snug">
                 {item.title}
               </h3>
               <span class="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 border border-slate-200">
@@ -60,7 +60,7 @@ const watchOrder = anime.watchOrder || [];
                 {item.episodes}
               </span>
               {item.isCurrent && (
-                <span class="text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full bg-[#C2610A] text-white tracking-wider shadow-2xs">
+                <span class="text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full bg-[#6366F1] text-white tracking-wider shadow-2xs">
                   Current Title
                 </span>
               )}
@@ -70,7 +70,7 @@ const watchOrder = anime.watchOrder || [];
             <div class="sm:hidden flex items-center gap-2 flex-wrap text-xs text-slate-600 pt-0.5">
               <span class="font-medium bg-slate-100 px-2 py-0.5 rounded border border-slate-200">{item.episodes}</span>
               {item.isCurrent && (
-                <span class="text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full bg-[#C2610A] text-white tracking-wider shadow-2xs">
+                <span class="text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full bg-[#6366F1] text-white tracking-wider shadow-2xs">
                   Current Title
                 </span>
               )}

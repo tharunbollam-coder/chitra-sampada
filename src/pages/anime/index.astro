@@ -6,6 +6,7 @@ import VibeCard from '../../components/VibeCard.astro';
 import { animeList } from '../../data/anime.js';
 import { vibes } from '../../data/vibes.js';
 import { siteConfig } from '../../config/site.js';
+import { theme } from '../../config/theme.js';
 
 // Featured selection for the static grid (top 4 titles to reduce mobile scroll fatigue)
 const featuredAnime = animeList.filter((a) => a.trending).slice(0, 4);
@@ -18,7 +19,7 @@ const featuredAnime = animeList.filter((a) => a.trending).slice(0, 4);
   <!-- 1. HERO SECTION (CLEAN STATIC HERO) -->
   <section class="relative pt-10 pb-14 sm:pt-16 sm:pb-20 overflow-hidden border-b border-slate-200 bg-white">
     <!-- Ambient top glow -->
-    <div class="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[260px] bg-[#C2610A]/5 blur-[120px] rounded-full pointer-events-none -z-10"></div>
+    <div class="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[260px] bg-[#6366F1]/5 blur-[120px] rounded-full pointer-events-none -z-10"></div>
 
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       
@@ -26,15 +27,15 @@ const featuredAnime = animeList.filter((a) => a.trending).slice(0, 4);
       <div class="flex items-center gap-2 text-xs text-slate-500 mb-6">
         <a href="/" class="hover:text-slate-900 transition-colors">Home</a>
         <span>/</span>
-        <span class="text-[#C2610A] font-bold">Anime Section</span>
-        <span class="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full bg-amber-50 text-[#C2610A] border border-amber-200 ml-2 shadow-2xs">
+        <span class="text-[#4F46E5] font-bold">Anime Section</span>
+        <span class="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full bg-[#EEF2FF] text-[#4F46E5] border border-[#C7D2FE] ml-2 shadow-2xs">
           Flagship Live
         </span>
       </div>
 
       <!-- Main Headline & Narrative -->
       <div class="max-w-3xl space-y-5">
-        <h1 class="text-3xl sm:text-5xl lg:text-6xl font-extrabold text-slate-900 tracking-tight leading-[1.15] font-heading">
+        <h1 class="text-3xl sm:text-5xl lg:text-6xl font-extrabold text-[#0F172A] tracking-tight leading-[1.15] font-heading">
           The Anime List
         </h1>
 
@@ -45,7 +46,7 @@ const featuredAnime = animeList.filter((a) => a.trending).slice(0, 4);
         <!-- Simple single-line counter replacing old stat boxes -->
         <div class="pt-1 flex flex-wrap items-center gap-4">
           <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white border border-slate-200 text-xs font-semibold text-slate-700 shadow-2xs">
-            <span class="w-2 h-2 rounded-full bg-[#C2610A]"></span>
+            <span class="w-2 h-2 rounded-full bg-[#6366F1]"></span>
             <span>{animeList.length} anime listed and counting</span>
           </div>
         </div>
@@ -54,7 +55,7 @@ const featuredAnime = animeList.filter((a) => a.trending).slice(0, 4);
         <div class="pt-3 flex flex-col sm:flex-row items-stretch sm:items-center gap-3.5">
           <a
             href="/anime/catalog"
-            class="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl bg-[#C2610A] hover:bg-[#9A4C06] text-white font-bold text-sm shadow-md shadow-amber-950/20 hover:shadow-amber-950/30 hover:-translate-y-0.5 transition-all duration-200"
+            class="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl bg-[#6366F1] hover:bg-[#4F46E5] text-white font-bold text-sm shadow-md shadow-indigo-500/20 hover:shadow-indigo-500/30 hover:-translate-y-0.5 transition-all duration-200"
           >
             <span>Browse Full Catalog</span>
             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -79,8 +80,8 @@ const featuredAnime = animeList.filter((a) => a.trending).slice(0, 4);
     <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
       <div>
         <div class="flex items-center gap-2">
-          <span class="w-2.5 h-2.5 rounded-full bg-[#C2610A] shadow-[0_0_8px_rgba(194,97,10,0.8)] animate-pulse"></span>
-          <h2 class="font-heading text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
+          <span class="w-2.5 h-2.5 rounded-full bg-[#6366F1] shadow-[0_0_8px_rgba(99,102,241,0.8)] animate-pulse"></span>
+          <h2 class="font-heading text-xl sm:text-2xl font-extrabold text-[#0F172A] tracking-tight">
             Trending & Recently Added
           </h2>
         </div>
@@ -91,7 +92,7 @@ const featuredAnime = animeList.filter((a) => a.trending).slice(0, 4);
 
       <a
         href="/anime/catalog"
-        class="inline-flex items-center gap-1.5 text-xs font-bold text-[#C2610A] hover:text-[#9A4C06] transition-colors"
+        class="inline-flex items-center gap-1.5 text-xs font-bold text-[#4F46E5] hover:text-[#4338CA] transition-colors"
       >
         <span>View all {animeList.length} titles in catalog →</span>
       </a>
@@ -109,10 +110,10 @@ const featuredAnime = animeList.filter((a) => a.trending).slice(0, 4);
   <section id="vibes" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 border-t border-slate-200">
     <div class="mb-8 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
       <div>
-        <span class="text-[11px] font-bold uppercase tracking-wider text-[#C2610A]">
+        <span class="text-[11px] font-bold uppercase tracking-wider text-[#4F46E5]">
           Discovery by Mood
         </span>
-        <h2 class="font-heading text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight mt-1">
+        <h2 class="font-heading text-2xl sm:text-3xl font-extrabold text-[#0F172A] tracking-tight mt-1">
           Browse by Vibe
         </h2>
         <p class="text-sm text-slate-600 mt-1 max-w-xl font-normal leading-relaxed">
@@ -136,7 +137,7 @@ const featuredAnime = animeList.filter((a) => a.trending).slice(0, 4);
         <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500">
           Complete Directory
         </span>
-        <h3 class="font-heading text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+        <h3 class="font-heading text-2xl sm:text-3xl font-extrabold text-[#0F172A] tracking-tight">
           Explore the Full Anime Catalog
         </h3>
         <p class="text-sm sm:text-base text-slate-600 leading-relaxed font-normal">
@@ -147,7 +148,7 @@ const featuredAnime = animeList.filter((a) => a.trending).slice(0, 4);
       <div class="shrink-0 flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
         <a
           href="/anime/catalog"
-          class="inline-flex items-center justify-center gap-2 px-7 py-4 rounded-2xl bg-[#C2610A] hover:bg-[#9A4C06] text-white text-sm font-bold shadow-md shadow-amber-950/20 hover:shadow-amber-950/30 hover:-translate-y-0.5 transition-all duration-200 text-center"
+          class="inline-flex items-center justify-center gap-2 px-7 py-4 rounded-2xl bg-[#6366F1] hover:bg-[#4F46E5] text-white text-sm font-bold shadow-md shadow-indigo-500/20 hover:shadow-indigo-500/30 hover:-translate-y-0.5 transition-all duration-200 text-center"
         >
           <span>Open Full Catalog ({animeList.length})</span>
           <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

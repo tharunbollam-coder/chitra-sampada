@@ -10,6 +10,7 @@ import TabPowerSystem from '../../../components/anime/TabPowerSystem.astro';
 import TabLessons from '../../../components/anime/TabLessons.astro';
 import TabReview from '../../../components/anime/TabReview.astro';
 import { animeList, getAvailableTabs, getDefaultTabKey } from '../../../data/anime.js';
+import { theme } from '../../../config/theme.js';
 
 export function getStaticPaths() {
   const paths = [];
@@ -71,17 +72,17 @@ const pageDescription = `Complete guide for ${anime.title}. ${currentTabLabel} w
         {activeTab && (
           <>
             <span>/</span>
-            <span id="breadcrumb-current-tab" class="text-[#C2610A] font-bold">{activeTab.label}</span>
+            <span id="breadcrumb-current-tab" class="text-[#4F46E5] font-bold">{activeTab.label}</span>
           </>
         )}
       </div>
 
       <a
         href="/anime"
-        class="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-[#C2610A] transition-colors shrink-0"
+        class="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-[#4F46E5] transition-colors shrink-0"
       >
         <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m7 7h18" />
         </svg>
         <span>Back to Anime Home</span>
       </a>
@@ -114,8 +115,8 @@ const pageDescription = `Complete guide for ${anime.title}. ${currentTabLabel} w
               class:list={[
                 'text-xs font-bold px-3 py-1 rounded-full border tracking-wide select-none',
                 isZeroFiller
-                  ? 'bg-amber-50 text-[#C2610A] border-amber-200'
-                  : 'bg-stone-100 text-stone-700 border-stone-200'
+                  ? 'bg-[#EEF2FF] text-[#4F46E5] border-[#C7D2FE]'
+                  : 'bg-slate-100 text-slate-700 border-slate-200'
               ]}
             >
               {isZeroFiller ? '0% Filler (Pure Canon)' : `${anime.fillerPercentage}% Filler Warning`}
@@ -123,72 +124,55 @@ const pageDescription = `Complete guide for ${anime.title}. ${currentTabLabel} w
 
             <!-- Personal Rating Badge (Only rendered if personalRating exists) -->
             {anime.personalRating && (
-              <span class="text-xs font-bold px-3 py-1 rounded-full bg-amber-50 text-amber-900 border border-amber-200/90 flex items-center gap-1.5 shadow-2xs">
+              <span class="text-xs font-bold px-3 py-1 rounded-full bg-slate-100 text-slate-800 border border-slate-200 flex items-center gap-1.5 shadow-2xs">
                 <span class="text-amber-500 font-bold">★</span>
                 <span>{anime.personalRating} / 10</span>
-                <span class="text-[10px] text-amber-700/80 font-medium">(My Rating)</span>
+                <span class="text-[10px] text-slate-500 font-medium">(My Rating)</span>
               </span>
             )}
           </div>
 
-          <!-- Titles (English + Original) -->
-          <div class="space-y-1">
-            <h1 class="text-2xl sm:text-4xl font-extrabold text-slate-900 tracking-tight font-heading leading-tight">
+          <!-- Titles Block -->
+          <div>
+            <h1 class="text-2xl sm:text-4xl lg:text-5xl font-extrabold text-[#0F172A] tracking-tight font-heading leading-tight">
               {anime.title}
             </h1>
             {anime.originalTitle && (
-              <p class="text-sm sm:text-base text-slate-500 font-normal">
+              <p class="text-sm sm:text-base text-slate-500 font-medium mt-1">
                 {anime.originalTitle}
               </p>
             )}
           </div>
 
-          <!-- Key Metadata Matrix -->
-          <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-1">
-            <div class="p-3 rounded-xl bg-slate-50 border border-slate-200/70">
-              <span class="block text-[10px] font-bold uppercase tracking-wider text-slate-500">Episodes</span>
-              <span class="text-sm font-bold text-slate-900">{anime.episodes} Total</span>
-            </div>
-            <div class="p-3 rounded-xl bg-slate-50 border border-slate-200/70">
-              <span class="block text-[10px] font-bold uppercase tracking-wider text-slate-500">Release Year</span>
-              <span class="text-sm font-bold text-slate-900">{anime.year}</span>
-            </div>
-            <div class="p-3 rounded-xl bg-slate-50 border border-slate-200/70 col-span-2 sm:col-span-1">
-              <span class="block text-[10px] font-bold uppercase tracking-wider text-slate-500">Status</span>
-              <span class="text-sm font-bold text-slate-900">{anime.status}</span>
-            </div>
-          </div>
-
-          <!-- Genres -->
-          <div class="flex items-center gap-1.5 flex-wrap pt-1">
-            {anime.genres.map((genre) => (
-              <span class="text-xs font-medium px-2.5 py-1 rounded-lg bg-white border border-slate-200 text-slate-700">
-                {genre}
-              </span>
-            ))}
-          </div>
-
-          <!-- Synopsis / Premise -->
-          <div class="pt-1">
-            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Premise</h3>
-            <p class="text-sm sm:text-base text-slate-700 leading-relaxed font-normal">
+          <!-- Quick Synopsis -->
+          {anime.synopsis && (
+            <p class="text-sm sm:text-base text-slate-700 leading-relaxed font-normal max-w-3xl">
               {anime.synopsis}
             </p>
-          </div>
+          )}
 
-          <!-- Small Metadata Line (Added & Last Updated) -->
-          <div class="flex items-center gap-3 text-xs text-slate-500 pt-1 border-t border-slate-100 flex-wrap">
-            {anime.addedDate && <span>Added: <strong class="text-slate-700 font-semibold">{anime.addedDate}</strong></span>}
-            {anime.addedDate && anime.lastUpdated && <span>•</span>}
-            {anime.lastUpdated && <span>Last updated: <strong class="text-slate-700 font-semibold">{anime.lastUpdated}</strong></span>}
+          <!-- Detailed Metadata Matrix -->
+          <div class="flex items-center gap-2 sm:gap-3 text-xs text-slate-600 flex-wrap pt-1 font-medium">
+            <span class="font-bold text-[#0F172A]">{anime.year}</span>
+            <span class="text-slate-300">•</span>
+            <span>{anime.episodes} episodes</span>
+            <span class="text-slate-300">•</span>
+            <span class="px-2 py-0.5 rounded-md bg-slate-100 border border-slate-200/80 text-slate-700">{anime.status}</span>
+            <span class="text-slate-300">•</span>
+            <span>{anime.genres.join(', ')}</span>
           </div>
 
         </div>
-      </div>
 
-      <!-- 3. TAB NAVIGATION BAR (Only renders available tabs for this anime) -->
-      <div id="anime-tabs-nav" class="pt-4 border-b border-slate-200">
-        <div class="flex items-center gap-1 sm:gap-2 overflow-x-auto no-scrollbar py-1">
+      </div>
+    </section>
+
+    <!-- 3. SECONDARY HORIZONTAL TAB NAVIGATION (STICKY / FULL WIDTH) -->
+    <section class="sticky top-18 z-40 bg-white/95 backdrop-blur-md border-y border-slate-200 py-3 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 shadow-2xs">
+      <div class="max-w-7xl mx-auto flex items-center justify-between gap-4">
+        
+        <!-- Tab Navigation Links -->
+        <div class="flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar py-0.5" id="anime-tabs-nav">
           {availableTabs.map((tab) => {
             const isActive = tab.key === activeTab?.key;
             const tabUrl = `/anime/${anime.slug}/${tab.key}`;
@@ -200,7 +184,7 @@ const pageDescription = `Complete guide for ${anime.title}. ${currentTabLabel} w
                 class:list={[
                   'anime-tab-link px-3.5 sm:px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap transition-all duration-150 shrink-0 select-none flex items-center gap-1.5 cursor-pointer',
                   isActive
-                    ? 'active-tab bg-[#C2610A] text-white shadow-sm shadow-amber-950/20'
+                    ? 'active-tab bg-[#6366F1] text-white shadow-sm shadow-indigo-500/20'
                     : 'inactive-tab bg-white hover:bg-slate-100 text-slate-600 hover:text-slate-900 border border-slate-200/80'
                 ]}
               >
@@ -208,7 +192,7 @@ const pageDescription = `Complete guide for ${anime.title}. ${currentTabLabel} w
                 {tab.count !== undefined && (
                   <span class:list={[
                     'tab-counter text-[10px] font-bold px-1.5 py-0.2 rounded-full',
-                    isActive ? 'bg-amber-900/60 text-white' : 'bg-slate-100 text-slate-500'
+                    isActive ? 'bg-[#4338CA] text-white' : 'bg-slate-100 text-slate-500'
                   ]}>
                     {tab.count}
                   </span>
@@ -255,7 +239,7 @@ const pageDescription = `Complete guide for ${anime.title}. ${currentTabLabel} w
         <!-- Back to Anime Home Button -->
         <a
           href="/anime"
-          class="inline-flex items-center gap-2 px-6 py-3.5 rounded-2xl bg-[#C2610A] hover:bg-[#9A4C06] text-white font-bold text-sm shadow-md shadow-amber-950/20 hover:shadow-amber-950/30 hover:-translate-y-0.5 transition-all duration-200"
+          class="inline-flex items-center gap-2 px-6 py-3.5 rounded-2xl bg-[#6366F1] hover:bg-[#4F46E5] text-white font-bold text-sm shadow-md shadow-indigo-500/20 hover:shadow-indigo-500/30 hover:-translate-y-0.5 transition-all duration-200"
         >
           <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -302,16 +286,16 @@ const pageDescription = `Complete guide for ${anime.title}. ${currentTabLabel} w
 
           if (isMatch) {
             link.classList.remove('inactive-tab', 'bg-white', 'hover:bg-slate-100', 'text-slate-600', 'hover:text-slate-900', 'border', 'border-slate-200/80');
-            link.classList.add('active-tab', 'bg-[#C2610A]', 'text-white', 'shadow-sm', 'shadow-amber-950/20');
+            link.classList.add('active-tab', 'bg-[#6366F1]', 'text-white', 'shadow-sm', 'shadow-indigo-500/20');
             if (counter) {
               counter.classList.remove('bg-slate-100', 'text-slate-500');
-              counter.classList.add('bg-amber-900/60', 'text-white');
+              counter.classList.add('bg-[#4338CA]', 'text-white');
             }
           } else {
-            link.classList.remove('active-tab', 'bg-[#C2610A]', 'text-white', 'shadow-sm', 'shadow-amber-950/20');
+            link.classList.remove('active-tab', 'bg-[#6366F1]', 'text-white', 'shadow-sm', 'shadow-indigo-500/20');
             link.classList.add('inactive-tab', 'bg-white', 'hover:bg-slate-100', 'text-slate-600', 'hover:text-slate-900', 'border', 'border-slate-200/80');
             if (counter) {
-              counter.classList.remove('bg-amber-900/60', 'text-white');
+              counter.classList.remove('bg-[#4338CA]', 'text-white');
               counter.classList.add('bg-slate-100', 'text-slate-500');
             }
           }
