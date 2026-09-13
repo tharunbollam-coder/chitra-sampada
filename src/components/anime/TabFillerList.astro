@@ -30,8 +30,8 @@ const isZeroFiller = anime.fillerPercentage === 0;
         <h2 class="font-heading text-xl sm:text-2xl font-bold text-[#0F172A]">
           Canon & Filler Episode Guide
         </h2>
-        <p class="text-xs sm:text-sm text-slate-600 font-normal mt-1 max-w-2xl">
-          {fillerData.summary || `Breakdown of manga canon vs anime filler ranges for ${anime.title}.`}
+        <p class="text-xs sm:text-sm text-slate-600 font-normal mt-1.5 max-w-2xl leading-relaxed">
+          <strong class="text-slate-900 font-semibold">Canon</strong> follows the original source story. <strong class="text-slate-900 font-semibold">Filler</strong> is anime-only side content not in the manga. <strong class="text-slate-900 font-semibold">Mixed</strong> blends both.
         </p>
       </div>
 
@@ -41,14 +41,14 @@ const isZeroFiller = anime.fillerPercentage === 0;
           <span class="block text-[10px] font-bold uppercase tracking-wider text-slate-500">Total</span>
           <span class="text-base font-extrabold text-[#0F172A]">{anime.episodes} eps</span>
         </div>
-        <div class="px-4 py-2.5 rounded-xl bg-[#EEF2FF] border border-[#C7D2FE] text-center min-w-[90px]">
-          <span class="block text-[10px] font-bold uppercase tracking-wider text-[#4F46E5]">Canon</span>
-          <span class="text-base font-extrabold text-[#0F172A]">{fillerData.canonEpisodes || (anime.episodes - (fillerData.fillerEpisodes || 0))} eps</span>
+        <div class="px-4 py-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-center min-w-[90px]">
+          <span class="block text-[10px] font-bold uppercase tracking-wider text-emerald-700">Canon</span>
+          <span class="text-base font-extrabold text-emerald-950">{fillerData.canonEpisodes || (anime.episodes - (fillerData.fillerEpisodes || 0))} eps</span>
         </div>
         {!isZeroFiller && (
-          <div class="px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-center min-w-[90px]">
-            <span class="block text-[10px] font-bold uppercase tracking-wider text-slate-700">Filler</span>
-            <span class="text-base font-extrabold text-slate-900">{fillerData.fillerEpisodes || 0} eps</span>
+          <div class="px-4 py-2.5 rounded-xl bg-amber-50 border border-amber-200 text-center min-w-[90px]">
+            <span class="block text-[10px] font-bold uppercase tracking-wider text-amber-700">Filler</span>
+            <span class="text-base font-extrabold text-amber-950">{fillerData.fillerEpisodes || 0} eps</span>
           </div>
         )}
       </div>
@@ -69,9 +69,9 @@ const isZeroFiller = anime.fillerPercentage === 0;
           return (
             <div class:list={[
               'flex items-center justify-between gap-3 p-3.5 rounded-xl border transition-colors',
-              isCanon ? 'bg-[#EEF2FF]/60 border-[#C7D2FE] text-slate-900' : '',
-              isFiller ? 'bg-slate-100/60 border-slate-200 text-slate-950' : '',
-              isMixed ? 'bg-slate-50 border-slate-200 text-slate-800' : ''
+              isCanon ? 'bg-emerald-50/40 border-emerald-200/90 text-slate-900' : '',
+              isFiller ? 'bg-amber-50/40 border-amber-200/90 text-slate-900' : '',
+              isMixed ? 'bg-purple-50/40 border-purple-200/90 text-slate-900' : ''
             ]}>
               <div class="space-y-0.5 min-w-0">
                 <div class="flex items-center gap-2">
@@ -88,9 +88,9 @@ const isZeroFiller = anime.fillerPercentage === 0;
 
               <span class:list={[
                 'text-[10px] font-bold uppercase px-2.5 py-1 rounded-md border shrink-0 tracking-wider',
-                isCanon ? 'bg-[#EEF2FF] text-[#4F46E5] border-[#C7D2FE]' : '',
-                isFiller ? 'bg-slate-100 text-slate-800 border-slate-300' : '',
-                isMixed ? 'bg-slate-100 text-slate-700 border-slate-300' : ''
+                isCanon ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : '',
+                isFiller ? 'bg-amber-100 text-amber-800 border-amber-300' : '',
+                isMixed ? 'bg-purple-100 text-purple-800 border-purple-300' : ''
               ]}>
                 {block.type}
               </span>

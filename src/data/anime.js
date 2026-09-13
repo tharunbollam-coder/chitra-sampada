@@ -7,6 +7,7 @@ export const animeList = [
   {
     id: 'naruto-shippuden',
     slug: 'naruto-shippuden',
+    aliases: ['naruto', 'naruto-shippuden'],
     title: 'Naruto Shippuden',
     originalTitle: 'NARUTO -ナルト- 疾風伝',
     year: 2007,
@@ -20,7 +21,7 @@ export const animeList = [
     honestyStatus: 'watched',
     honestyBadgeText: "I've Watched This",
     fillerPercentage: 41,
-    fillerStatus: 'Heavy Filler Warning',
+    fillerStatus: '41% Filler Content',
     genres: ['Action', 'Adventure', 'Martial Arts', 'Fantasy'],
     vibes: ['like-naruto', 'op-mc', 'beginners'],
     trending: true,
@@ -128,6 +129,7 @@ export const animeList = [
   {
     id: 'frieren',
     slug: 'frieren-beyond-journeys-end',
+    aliases: ['frieren', 'frieren-beyond-journeys-end'],
     title: "Frieren: Beyond Journey's End",
     originalTitle: '葬送のフリーレン (Sousou no Frieren)',
     year: 2023,
@@ -472,6 +474,7 @@ export const animeList = [
   {
     id: 'dangers-in-my-heart',
     slug: 'the-dangers-in-my-heart',
+    aliases: ['dangers-in-my-heart', 'the-dangers-in-my-heart'],
     title: 'The Dangers in My Heart',
     originalTitle: '僕の心のヤバイやつ (Boku no Kokoro no Yabai Yatsu)',
     year: 2023,
@@ -533,6 +536,7 @@ export const animeList = [
   {
     id: 'apothecary-diaries',
     slug: 'the-apothecary-diaries',
+    aliases: ['apothecary-diaries', 'the-apothecary-diaries'],
     title: 'The Apothecary Diaries',
     originalTitle: '薬屋のひとりごと (Kusuriya no Hitorigoto)',
     year: 2023,
@@ -675,6 +679,7 @@ export const animeList = [
   {
     id: 'bleach-tybw',
     slug: 'bleach-thousand-year-blood-war',
+    aliases: ['bleach-tybw', 'bleach', 'bleach-thousand-year-blood-war'],
     title: 'Bleach: Thousand-Year Blood War',
     originalTitle: 'BLEACH 千年血戦篇',
     year: 2022,
@@ -738,6 +743,7 @@ export const animeList = [
   {
     id: 'kaiju-no-8',
     slug: 'kaiju-no-8',
+    aliases: ['kaiju-no-8', 'kaiju8'],
     title: 'Kaiju No. 8',
     originalTitle: '怪獣8号 (Kaijuu 8-gou)',
     year: 2024,
@@ -791,6 +797,7 @@ export const animeList = [
   {
     id: 'kaguya-sama',
     slug: 'kaguya-sama-love-is-war',
+    aliases: ['kaguya-sama', 'kaguya', 'kaguya-sama-love-is-war'],
     title: 'Kaguya-sama: Love Is War',
     originalTitle: 'かぐや様は告らせたい ～天才たちの恋愛頭脳戦～',
     year: 2019,

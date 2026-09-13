@@ -63,5 +63,62 @@ const pageTitle = title === siteConfig.name ? `${title} — ${siteConfig.subTagl
     </main>
 
     <Footer />
+
+    <!-- Global Navigation Context & Scroll Position Restoration -->
+    <script is:inline>
+      (function () {
+        function getCleanPath() {
+          return window.location.pathname.replace(/\/$/, '') || '/';
+        }
+
+        function isListingPage(path) {
+          return path === '/' || path === '/anime' || path === '/anime/catalog' || path.startsWith('/anime/tag/');
+        }
+
+        function recordListingState() {
+          const path = getCleanPath();
+          if (isListingPage(path)) {
+            try {
+              sessionStorage.setItem('chitra_source_page', window.location.pathname + window.location.search);
+              sessionStorage.setItem('chitra_scroll_' + path, window.scrollY.toString());
+            } catch (e) {}
+          }
+        }
+
+        function restoreListingScroll() {
+          const path = getCleanPath();
+          if (isListingPage(path)) {
+            try {
+              const key = 'chitra_scroll_' + path;
+              const savedY = sessionStorage.getItem(key);
+              if (savedY !== null) {
+                const top = parseInt(savedY, 10);
+                if (!isNaN(top) && top > 0) {
+                  // Keep position restored, remove key after restoring
+                  sessionStorage.removeItem(key);
+                  requestAnimationFrame(function () {
+                    window.scrollTo({ top: top, behavior: 'instant' });
+                  });
+                }
+              }
+            } catch (e) {}
+          }
+        }
+
+        // Record scroll position continuously on listing pages
+        window.addEventListener('scroll', function () {
+          const path = getCleanPath();
+          if (isListingPage(path)) {
+            try {
+              sessionStorage.setItem('chitra_source_page', window.location.pathname + window.location.search);
+              sessionStorage.setItem('chitra_scroll_' + path, window.scrollY.toString());
+            } catch (e) {}
+          }
+        }, { passive: true });
+
+        document.addEventListener('astro:before-preparation', recordListingState);
+        document.addEventListener('astro:page-load', restoreListingScroll);
+      })();
+    </script>
   </body>
 </html>

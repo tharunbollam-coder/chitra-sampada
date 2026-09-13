@@ -219,6 +219,9 @@ const otherVibes = vibes.filter((v) => v.slug !== vibe.slug);
 
 <script>
   function setupVibeFiltering() {
+    const grid = document.getElementById('anime-grid');
+    if (!grid) return;
+
     const cards = Array.from(document.querySelectorAll('#anime-grid > article'));
     const tabBtns = Array.from(document.querySelectorAll('.filter-tab-btn'));
     const searchInput = document.getElementById('search-input');

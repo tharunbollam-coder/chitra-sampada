@@ -18,18 +18,23 @@ export function getStaticPaths() {
     const availableTabs = getAvailableTabs(anime);
     const defaultTabKey = getDefaultTabKey(anime, availableTabs) || 'watch-order';
 
-    // 1. Root route: /anime/${anime.slug} (renders the preferred default tab — 'review' if available, otherwise first tab)
-    paths.push({
-      params: { slug: anime.slug, tab: undefined },
-      props: { anime, activeTabKey: defaultTabKey, availableTabs }
-    });
+    // Generate routes for canonical slug, id, and any defined aliases
+    const allSlugs = Array.from(new Set([anime.slug, anime.id, ...(anime.aliases || [])].filter(Boolean)));
 
-    // 2. Tab-specific routes: /anime/${anime.slug}/${tab.key}
-    for (const tab of availableTabs) {
+    for (const slug of allSlugs) {
+      // 1. Root route: /anime/${slug} (renders the preferred default tab — 'review' if available, otherwise first tab)
       paths.push({
-        params: { slug: anime.slug, tab: tab.key },
-        props: { anime, activeTabKey: tab.key, availableTabs }
+        params: { slug, tab: undefined },
+        props: { anime, activeTabKey: defaultTabKey, availableTabs }
       });
+
+      // 2. Tab-specific routes: /anime/${slug}/${tab.key}
+      for (const tab of availableTabs) {
+        paths.push({
+          params: { slug, tab: tab.key },
+          props: { anime, activeTabKey: tab.key, availableTabs }
+        });
+      }
     }
   }
 
@@ -44,7 +49,6 @@ const activeTab = availableTabs.find((t) => t.key === activeTabKey) || available
 const lessonText = typeof anime.lessons === 'string'
   ? anime.lessons
   : (anime.lessons?.takeaway || (Array.isArray(anime.lessons?.paragraphs) && anime.lessons.paragraphs[0] ? anime.lessons.paragraphs[0] : null));
-const lessonHeading = typeof anime.lessons === 'object' ? anime.lessons?.heading : null;
 
 // Dynamic Title & Description based on active tab
 const tabTitleMap = {
@@ -64,30 +68,76 @@ const pageDescription = `Complete guide for ${anime.title}. ${currentTabLabel} w
 <BaseLayout title={pageTitle} description={pageDescription}>
   <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-10">
     
-    <!-- 1. BREADCRUMB NAVIGATION -->
-    <nav class="flex items-center justify-between gap-4 border-b border-slate-200 pb-4">
-      <div class="flex items-center gap-2 text-xs text-slate-500 flex-wrap">
-        <a href="/" class="hover:text-slate-900 transition-colors">Home</a>
-        <span>/</span>
-        <a href="/anime" class="hover:text-slate-900 transition-colors">Anime Section</a>
-        <span>/</span>
-        <span class="text-slate-700 font-semibold truncate max-w-[180px] sm:max-w-sm">{anime.title}</span>
+    <!-- 1. BREADCRUMB NAVIGATION & STRUCTURED DATA -->
+    <!-- Breadcrumb Schema Markup (JSON-LD preserved for SEO across mobile & desktop) -->
+    <script type="application/ld+json" set:html={JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Home",
+          "item": Astro.site ? new URL('/', Astro.site).href : '/'
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Anime Section",
+          "item": Astro.site ? new URL('/anime', Astro.site).href : '/anime'
+        },
+        {
+          "@type": "ListItem",
+          "position": 3,
+          "name": anime.title,
+          "item": Astro.site ? new URL(`/anime/${anime.slug}`, Astro.site).href : `/anime/${anime.slug}`
+        },
+        ...(activeTab ? [{
+          "@type": "ListItem",
+          "position": 4,
+          "name": activeTab.label,
+          "item": Astro.site ? new URL(`/anime/${anime.slug}/${activeTab.key}`, Astro.site).href : `/anime/${anime.slug}/${activeTab.key}`
+        }] : [])
+      ]
+    })} />
+
+    <nav class="flex items-center justify-between gap-3 border-b border-slate-200 pb-4 min-w-0" aria-label="Breadcrumb">
+      <!-- Full breadcrumbs on desktop/tablet (sm+); condensed on mobile -->
+      <div class="flex items-center gap-1.5 sm:gap-2 text-xs text-slate-500 min-w-0 flex-1">
+        <!-- Desktop/Tablet full trail -->
+        <span class="hidden sm:inline-flex items-center gap-1.5 shrink-0">
+          <a href="/" class="hover:text-slate-900 transition-colors">Home</a>
+          <span>/</span>
+          <a href="/anime" class="hover:text-slate-900 transition-colors">Anime Section</a>
+          <span>/</span>
+        </span>
+
+        <!-- Current page item (Always visible and clean on both mobile & desktop) -->
+        <span class="text-slate-700 font-semibold truncate max-w-[140px] xs:max-w-[180px] sm:max-w-sm shrink-1" title={anime.title}>
+          {anime.title}
+        </span>
+
         {activeTab && (
-          <>
+          <span class="inline-flex items-center gap-1.5 shrink-0">
             <span>/</span>
-            <span id="breadcrumb-current-tab" class="text-[#4F46E5] font-bold">{activeTab.label}</span>
-          </>
+            <span id="breadcrumb-current-tab" class="text-[#4F46E5] font-bold whitespace-nowrap">{activeTab.label}</span>
+          </span>
         )}
       </div>
 
+      <!-- Context-aware dynamic back button: shortened to 'Back' on mobile, full label on desktop -->
       <a
         href="/anime"
         class="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-[#4F46E5] transition-colors shrink-0"
+        data-back-link
       >
         <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m7 7h18" />
         </svg>
-        <span>Back to Anime Home</span>
+        <span class="back-link-text">
+          <span class="sm:hidden">Back</span>
+          <span class="hidden sm:inline">Back to Anime Section</span>
+        </span>
       </a>
     </nav>
 
@@ -122,7 +172,7 @@ const pageDescription = `Complete guide for ${anime.title}. ${currentTabLabel} w
                   : 'bg-slate-100 text-slate-700 border-slate-200'
               ]}
             >
-              {isZeroFiller ? '0% Filler (Pure Canon)' : `${anime.fillerPercentage}% Filler Warning`}
+              {isZeroFiller ? '0% Filler (Pure Canon)' : `${anime.fillerPercentage}% Filler Content`}
             </span>
 
             <!-- Personal Rating Badge (Only rendered if personalRating exists) -->
@@ -151,13 +201,37 @@ const pageDescription = `Complete guide for ${anime.title}. ${currentTabLabel} w
 
           <!-- Detailed Metadata Matrix -->
           <div class="flex items-center gap-2 sm:gap-3 text-xs text-slate-600 flex-wrap pt-1 font-medium">
-            <span class="font-bold text-[#0F172A]">{anime.year}</span>
-            <span class="text-slate-300">•</span>
             <span>{anime.episodes} episodes</span>
             <span class="text-slate-300">•</span>
             <span class="px-2 py-0.5 rounded-md bg-slate-100 border border-slate-200/80 text-slate-700">{anime.status}</span>
             <span class="text-slate-300">•</span>
             <span>{anime.genres.join(', ')}</span>
+          </div>
+
+          <!-- Explicit Date Stamps (Anime Real-World Release vs Site Publishing Dates) -->
+          <div class="flex items-center gap-2.5 sm:gap-4 text-xs text-slate-500 flex-wrap pt-1 border-t border-slate-200/70">
+            <div class="flex items-center gap-1.5">
+              <span class="text-slate-400 font-medium">Originally Aired:</span>
+              <span class="font-bold text-slate-800">{anime.year}</span>
+            </div>
+            {anime.addedDate && (
+              <>
+                <span class="text-slate-300 hidden sm:inline">•</span>
+                <div class="flex items-center gap-1.5">
+                  <span class="text-slate-400 font-medium">Added to Site:</span>
+                  <span class="font-semibold text-slate-700">{anime.addedDate}</span>
+                </div>
+              </>
+            )}
+            {anime.lastUpdated && (
+              <>
+                <span class="text-slate-300 hidden sm:inline">•</span>
+                <div class="flex items-center gap-1.5">
+                  <span class="text-slate-400 font-medium">Last Updated:</span>
+                  <span class="font-semibold text-slate-700">{anime.lastUpdated}</span>
+                </div>
+              </>
+            )}
           </div>
 
           <!-- Optional Compact "What I Learned" Highlighted Quote Callout -->
@@ -168,12 +242,6 @@ const pageDescription = `Complete guide for ${anime.title}. ${currentTabLabel} w
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                 </svg>
                 <span class="text-[11px] font-extrabold uppercase tracking-wider text-[#4F46E5]">What I Learned</span>
-                {lessonHeading && (
-                  <>
-                    <span class="text-indigo-300">•</span>
-                    <span class="text-xs font-semibold text-slate-700 truncate">{lessonHeading}</span>
-                  </>
-                )}
               </div>
               <p class="text-xs sm:text-sm text-slate-700 leading-relaxed font-normal italic">
                 “{lessonText}”
@@ -258,11 +326,12 @@ const pageDescription = `Complete guide for ${anime.title}. ${currentTabLabel} w
         <a
           href="/anime"
           class="inline-flex items-center gap-2 px-6 py-3.5 rounded-2xl bg-[#6366F1] hover:bg-[#4F46E5] text-white font-bold text-sm shadow-md shadow-indigo-500/20 hover:shadow-indigo-500/30 hover:-translate-y-0.5 transition-all duration-200"
+          data-back-link
         >
           <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
           </svg>
-          <span>Back to Anime Home</span>
+          <span class="back-link-text">Back to Anime Section</span>
         </a>
 
         <!-- Companion Full Catalog Link -->
@@ -277,12 +346,68 @@ const pageDescription = `Complete guide for ${anime.title}. ${currentTabLabel} w
 
   </div>
 
-  <!-- Client-side Tab In-Place Switching Script (Preserves Scroll Position & URL Sync) -->
+  <!-- Client-side Tab In-Place Switching & Dynamic Context-Aware Back Navigation -->
   <script is:inline>
-    (function () {
+    function setupAnimeDetailInteractions() {
+      // 1. DYNAMIC CONTEXT-AWARE BACK NAVIGATION
+      const backButtons = document.querySelectorAll('[data-back-link]');
+      let sourcePage = null;
+      try {
+        sourcePage = sessionStorage.getItem('chitra_source_page');
+      } catch (e) {}
+
+      let sourcePath = '';
+      if (sourcePage) {
+        try {
+          sourcePath = new URL(sourcePage, window.location.origin).pathname.replace(/\/$/, '') || '/';
+        } catch (e) {
+          sourcePath = sourcePage.split('?')[0].replace(/\/$/, '') || '/';
+        }
+      }
+
+      backButtons.forEach(function (button) {
+        const textSpan = button.querySelector('.back-link-text');
+        const isHeaderNav = button.closest('nav') !== null;
+
+        function setBackText(fullText) {
+          if (!textSpan) return;
+          if (isHeaderNav) {
+            textSpan.innerHTML = '<span class="sm:hidden">Back</span><span class="hidden sm:inline">' + fullText + '</span>';
+          } else {
+            textSpan.textContent = fullText;
+          }
+        }
+
+        if (sourcePath === '/anime/catalog') {
+          setBackText('Back to Full Catalog');
+          button.setAttribute('href', sourcePage || '/anime/catalog');
+        } else if (sourcePath.startsWith('/anime/tag/')) {
+          setBackText('Back to Vibe Filter');
+          button.setAttribute('href', sourcePage);
+        } else if (sourcePath === '/anime') {
+          setBackText('Back to Anime Section');
+          button.setAttribute('href', '/anime');
+        } else if (sourcePath === '/') {
+          setBackText('Back to Home');
+          button.setAttribute('href', '/');
+        } else {
+          setBackText('Back to Anime Section');
+          button.setAttribute('href', '/anime');
+        }
+
+        button.onclick = function (e) {
+          if (sourcePage && window.history.length > 1) {
+            e.preventDefault();
+            window.history.back();
+          }
+        };
+      });
+
+      // 2. IN-PLACE TAB SWITCHING (PRESERVES SCROLL POSITION WITHOUT RELOAD)
       const tabLinks = document.querySelectorAll('[data-tab-link]');
       const panels = document.querySelectorAll('[data-panel]');
       const breadcrumbTab = document.getElementById('breadcrumb-current-tab');
+      if (!tabLinks.length || !panels.length) return;
 
       const tabTitleMap = {
         'watch-order': 'Watch Order',
@@ -295,8 +420,9 @@ const pageDescription = `Complete guide for ${anime.title}. ${currentTabLabel} w
 
       function activateTab(tabKey, updateHistory, newHref) {
         if (!tabKey) return;
+        const currentScrollY = window.scrollY;
 
-        // 1. Update Tab Buttons styling
+        // Update Tab Buttons styling
         tabLinks.forEach(function (link) {
           const isMatch = link.getAttribute('data-tab-link') === tabKey;
           const counter = link.querySelector('.tab-counter');
@@ -318,39 +444,47 @@ const pageDescription = `Complete guide for ${anime.title}. ${currentTabLabel} w
           }
         });
 
-        // 2. Toggle Tab Panels in place (zero scroll jump)
+        // Toggle Tab Panels in place
         panels.forEach(function (panel) {
           const isMatch = panel.getAttribute('data-panel') === tabKey;
           if (isMatch) {
             panel.classList.remove('hidden');
             panel.classList.add('block');
           } else {
-            panel.classList.hidden = true;
             panel.classList.remove('block');
             panel.classList.add('hidden');
           }
         });
 
-        // 3. Update Breadcrumb label
+        // Update Breadcrumb label
         if (breadcrumbTab && tabTitleMap[tabKey]) {
           breadcrumbTab.textContent = tabTitleMap[tabKey];
         }
 
-        // 4. Update browser URL history without reload or scroll jump
+        // Update browser URL history with replaceState to keep history stack clean and preserve Astro router state
         if (updateHistory && newHref) {
-          window.history.pushState({ tabKey: tabKey }, '', newHref);
+          try {
+            const currentState = window.history.state || {};
+            window.history.replaceState(currentState, '', newHref);
+          } catch (e) {
+            window.history.replaceState(null, '', newHref);
+          }
         }
+
+        // Strictly preserve scroll position
+        window.scrollTo({ top: currentScrollY, behavior: 'instant' });
       }
 
       tabLinks.forEach(function (link) {
-        link.addEventListener('click', function (e) {
+        link.onclick = function (e) {
           e.preventDefault();
           const tabKey = link.getAttribute('data-tab-link');
           const targetHref = link.getAttribute('href');
           activateTab(tabKey, true, targetHref);
-        });
+        };
       });
 
+      // Handle browser back/forward within tabbed URLs
       window.addEventListener('popstate', function () {
         const pathParts = window.location.pathname.replace(/\/$/, '').split('/');
         const lastPart = pathParts[pathParts.length - 1];
@@ -358,6 +492,14 @@ const pageDescription = `Complete guide for ${anime.title}. ${currentTabLabel} w
           activateTab(lastPart, false);
         }
       });
-    })();
+    }
+
+    // Attach to standard DOM load + Astro ViewTransitions lifecycle events
+    document.addEventListener('astro:page-load', setupAnimeDetailInteractions);
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', setupAnimeDetailInteractions);
+    } else {
+      setupAnimeDetailInteractions();
+    }
   </script>
 </BaseLayout>

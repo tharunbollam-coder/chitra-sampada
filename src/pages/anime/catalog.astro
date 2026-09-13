@@ -157,6 +157,9 @@ const zeroFillerCount = animeList.filter((a) => a.fillerPercentage === 0).length
 <!-- CLIENT-SIDE FILTERING SCRIPT -->
 <script is:inline define:vars={{ vibes, totalCount: animeList.length }}>
   function setupCatalogFiltering() {
+    const grid = document.getElementById('anime-grid');
+    if (!grid) return;
+
     const cards = Array.from(document.querySelectorAll('#anime-grid > article'));
     const tabBtns = Array.from(document.querySelectorAll('.filter-tab-btn'));
     const searchInput = document.getElementById('search-input');
