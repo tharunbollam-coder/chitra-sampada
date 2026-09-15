@@ -1,0 +1,100 @@
+---
+// src/pages/disclaimer.astro
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { siteConfig } from '../config/site.js';
+
+const pageTitle = `Content & Ratings Disclaimer | ${siteConfig.name}`;
+const pageDescription = `Content and Ratings Disclaimer for ${siteConfig.name}. Explaining age rating guidance tiers, regional variations, and filler/watch order accuracy.`;
+---
+
+<BaseLayout title={pageTitle} description={pageDescription}>
+  <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-20 space-y-12">
+    
+    <!-- Breadcrumb & Header -->
+    <header class="space-y-4 border-b border-slate-200 pb-8">
+      <nav class="flex items-center gap-2 text-xs text-slate-500" aria-label="Breadcrumb">
+        <a href="/" class="hover:text-slate-900 transition-colors">Home</a>
+        <span>/</span>
+        <span class="text-[#4F46E5] font-bold">Content & Ratings Disclaimer</span>
+      </nav>
+
+      <div class="space-y-2">
+        <h1 class="text-3xl sm:text-5xl font-extrabold text-[#0F172A] tracking-tight leading-tight font-heading">
+          Content & Ratings Disclaimer
+        </h1>
+        <p class="text-xs sm:text-sm font-semibold text-slate-500">
+          Last Updated: {siteConfig.policyLastUpdated}
+        </p>
+      </div>
+
+      <p class="text-base sm:text-lg text-slate-600 leading-relaxed font-normal pt-2">
+        Guidance regarding age ratings, regional streaming classifications, and the compilation methodology behind our filler lists and watch orders on {siteConfig.name}.
+      </p>
+    </header>
+
+    <!-- Content Sections -->
+    <div class="space-y-10 text-[#334155] text-base sm:text-lg leading-relaxed font-normal">
+      
+      <!-- Section: Age Ratings -->
+      <section class="space-y-4">
+        <h2 class="font-heading text-xl sm:text-2xl font-bold text-[#0F172A] tracking-tight">
+          Age Ratings
+        </h2>
+        <p>
+          Each title on {siteConfig.name} is labeled with one of the following age guidance tiers: General (Parental Guidance Suggested), 13+, 16+, or 18+. These ratings are simplified guidance based on classifications published by official streaming platforms and established rating databases. They are intended to help you make an informed choice before watching — they are not an official certification issued by {siteConfig.name}.
+        </p>
+        <p>
+          Regional ratings can vary by platform and country. We recommend checking the specific streaming platform for exact regional ratings, particularly when choosing content for younger viewers.
+        </p>
+      </section>
+
+      <!-- Section: Filler & Watch Order Accuracy -->
+      <section class="space-y-3 pt-6 border-t border-slate-200">
+        <h2 class="font-heading text-xl sm:text-2xl font-bold text-[#0F172A] tracking-tight">
+          Filler & Watch Order Accuracy
+        </h2>
+        <p>
+          Filler and canon classifications, along with watch order guides, reflect independent research, cross-referenced against publicly available community sources. While we aim for accuracy, this information may be corrected or updated over time as new information becomes available.
+        </p>
+      </section>
+
+      <!-- Section: Spoiler Warnings -->
+      <section class="space-y-3 pt-6 border-t border-slate-200">
+        <h2 class="font-heading text-xl sm:text-2xl font-bold text-[#0F172A] tracking-tight">
+          Spoiler Warnings
+        </h2>
+        <p>
+          Some reviews and opinion pieces on {siteConfig.name} may discuss specific plot points or story developments. Where a review contains meaningful spoilers, we note this clearly at the top of that review so you can decide whether to read on.
+        </p>
+      </section>
+
+      <!-- Section: Content Production -->
+      <section class="space-y-3 pt-6 border-t border-slate-200">
+        <h2 class="font-heading text-xl sm:text-2xl font-bold text-[#0F172A] tracking-tight">
+          Content Production
+        </h2>
+        <p>
+          We use AI tools to help draft reference content faster. Every piece is personally reviewed, fact-checked, and refined by us before publishing — nothing goes live without human review. Opinion content ("My Take," "What I Learned") is entirely our own personal writing and views.
+        </p>
+      </section>
+
+      <!-- Section: Questions & Corrections -->
+      <section class="space-y-3 pt-6 border-t border-slate-200">
+        <h2 class="font-heading text-xl sm:text-2xl font-bold text-[#0F172A] tracking-tight">
+          Questions or Corrections
+        </h2>
+        <p>
+          If you noticed an inaccurate rating or have a correction to submit, please let us know at{' '}
+          <a
+            href={`mailto:${siteConfig.contactEmail}?subject=Correction%20Submission%20-%20${encodeURIComponent(siteConfig.name)}`}
+            class="font-semibold text-[#4F46E5] hover:text-[#4338CA] underline underline-offset-2 transition-colors"
+          >
+            {siteConfig.contactEmail}
+          </a>.
+        </p>
+      </section>
+
+    </div>
+
+  </div>
+</BaseLayout>

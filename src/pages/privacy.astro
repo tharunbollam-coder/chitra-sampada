@@ -1,0 +1,160 @@
+---
+// src/pages/privacy.astro
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { siteConfig } from '../config/site.js';
+
+const pageTitle = `Privacy Policy | ${siteConfig.name}`;
+const pageDescription = `Privacy Policy for ${siteConfig.name}. This page explains what information is collected when you visit, and how it's used.`;
+---
+
+<BaseLayout title={pageTitle} description={pageDescription}>
+  <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-20 space-y-12">
+    
+    <!-- Breadcrumb & Header -->
+    <header class="space-y-4 border-b border-slate-200 pb-8">
+      <nav class="flex items-center gap-2 text-xs text-slate-500" aria-label="Breadcrumb">
+        <a href="/" class="hover:text-slate-900 transition-colors">Home</a>
+        <span>/</span>
+        <span class="text-[#4F46E5] font-bold">Privacy Policy</span>
+      </nav>
+
+      <div class="space-y-2">
+        <h1 class="text-3xl sm:text-5xl font-extrabold text-[#0F172A] tracking-tight leading-tight font-heading">
+          Privacy Policy
+        </h1>
+        <p class="text-xs sm:text-sm font-semibold text-slate-500">
+          Last Updated: {siteConfig.policyLastUpdated}
+        </p>
+      </div>
+
+      <p class="text-base sm:text-lg text-slate-600 leading-relaxed font-normal pt-2">
+        {siteConfig.name} respects your privacy. This page explains what information is collected when you visit, and how it's used.
+      </p>
+    </header>
+
+    <!-- Content Sections -->
+    <div class="space-y-10 text-[#334155] text-base sm:text-lg leading-relaxed font-normal">
+      
+      <!-- Section: Scope of This Policy -->
+      <section class="space-y-3">
+        <h2 class="font-heading text-xl sm:text-2xl font-bold text-[#0F172A] tracking-tight">
+          Scope of This Policy
+        </h2>
+        <p>
+          This policy applies only to {siteConfig.name} and does not cover the practices of any third-party sites linked from this site.
+        </p>
+      </section>
+
+      <!-- Section: No Account Required -->
+      <section class="space-y-3 pt-6 border-t border-slate-200">
+        <h2 class="font-heading text-xl sm:text-2xl font-bold text-[#0F172A] tracking-tight">
+          No Account Required
+        </h2>
+        <p>
+          This site does not require you to create an account or log in. We do not collect personal information such as your name, email address, or payment details directly from you.
+        </p>
+      </section>
+
+      <!-- Section: Website Analytics (Future / Conditional) -->
+      <section class="space-y-3 pt-6 border-t border-slate-200">
+        <h2 class="font-heading text-xl sm:text-2xl font-bold text-[#0F172A] tracking-tight">
+          Website Analytics
+        </h2>
+        <p>
+          {siteConfig.name} may use website traffic analytics tools in the future to understand visitor patterns (e.g. pages viewed most often, general traffic trends). When such an analytics tool is implemented on this site, this policy will be updated to name the specific tool used along with a link to its own privacy policy.
+        </p>
+      </section>
+
+      <!-- Section: Advertising -->
+      <section class="space-y-3 pt-6 border-t border-slate-200">
+        <h2 class="font-heading text-xl sm:text-2xl font-bold text-[#0F172A] tracking-tight">
+          Advertising
+        </h2>
+        <p>
+          In the future, {siteConfig.name} may display advertising through third-party advertising networks. If and when advertising is active, those third-party providers may use cookies to serve ads relevant to you. This policy will be updated with the specific advertising network(s) used and relevant links to their own privacy/advertising policies once advertising is active on this site.
+        </p>
+      </section>
+
+      <!-- Section: Contact & Suggestion Forms -->
+      <section class="space-y-3 pt-6 border-t border-slate-200">
+        <h2 class="font-heading text-xl sm:text-2xl font-bold text-[#0F172A] tracking-tight">
+          Contact & Suggestion Forms
+        </h2>
+        <p>
+          If you contact us or submit a suggestion through the site, the information you provide is used only to review and respond to your message or suggestion. It is not sold or shared with third parties.
+        </p>
+      </section>
+
+      <!-- Section: Children's Privacy -->
+      <section class="space-y-3 pt-6 border-t border-slate-200">
+        <h2 class="font-heading text-xl sm:text-2xl font-bold text-[#0F172A] tracking-tight">
+          Children's Privacy
+        </h2>
+        <p>
+          {siteConfig.name} is not directed at children under the age of 13, and we do not knowingly collect personal information from children under 13. This relates specifically to data collection — for guidance on which titles are age-appropriate for younger viewers, see our{' '}
+          <a
+            href="/disclaimer"
+            class="font-semibold text-[#4F46E5] hover:text-[#4338CA] underline underline-offset-2 transition-colors"
+          >
+            Content & Ratings Disclaimer
+          </a>, which labels every title with a simplified age guidance tier. If you believe a child has provided us with personal information, please contact us at{' '}
+          <a
+            href={`mailto:${siteConfig.contactEmail}?subject=Children's%20Privacy%20Inquiry%20-%20${encodeURIComponent(siteConfig.name)}`}
+            class="font-semibold text-[#4F46E5] hover:text-[#4338CA] underline underline-offset-2 transition-colors"
+          >
+            {siteConfig.contactEmail}
+          </a>{' '}
+          so we can address it.
+        </p>
+      </section>
+
+      <!-- Section: Third-Party Links -->
+      <section class="space-y-3 pt-6 border-t border-slate-200">
+        <h2 class="font-heading text-xl sm:text-2xl font-bold text-[#0F172A] tracking-tight">
+          Third-Party Links
+        </h2>
+        <p>
+          {siteConfig.name} contains links to external websites, including official streaming platforms. We are not responsible for the privacy practices or content of these external sites. We encourage you to review the privacy policy of any third-party site you visit.
+        </p>
+      </section>
+
+      <!-- Section: International Visitors -->
+      <section class="space-y-3 pt-6 border-t border-slate-200">
+        <h2 class="font-heading text-xl sm:text-2xl font-bold text-[#0F172A] tracking-tight">
+          International Visitors
+        </h2>
+        <p>
+          {siteConfig.name} is accessible to visitors worldwide. If you are accessing this site from outside your home country, please be aware that your information may be processed in accordance with this policy and applicable local laws.
+        </p>
+      </section>
+
+      <!-- Section: Changes to This Policy -->
+      <section class="space-y-3 pt-6 border-t border-slate-200">
+        <h2 class="font-heading text-xl sm:text-2xl font-bold text-[#0F172A] tracking-tight">
+          Changes to This Policy
+        </h2>
+        <p>
+          As {siteConfig.name} grows and adds new features, this policy may be updated to reflect those changes. The date at the top of this page reflects the most recent update.
+        </p>
+      </section>
+
+      <!-- Section: Questions -->
+      <section class="space-y-3 pt-6 border-t border-slate-200">
+        <h2 class="font-heading text-xl sm:text-2xl font-bold text-[#0F172A] tracking-tight">
+          Questions
+        </h2>
+        <p>
+          If you have questions about this policy, contact us at{' '}
+          <a
+            href={`mailto:${siteConfig.contactEmail}`}
+            class="font-semibold text-[#4F46E5] hover:text-[#4338CA] underline underline-offset-2 transition-colors"
+          >
+            {siteConfig.contactEmail}
+          </a>.
+        </p>
+      </section>
+
+    </div>
+
+  </div>
+</BaseLayout>

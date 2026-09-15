@@ -1,0 +1,192 @@
+---
+// src/pages/terms.astro
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { siteConfig } from '../config/site.js';
+
+const pageTitle = `Terms of Use | ${siteConfig.name}`;
+const pageDescription = `Terms of Use for ${siteConfig.name}. An independently-run entertainment reference site currently featuring an in-depth Anime section.`;
+---
+
+<BaseLayout title={pageTitle} description={pageDescription}>
+  <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-20 space-y-12">
+    
+    <!-- Breadcrumb & Header -->
+    <header class="space-y-4 border-b border-slate-200 pb-8">
+      <nav class="flex items-center gap-2 text-xs text-slate-500" aria-label="Breadcrumb">
+        <a href="/" class="hover:text-slate-900 transition-colors">Home</a>
+        <span>/</span>
+        <span class="text-[#4F46E5] font-bold">Terms of Use</span>
+      </nav>
+
+      <div class="space-y-2">
+        <h1 class="text-3xl sm:text-5xl font-extrabold text-[#0F172A] tracking-tight leading-tight font-heading">
+          Terms of Use
+        </h1>
+        <p class="text-xs sm:text-sm font-semibold text-slate-500">
+          Last Updated: {siteConfig.policyLastUpdated}
+        </p>
+      </div>
+
+      <p class="text-base sm:text-lg text-slate-600 leading-relaxed font-normal pt-2">
+        Welcome to {siteConfig.name}, an independently-run entertainment reference site currently featuring an in-depth Anime section, with Movies, TV Shows, and Web Series planned as future additions. By using this site, you agree to the terms below.
+      </p>
+    </header>
+
+    <!-- Content Sections -->
+    <div class="space-y-10 text-[#334155] text-base sm:text-lg leading-relaxed font-normal">
+      
+      <!-- Section: Who Can Use This Site -->
+      <section class="space-y-3">
+        <h2 class="font-heading text-xl sm:text-2xl font-bold text-[#0F172A] tracking-tight">
+          Who Can Use This Site
+        </h2>
+        <p>
+          {siteConfig.name} is intended for general audiences. If you are under the age of majority in your location, you should have a parent or guardian's permission to use this site. Individual titles carry age guidance labels — see our{' '}
+          <a
+            href="/disclaimer"
+            class="font-semibold text-[#4F46E5] hover:text-[#4338CA] underline underline-offset-2 transition-colors"
+          >
+            Content & Ratings Disclaimer
+          </a>{' '}
+          for details on age-appropriate viewing.
+        </p>
+      </section>
+
+      <!-- Section: Independent, Unaffiliated Site -->
+      <section class="space-y-3 pt-6 border-t border-slate-200">
+        <h2 class="font-heading text-xl sm:text-2xl font-bold text-[#0F172A] tracking-tight">
+          Independent, Unaffiliated Site
+        </h2>
+        <p>
+          {siteConfig.name} is not affiliated with, endorsed by, or officially connected to any anime studio, publisher, streaming platform, production committee, or TMDB. All content reflects the independent work of this site's creator.
+        </p>
+      </section>
+
+      <!-- Section: Editorial Content -->
+      <section class="space-y-3 pt-6 border-t border-slate-200">
+        <h2 class="font-heading text-xl sm:text-2xl font-bold text-[#0F172A] tracking-tight">
+          Editorial Content
+        </h2>
+        <p>
+          Watch orders, filler/canon classifications, character rankings, power system guides, ratings, and written opinions ("My Take," "What I Learned") reflect independent research and personal editorial judgment. We aim for accuracy in everything we publish, and content is regularly reviewed and corrected. For critical details — such as exact regional availability or content warnings — we recommend verifying with the official source or streaming platform directly.
+        </p>
+      </section>
+
+      <!-- Section: Our Content — Use and Misuse -->
+      <section class="space-y-4 pt-6 border-t border-slate-200">
+        <h2 class="font-heading text-xl sm:text-2xl font-bold text-[#0F172A] tracking-tight">
+          Our Content — Use and Misuse
+        </h2>
+        <p>
+          The content original to {siteConfig.name} falls into two categories:
+        </p>
+        <p>
+          <strong class="font-semibold text-[#0F172A]">Our own writing and analysis</strong> — including reviews and opinions ("My Take," "What I Learned"), character rankings, and power system explanations. This is our original commentary and analysis, and it belongs to {siteConfig.name} — though where this commentary discusses story details, characters, plot points, or creative concepts from someone else's work — including any spoilers — we don't claim ownership over that underlying material itself, only our own writing and analysis about it.
+        </p>
+        <p>
+          <strong class="font-semibold text-[#0F172A]">Independently compiled reference data</strong> — including watch order guides and filler/canon classifications. The underlying facts here (such as episode release order or content categorization) aren't owned by anyone, but the research, organization, and written presentation of this data on {siteConfig.name} is our own work.
+        </p>
+        <p>
+          This original content — our writing, research, and presentation — is the intellectual property of {siteConfig.name}.
+        </p>
+        <p>
+          You're welcome to read, reference, and link to any of this content. Please don't copy or republish our written pages or presentation elsewhere without permission — if you'd like to use or reference our content, reach out at{' '}
+          <a
+            href={`mailto:${siteConfig.contactEmail}?subject=Content%20Permission%20Inquiry%20-%20${encodeURIComponent(siteConfig.name)}`}
+            class="font-semibold text-[#4F46E5] hover:text-[#4338CA] underline underline-offset-2 transition-colors"
+          >
+            {siteConfig.contactEmail}
+          </a>.
+        </p>
+      </section>
+
+      <!-- Section: No Hosted Media -->
+      <section class="space-y-3 pt-6 border-t border-slate-200">
+        <h2 class="font-heading text-xl sm:text-2xl font-bold text-[#0F172A] tracking-tight">
+          No Hosted Media
+        </h2>
+        <p>
+          {siteConfig.name} does not host, stream, or distribute copyrighted video, audio, or full-length written works. All images used are properly licensed and attributed; all written commentary is original.
+        </p>
+      </section>
+
+      <!-- Section: External Links -->
+      <section class="space-y-3 pt-6 border-t border-slate-200">
+        <h2 class="font-heading text-xl sm:text-2xl font-bold text-[#0F172A] tracking-tight">
+          External Links
+        </h2>
+        <p>
+          {siteConfig.name} links to external streaming platforms and other third-party sites for convenience. We don't control these sites and aren't responsible for their content, availability, or accuracy. Streaming availability in particular can change at any time — always confirm directly with the platform.
+        </p>
+      </section>
+
+      <!-- Section: User Suggestions -->
+      <section class="space-y-3 pt-6 border-t border-slate-200">
+        <h2 class="font-heading text-xl sm:text-2xl font-bold text-[#0F172A] tracking-tight">
+          User Suggestions
+        </h2>
+        <p>
+          Visitors may submit suggestions for anime to add or improvements to make via our contact page. Suggestions that are used will be clearly credited as user-suggested, rather than presented as the site owner's own research.
+        </p>
+      </section>
+
+      <!-- Section: Support & Donations -->
+      <section class="space-y-3 pt-6 border-t border-slate-200">
+        <h2 class="font-heading text-xl sm:text-2xl font-bold text-[#0F172A] tracking-tight">
+          Support & Donations
+        </h2>
+        <p>
+          {siteConfig.name} may be supported through voluntary reader donations (for example, via Ko-fi). Financial support from readers never influences our editorial content, ratings, or reviews in any way.
+        </p>
+      </section>
+
+      <!-- Section: Content Changes -->
+      <section class="space-y-3 pt-6 border-t border-slate-200">
+        <h2 class="font-heading text-xl sm:text-2xl font-bold text-[#0F172A] tracking-tight">
+          Content Changes
+        </h2>
+        <p>
+          We reserve the right to update, correct, or remove any content on this site at any time, without prior notice.
+        </p>
+      </section>
+
+      <!-- Section: No Liability -->
+      <section class="space-y-3 pt-6 border-t border-slate-200">
+        <h2 class="font-heading text-xl sm:text-2xl font-bold text-[#0F172A] tracking-tight">
+          No Liability
+        </h2>
+        <p>
+          {siteConfig.name} is provided on an "as-is" basis. While we aim for accuracy, we can't guarantee that every detail — watch orders, filler classifications, ratings, or other information — is error-free at all times. We're not liable for any decisions made or issues arising from reliance on this site's content. Use your own judgment, especially for anything time-sensitive like streaming availability or age-appropriate viewing.
+        </p>
+      </section>
+
+      <!-- Section: Governing Terms -->
+      <section class="space-y-3 pt-6 border-t border-slate-200">
+        <h2 class="font-heading text-xl sm:text-2xl font-bold text-[#0F172A] tracking-tight">
+          Governing Terms
+        </h2>
+        <p>
+          These terms represent the full agreement between you and {siteConfig.name} regarding use of this site. If any part of these terms is found to be unenforceable, the remaining terms will continue to apply in full.
+        </p>
+      </section>
+
+      <!-- Section: Questions -->
+      <section class="space-y-4 pt-6 border-t border-slate-200">
+        <h2 class="font-heading text-xl sm:text-2xl font-bold text-[#0F172A] tracking-tight">
+          Questions
+        </h2>
+        <p>
+          If you have questions about these terms, contact us at{' '}
+          <a
+            href={`mailto:${siteConfig.contactEmail}`}
+            class="font-semibold text-[#4F46E5] hover:text-[#4338CA] underline underline-offset-2 transition-colors"
+          >
+            {siteConfig.contactEmail}
+          </a>.
+        </p>
+      </section>
+
+    </div>
+
+  </div>
+</BaseLayout>

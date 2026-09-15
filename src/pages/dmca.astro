@@ -1,0 +1,105 @@
+---
+// src/pages/dmca.astro
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { siteConfig } from '../config/site.js';
+
+const pageTitle = `Copyright & DMCA Policy | ${siteConfig.name}`;
+const pageDescription = `Copyright and DMCA Policy for ${siteConfig.name}. Explaining third-party intellectual property, image attribution, original content, and content removal requests.`;
+---
+
+<BaseLayout title={pageTitle} description={pageDescription}>
+  <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-20 space-y-12">
+    
+    <!-- Breadcrumb & Header -->
+    <header class="space-y-4 border-b border-slate-200 pb-8">
+      <nav class="flex items-center gap-2 text-xs text-slate-500" aria-label="Breadcrumb">
+        <a href="/" class="hover:text-slate-900 transition-colors">Home</a>
+        <span>/</span>
+        <span class="text-[#4F46E5] font-bold">Copyright & DMCA Policy</span>
+      </nav>
+
+      <div class="space-y-2">
+        <h1 class="text-3xl sm:text-5xl font-extrabold text-[#0F172A] tracking-tight leading-tight font-heading">
+          Copyright & DMCA Policy
+        </h1>
+        <p class="text-xs sm:text-sm font-semibold text-slate-500">
+          Last Updated: {siteConfig.policyLastUpdated}
+        </p>
+      </div>
+
+      <p class="text-base sm:text-lg text-slate-600 leading-relaxed font-normal pt-2">
+        This page outlines the ownership of intellectual property, third-party content, image attribution, and how rights holders can request content removal on {siteConfig.name}.
+      </p>
+    </header>
+
+    <!-- Content Sections -->
+    <div class="space-y-10 text-[#334155] text-base sm:text-lg leading-relaxed font-normal">
+      
+      <!-- Section: Ownership of Third-Party Content -->
+      <section class="space-y-3">
+        <h2 class="font-heading text-xl sm:text-2xl font-bold text-[#0F172A] tracking-tight">
+          Ownership of Third-Party Content
+        </h2>
+        <p>
+          All anime titles, character names, artwork, and related media referenced on {siteConfig.name} remain the property of their respective copyright holders and production committees. {siteConfig.name} does not claim ownership over any of this third-party intellectual property.
+        </p>
+      </section>
+
+      <!-- Section: Image Attribution -->
+      <section class="space-y-3 pt-6 border-t border-slate-200">
+        <h2 class="font-heading text-xl sm:text-2xl font-bold text-[#0F172A] tracking-tight">
+          Image Attribution
+        </h2>
+        <p>
+          This product uses the TMDB API but is not endorsed or certified by TMDB. Poster images displayed on this site are sourced via TMDB.
+        </p>
+      </section>
+
+      <!-- Section: What Belongs to This Site -->
+      <section class="space-y-4 pt-6 border-t border-slate-200">
+        <h2 class="font-heading text-xl sm:text-2xl font-bold text-[#0F172A] tracking-tight">
+          What Belongs to This Site
+        </h2>
+        <p>
+          The content original to {siteConfig.name} falls into two categories:
+        </p>
+        <p>
+          <strong class="font-semibold text-[#0F172A]">Our own writing and analysis</strong> — including reviews and opinions ("My Take," "What I Learned"), character rankings, and power system explanations. This is our original commentary and analysis, and it belongs to {siteConfig.name} — though where this commentary discusses story details, characters, plot points, or creative concepts from someone else's work — including any spoilers — we don't claim ownership over that underlying material itself, only our own writing and analysis about it.
+        </p>
+        <p>
+          <strong class="font-semibold text-[#0F172A]">Independently compiled reference data</strong> — including watch order guides and filler/canon classifications. The underlying facts here (such as episode release order or content categorization) aren't owned by anyone, but the research, organization, and written presentation of this data on {siteConfig.name} is our own work.
+        </p>
+        <p>
+          This original content — our writing, research, and presentation — is the intellectual property of {siteConfig.name}.
+        </p>
+      </section>
+
+      <!-- Section: Requesting Content Removal -->
+      <section class="space-y-4 pt-6 border-t border-slate-200">
+        <h2 class="font-heading text-xl sm:text-2xl font-bold text-[#0F172A] tracking-tight">
+          Requesting Content Removal
+        </h2>
+        <p>
+          If you are a rights holder and believe content on this site should be removed or corrected, please contact us at{' '}
+          <a
+            href={`mailto:${siteConfig.contactEmail}?subject=Content%20Removal%20Request%20-%20${encodeURIComponent(siteConfig.name)}`}
+            class="font-semibold text-[#4F46E5] hover:text-[#4338CA] underline underline-offset-2 transition-colors"
+          >
+            {siteConfig.contactEmail}
+          </a>{' '}
+          with:
+        </p>
+        <ul class="list-disc list-inside space-y-2 pl-2 text-slate-700">
+          <li>The specific content in question (a page URL is helpful)</li>
+          <li>A description of your concern</li>
+          <li>Your contact information</li>
+        </ul>
+        <p class="pt-2 text-sm sm:text-base text-slate-600">
+          We review all requests promptly and are committed to resolving concerns cooperatively. This process is not a substitute for formal legal notice procedures where applicable.
+        </p>
+      </section>
+
+    </div>
+
+  </div>
+</BaseLayout>

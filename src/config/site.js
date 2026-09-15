@@ -9,6 +9,8 @@ export const siteConfig = {
   tagline: 'A personal list of what to watch and in what order, clearly labeled.',
   subTagline: 'A personal companion for what to watch and where to start.',
   description: 'A personal entertainment list focusing on what I have watched and what is next on my watchlist, with clear watch orders and filler guides.',
+  contactEmail: 'suggestions@chitrasampada.com',
+  policyLastUpdated: 'September 15, 2026',
 
   navLinks: [
     {
