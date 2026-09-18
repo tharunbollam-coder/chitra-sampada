@@ -2,7 +2,7 @@
 // src/pages/anime/tag/[slug].astro
 import BaseLayout from '../../../layouts/BaseLayout.astro';
 import AnimeCard from '../../../components/AnimeCard.astro';
-import { animeList } from '../../../data/anime.js';
+import { getAllAnime } from '../../../lib/d1.js';
 import { vibes } from '../../../data/vibes.js';
 import { theme } from '../../../config/theme.js';
 
@@ -14,6 +14,8 @@ export function getStaticPaths() {
 }
 
 const { vibe } = Astro.props;
+
+const animeList = getAllAnime();
 
 // Filter matching anime for this vibe
 const matchingAnime = animeList.filter((a) => a.vibes && a.vibes.includes(vibe.id));

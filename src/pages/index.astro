@@ -4,9 +4,11 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import AnimeCard from '../components/AnimeCard.astro';
 import ComingSoonCard from '../components/ComingSoonCard.astro';
 import HonestyBadge from '../components/HonestyBadge.astro';
-import { animeList } from '../data/anime.js';
+import { getAllAnime } from '../lib/d1.js';
 import { siteConfig } from '../config/site.js';
 import { theme } from '../config/theme.js';
+
+const animeList = getAllAnime();
 
 // Top titles for the homepage spotlight
 const spotlightAnime = animeList.filter((a) => a.trending).slice(0, 4);

@@ -14,7 +14,7 @@ if (Array.isArray(review.paragraphs) && review.paragraphs.length > 0) {
 }
 
 const isWatched = anime.honestyStatus === 'watched';
-const score = review.score || anime.personalRating;
+const score = anime.personalRating;
 const hasFullReview = paragraphs.length > 0;
 const showComingSoonNote = isWatched && score && !hasFullReview;
 ---

@@ -3,10 +3,12 @@
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import AnimeCard from '../../components/AnimeCard.astro';
 import VibeCard from '../../components/VibeCard.astro';
-import { animeList } from '../../data/anime.js';
+import { getAllAnime } from '../../lib/d1.js';
 import { vibes } from '../../data/vibes.js';
 import { siteConfig } from '../../config/site.js';
 import { theme } from '../../config/theme.js';
+
+const animeList = getAllAnime();
 
 // Featured selection for the static grid (top 4 titles to reduce mobile scroll fatigue)
 const featuredAnime = animeList.filter((a) => a.trending).slice(0, 4);
