@@ -228,12 +228,13 @@ export function getAvailableTabs(anime) {
   if (!anime) return [];
   const tabs = [];
 
-  // 1. My Take (FIRST position when present or when watched with a personal rating)
-  const hasReviewContent = anime.review && (
+  // 1. My Take (FIRST position when present or when watched with a personal rating; NEVER for reference guides or un-watched)
+  const isWatched = anime.honestyStatus === 'watched';
+  const hasReviewContent = isWatched && anime.review && (
     anime.review.heading ||
     (Array.isArray(anime.review.paragraphs) && anime.review.paragraphs.length > 0)
   );
-  const isWatchedWithRating = anime.honestyStatus === 'watched' && (anime.personalRating !== undefined && anime.personalRating !== null);
+  const isWatchedWithRating = isWatched && (anime.personalRating !== undefined && anime.personalRating !== null);
 
   if (hasReviewContent || isWatchedWithRating) {
     tabs.push({ key: 'review', label: 'My Take' });

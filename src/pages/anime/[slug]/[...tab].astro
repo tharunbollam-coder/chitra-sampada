@@ -47,9 +47,12 @@ const { anime, activeTabKey, availableTabs } = Astro.props;
 const isZeroFiller = anime.fillerPercentage === 0;
 const activeTab = availableTabs.find((t) => t.key === activeTabKey) || availableTabs[0];
 
-const lessonText = typeof anime.lessons === 'string'
-  ? anime.lessons
-  : (anime.lessons?.takeaway || (Array.isArray(anime.lessons?.paragraphs) && anime.lessons.paragraphs[0] ? anime.lessons.paragraphs[0] : null));
+const isWatched = anime.honestyStatus === 'watched';
+const lessonText = isWatched
+  ? (typeof anime.lessons === 'string'
+      ? anime.lessons
+      : (anime.lessons?.takeaway || (Array.isArray(anime.lessons?.paragraphs) && anime.lessons.paragraphs[0] ? anime.lessons.paragraphs[0] : null)))
+  : null;
 
 // Dynamic Title & Description based on active tab
 const tabTitleMap = {
@@ -176,8 +179,8 @@ const pageDescription = `Complete guide for ${anime.title}. ${currentTabLabel} w
               {isZeroFiller ? '0% Filler (Pure Canon)' : `${anime.fillerPercentage}% Filler Content`}
             </span>
 
-            <!-- Personal Rating Badge (Only rendered if personalRating exists) -->
-            {anime.personalRating && (
+            <!-- Personal Rating Badge (Only rendered if watched and personalRating exists) -->
+            {anime.honestyStatus === 'watched' && anime.personalRating && (
               <span class="text-xs font-bold px-3 py-1 rounded-full bg-slate-100 text-slate-800 border border-slate-200 flex items-center gap-1.5 shadow-2xs">
                 <span class="text-amber-500 font-bold">★</span>
                 <span>{anime.personalRating} / 10</span>

@@ -4,6 +4,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import AnimeCard from '../components/AnimeCard.astro';
 import ComingSoonCard from '../components/ComingSoonCard.astro';
 import HonestyBadge from '../components/HonestyBadge.astro';
+import PositivityNote from '../components/PositivityNote.astro';
 import { getAllAnime } from '../lib/d1.js';
 import { siteConfig } from '../config/site.js';
 import { theme } from '../config/theme.js';
@@ -40,9 +41,9 @@ const spotlightAnime = animeList.filter((a) => a.trending).slice(0, 4);
       <!-- Main Headline & Emotional Core with Solid Theme Accent Emphasis -->
       <div class="space-y-3 sm:space-y-4 mb-8 sm:mb-10">
         <h1 class="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-[#0F172A] leading-[1.15] font-heading">
-          Finding what to watch next takes too long. <br class="hidden sm:inline" />
+          Finding what to watch takes too long. <br class="hidden sm:inline" />
           <span class="block mt-2 sm:mt-3 text-[#6366F1]">
-            And nobody gives you the real context before you commit your time.
+            And nobody gives you the clear context to decide for yourself.
           </span>
         </h1>
       </div>
@@ -51,7 +52,7 @@ const spotlightAnime = animeList.filter((a) => a.trending).slice(0, 4);
       <div class="max-w-2xl mx-auto mb-10 sm:mb-12">
         <!-- Lead personal narrative -->
         <p class="text-base sm:text-xl text-[#334155] font-normal leading-relaxed">
-          I love anime, movies, and series. When I started watching anime, I didn't even know what "filler" was, or that there was a correct order to watch when movies and seasons are mixed together. 
+          I love anime, movies, and series. But when I got into anime, nobody explained what "filler" was, or how to navigate confusing watch orders across movies and seasons. This site provides clear, carefully researched guides and honest context for viewers so you can decide what to watch in your own way.
         </p>
       </div>
 
@@ -61,7 +62,7 @@ const spotlightAnime = animeList.filter((a) => a.trending).slice(0, 4);
           href="/anime"
           class="w-full sm:w-auto px-8 py-4 rounded-2xl bg-[#6366F1] hover:bg-[#4F46E5] text-white font-bold text-sm tracking-wide shadow-md shadow-indigo-500/20 hover:shadow-indigo-500/30 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 flex items-center justify-center gap-2.5 group"
         >
-          <span>Browse Anime List</span>
+          <span>Browse Anime Catalog</span>
           <svg class="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3" />
           </svg>
@@ -71,7 +72,7 @@ const spotlightAnime = animeList.filter((a) => a.trending).slice(0, 4);
           href="/about"
           class="w-full sm:w-auto px-7 py-4 rounded-2xl bg-white hover:bg-slate-50 border border-slate-200 hover:border-slate-300 text-slate-700 hover:text-slate-900 font-semibold text-sm shadow-xs hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 flex items-center justify-center gap-2"
         >
-          <span>Read the Story Behind This</span>
+          <span>Read How This Works</span>
           <svg class="w-4 h-4 text-slate-400 group-hover:text-slate-600 group-hover:translate-x-0.5 transition-all" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
           </svg>
@@ -83,10 +84,10 @@ const spotlightAnime = animeList.filter((a) => a.trending).slice(0, 4);
         <div class="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs hover:shadow-md transition-all duration-300 group">
           <div class="flex items-center gap-2 text-[#4F46E5] font-bold text-xs uppercase tracking-wide mb-2">
             <span class="w-2 h-2 rounded-full bg-[#6366F1]"></span>
-            <span>Watched vs Watchlist</span>
+            <span>Three Honest Categories</span>
           </div>
           <p class="text-xs text-slate-600 leading-relaxed font-normal">
-            Every title is clearly labeled so you always know whether I’ve actually watched it or if it’s queued up next.
+            Every title is transparently labeled as Personally Watched, On My Watchlist, or a compiled Reference Guide.
           </p>
         </div>
 
@@ -96,7 +97,7 @@ const spotlightAnime = animeList.filter((a) => a.trending).slice(0, 4);
             <span>Watch Orders & Filler</span>
           </div>
           <p class="text-xs text-slate-600 leading-relaxed font-normal">
-            Clear info on what's canon, what's filler, and in what sequence to watch series with multiple seasons and films.
+            Clear breakdowns of canon vs. filler episodes and chronological sequences for complex multi-season series.
           </p>
         </div>
 
@@ -106,7 +107,7 @@ const spotlightAnime = animeList.filter((a) => a.trending).slice(0, 4);
             <span>Community Suggestions</span>
           </div>
           <p class="text-xs text-slate-600 leading-relaxed font-normal">
-            If you recommend a show and it gets added, it’s clearly marked as a community suggestion, never claimed as mine.
+            If you suggest a show or submit a correction, it’s always clearly credited to contributors, never claimed as mine.
           </p>
         </div>
       </div>
@@ -130,7 +131,7 @@ const spotlightAnime = animeList.filter((a) => a.trending).slice(0, 4);
           </h2>
 
           <p class="text-sm sm:text-base text-slate-600 leading-relaxed font-normal">
-            Anime is where the confusion was biggest for me, so it’s where this project starts. You’ll find simple watch orders, filler percentages, and clear badges showing what I’ve finished versus what I'm about to start.
+            Anime is where the confusion was biggest for me, so it’s where this project starts. You’ll find carefully researched watch orders, filler percentages, and clear badges distinguishing watched titles, queued watchlist shows, and compiled reference guides.
           </p>
 
           <div class="pt-2">
@@ -210,7 +211,7 @@ const spotlightAnime = animeList.filter((a) => a.trending).slice(0, 4);
         Movies, TV Shows, and Web Series
       </h2>
       <p class="text-sm text-slate-600 leading-relaxed font-normal">
-        I watch plenty of movies and live-action series too. Once the anime section is running smoothly, I'll be adding those sections with the same simple setup: what I've watched, what's on my watchlist, and chronological watch orders.
+        I watch plenty of movies and live-action series too. Once the anime section is running smoothly, I'll be adding those sections with the same honest approach: clear three-category status tags, chronological watch orders, and no-fluff viewer context.
       </p>
     </div>
 
@@ -225,7 +226,7 @@ const spotlightAnime = animeList.filter((a) => a.trending).slice(0, 4);
         features={[
           "Chronological & release universe orders",
           "Stand-alone vs connected franchise guides",
-          "Personal watched vs watchlist tags"
+          "Honest three-category status tags"
         ]}
       />
 
@@ -237,7 +238,7 @@ const spotlightAnime = animeList.filter((a) => a.trending).slice(0, 4);
         features={[
           "Season-by-season tracking",
           "Where a show concludes well",
-          "Simple watched & watchlist tags"
+          "Honest three-category status tags"
         ]}
       />
 
@@ -249,7 +250,7 @@ const spotlightAnime = animeList.filter((a) => a.trending).slice(0, 4);
         features={[
           "Platform tracking",
           "Quick premise notes",
-          "Personal watched & watchlist tags"
+          "Honest three-category status tags"
         ]}
       />
 
@@ -264,7 +265,7 @@ const spotlightAnime = animeList.filter((a) => a.trending).slice(0, 4);
           Want to suggest something I should watch?
         </h3>
         <p class="text-sm text-slate-600 leading-relaxed font-normal">
-          I want this list to grow with recommendations from real people. If you think an anime, movie, or series belongs here, send it over. If it gets added, it will be clearly marked as a user suggestion so everyone knows who recommended it.
+          I want this list to grow with suggestions from real people. If you think an anime, movie, or series belongs here, send it over. If it gets added, it will be clearly marked as a user suggestion so everyone knows who suggested it.
         </p>
       </div>
 
@@ -276,4 +277,7 @@ const spotlightAnime = animeList.filter((a) => a.trending).slice(0, 4);
       </a>
     </div>
   </section>
+
+  <!-- ROTATING POSITIVITY & REFLECTION NOTE -->
+  <PositivityNote />
 </BaseLayout>

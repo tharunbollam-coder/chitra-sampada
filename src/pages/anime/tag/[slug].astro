@@ -23,6 +23,7 @@ const matchingAnime = animeList.filter((a) => a.vibes && a.vibes.includes(vibe.i
 // Sub-metrics
 const watchedCount = matchingAnime.filter((a) => a.honestyStatus === 'watched').length;
 const watchlistCount = matchingAnime.filter((a) => a.honestyStatus === 'watchlist').length;
+const referenceCount = matchingAnime.filter((a) => a.honestyStatus === 'reference').length;
 const zeroFillerCount = matchingAnime.filter((a) => a.fillerPercentage === 0).length;
 
 // Other vibes for quick browsing
@@ -101,7 +102,7 @@ const otherVibes = vibes.filter((v) => v.slug !== vibe.slug);
 
       </div>
 
-      <!-- Filter Tabs (Status: All, Watched, Watchlist, Zero Filler) -->
+      <!-- Filter Tabs (Status: All, Watched, Watchlist, Reference Guide, Zero Filler) -->
       <div class="flex flex-wrap items-center gap-2 pt-2" id="filter-tabs">
         <button
           type="button"
@@ -127,6 +128,15 @@ const otherVibes = vibes.filter((v) => v.slug !== vibe.slug);
         >
           <span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
           <span>On My Watchlist ({watchlistCount})</span>
+        </button>
+
+        <button
+          type="button"
+          data-filter="reference"
+          class="filter-tab-btn px-4 py-1.5 rounded-full text-xs font-semibold tracking-wide transition-all bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 flex items-center gap-1.5 shadow-2xs"
+        >
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+          <span>Reference Guide ({referenceCount})</span>
         </button>
 
         <button
@@ -259,6 +269,7 @@ const otherVibes = vibes.filter((v) => v.slug !== vibe.slug);
         let matchesTab = true;
         if (currentFilter === 'watched') matchesTab = (cardStatus === 'watched');
         if (currentFilter === 'watchlist') matchesTab = (cardStatus === 'watchlist');
+        if (currentFilter === 'reference') matchesTab = (cardStatus === 'reference');
         if (currentFilter === 'zero') matchesTab = (cardFiller === 'zero');
 
         // Search match

@@ -1,0 +1,53 @@
+---
+// src/components/PositivityNote.astro
+// Standalone rotating positivity / reflection note for the main hub homepage.
+// Rotates weekly based on current date/week number.
+
+const reflectionMessages = [
+  "Plant a tree if you get the chance — future you will thank present you.",
+  "Use the dustbin, not the sidewalk. Small habit, big difference.",
+  "You're allowed to move at your own pace. Slow progress still counts.",
+  "Drink some water. Seriously, right now.",
+  "Someone out there needs the kindness you're capable of today.",
+  "Turn off a light you don't need. The planet notices the little things.",
+  "You don't have to have it all figured out today.",
+  "Text that friend you've been meaning to check on.",
+  "Recycling one thing today is better than recycling nothing.",
+  "Rest is productive too. You're not falling behind by taking a breath."
+];
+
+// Calculate rotation based on epoch weeks
+const now = new Date();
+const weekIndex = Math.floor(now.getTime() / (7 * 24 * 60 * 60 * 1000));
+const currentMessage = reflectionMessages[Math.abs(weekIndex) % reflectionMessages.length];
+---
+
+<section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" aria-label="A small reflection">
+  <div class="p-6 sm:p-8 rounded-3xl bg-slate-50/80 border border-slate-200/90 flex flex-col items-center text-center space-y-2.5 shadow-2xs">
+    <div class="flex items-center gap-2 text-slate-400">
+      <svg class="w-4 h-4 text-emerald-600/80" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+      </svg>
+      <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500 font-heading">
+        A Gentle Thought for the Week
+      </span>
+    </div>
+    <p id="positivity-message-text" class="text-base sm:text-lg font-medium text-slate-700 max-w-2xl leading-relaxed italic">
+      "{currentMessage}"
+    </p>
+  </div>
+</section>
+
+<script is:inline define:vars={{ reflectionMessages }}>
+  (function () {
+    try {
+      var now = new Date();
+      var weekIndex = Math.floor(now.getTime() / (7 * 24 * 60 * 60 * 1000));
+      var msg = reflectionMessages[Math.abs(weekIndex) % reflectionMessages.length];
+      var el = document.getElementById('positivity-message-text');
+      if (el && msg) {
+        el.textContent = '“' + msg + '”';
+      }
+    } catch (e) {}
+  })();
+</script>

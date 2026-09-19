@@ -8,7 +8,7 @@ import { theme } from '../config/theme.js';
 
 <BaseLayout
   title="About — Why I Built This"
-  description="The honest story behind Chitra Sampada: why I built this watch companion, the two problems it solves, and how community suggestions work."
+  description="The honest story behind Chitra Sampada: why I built this watch companion, how the three categories work, and our pledge on community suggestions."
 >
   <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-20 space-y-16">
     
@@ -53,33 +53,33 @@ import { theme } from '../config/theme.js';
           The post-show exhaustion.
         </h2>
         <p>
-          The second big problem happened every time I finished a show I loved. You finish the last episode, feel that void, and sit down to find what to watch next.
+          The second big problem happened every time I finished a show I loved. You reach the final episode, feel that gap, and sit down to figure out what to start next.
         </p>
         <p>
-          An hour passes, and you're still scrolling through endless lists on massive databases. Every title has hundreds of mixed reviews, fan debates, and 10/10 scores from people who loved everything. You end up with decision fatigue and watch nothing.
+          An hour easily slips by just scrolling through endless possibilities without a clear starting point. When there are thousands of titles and so many different takes on each one, decision fatigue sets in and you end up watching nothing at all.
         </p>
         <p>
-          That's really why I built this. Not to list every single title in existence — there are already plenty of massive databases out there that do that, and they do it well. This solves a much narrower, practical problem: giving you a clean, honest list with the context you actually need before you start.
+          That is really why I built this: a clean, honest guide with the straightforward context you actually need before you hit play — whether that's a title I've personally watched, one on my watchlist, or a carefully researched reference guide for something I haven't gotten to yet.
         </p>
       </section>
 
       <!-- Section: How this site works -->
       <section class="space-y-6 pt-6 border-t border-slate-200">
         <h2 class="font-heading text-xl sm:text-2xl font-extrabold text-[#0F172A] tracking-tight">
-          How this site works: Watched vs. Watchlist
+          How this site works: Three Honest Categories
         </h2>
         <p>
-          Instead of listing thousands of shows I've never touched, this site only has two categories of titles:
+          To keep browsing clear and honest, this site separates titles into three distinct categories:
         </p>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
           <div class="p-6 rounded-2xl bg-white border border-slate-200/80 shadow-xs hover:shadow-md transition-all space-y-3">
             <div class="flex items-center gap-2">
               <HonestyBadge status="watched" size="sm" />
             </div>
             <h3 class="font-heading text-base font-bold text-[#0F172A]">Personally Watched</h3>
             <p class="text-xs sm:text-sm text-slate-600 leading-relaxed font-normal">
-              Titles I have actually sat down and finished from start to end. If it's labeled "I've Watched This", you know the recommendation comes from first-hand viewing, with exact filler notes and watch order.
+              Titles I've genuinely watched. If it's labeled "I've Watched This", you get personal ratings, written commentary ("My Take," "What I Learned"), and firsthand watch orders.
             </p>
           </div>
 
@@ -89,13 +89,23 @@ import { theme } from '../config/theme.js';
             </div>
             <h3 class="font-heading text-base font-bold text-[#0F172A]">On My Watchlist</h3>
             <p class="text-xs sm:text-sm text-slate-600 leading-relaxed font-normal">
-              Titles I haven't watched yet, but plan to watch next. I include them so you can see what's on deck and follow along, but I clearly label them so I never pretend I've finished something I haven't.
+              Titles I haven't watched yet, but plan to watch next. I include them so you can see what's on deck and follow along, but I clearly label them so I never pretend I've watched something I haven't.
+            </p>
+          </div>
+
+          <div class="p-6 rounded-2xl bg-white border border-slate-200/80 shadow-xs hover:shadow-md transition-all space-y-3">
+            <div class="flex items-center gap-2">
+              <HonestyBadge status="reference" size="sm" />
+            </div>
+            <h3 class="font-heading text-base font-bold text-[#0F172A]">Reference Guide</h3>
+            <p class="text-xs sm:text-sm text-slate-600 leading-relaxed font-normal">
+              Titles with thoroughly researched filler lists, watch orders, and lore guides, but not personally watched. Clearly labeled with no rating or personal review attached, so you always know what kind of information you're getting.
             </p>
           </div>
         </div>
 
-        <p class="text-sm sm:text-base text-slate-600 font-normal">
-          That clarity is the whole point. Anyone visiting can make their own choice with real context, without guessing whether the person writing about it ever actually watched it. Ratings are added as soon as a title is finished, while full written reviews ("My Take") take a little longer to follow since they involve more dedicated writing time.
+        <p class="text-sm sm:text-base text-slate-600 font-normal leading-relaxed">
+          That clarity is the whole point. The core problem this site solves — confusing filler episodes and tangled watch orders — affects far more series than any one person could ever finish, and withholding carefully researched reference information on those titles felt like a wasted opportunity to help fellow viewers. At the same time, personal opinion content (ratings, "My Take," "What I Learned") remains strictly limited to what has actually been watched — with "What I Learned" capturing personal reflections and takeaways rather than universal advice. Ratings are added once a title has been watched, while full written reviews follow as dedicated writing time allows.
         </p>
       </section>
 
@@ -111,7 +121,7 @@ import { theme } from '../config/theme.js';
         </div>
 
         <p>
-          I also want this to grow with input from people who love good stories. If you think an anime, movie, or series is missing, or if you have a better watch order recommendation, I genuinely want to hear it.
+          I also want this to grow with input from people who love good stories. If you think an anime, movie, or series is missing, or if you have a better watch order suggestion, I genuinely want to hear it.
         </p>
 
         <div class="p-6 sm:p-7 rounded-2xl bg-[#EEF2FF]/40 border border-slate-200 space-y-4 shadow-xs">
@@ -136,7 +146,7 @@ import { theme } from '../config/theme.js';
           </p>
           <div class="pt-2 flex flex-col sm:flex-row items-start sm:items-center gap-3">
             <a
-              href="mailto:suggestions@chitrasampada.com?subject=Anime%20Suggestion%20for%20Chitra%20Sampada"
+              href={`mailto:${siteConfig.contactEmail}?subject=Anime%20Suggestion%20for%20${encodeURIComponent(siteConfig.name)}`}
               class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#6366F1] hover:bg-[#4F46E5] text-white font-bold text-xs shadow-md shadow-indigo-500/20 transition-all duration-200"
             >
               <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

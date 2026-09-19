@@ -6,9 +6,9 @@ export const siteConfig = {
   // Change this to your preferred brand name:
   name: 'Chitra Sampada',
   shortName: 'Chitra',
-  tagline: 'A personal list of what to watch and in what order, clearly labeled.',
-  subTagline: 'A personal companion for what to watch and where to start.',
-  description: 'A personal entertainment list focusing on what I have watched and what is next on my watchlist, with clear watch orders and filler guides.',
+  tagline: 'An honest entertainment companion with carefully researched watch orders and filler guides, clearly labeled.',
+  subTagline: 'An honest companion for watch orders, filler guides, and viewer context.',
+  description: 'An honest entertainment reference guide featuring carefully researched watch orders, filler lists, and viewer context across watched titles, watchlist queues, and compiled reference guides.',
   contactEmail: 'suggestions@chitrasampada.com',
   policyLastUpdated: 'September 15, 2026',
 
@@ -18,7 +18,7 @@ export const siteConfig = {
       href: '/anime',
       status: 'live',
       badge: 'LIVE',
-      description: 'Filler lists, watch orders, and what I’ve watched'
+      description: 'Filler lists, watch orders, and honest status guides'
     },
     {
       name: 'About',
@@ -32,6 +32,6 @@ export const siteConfig = {
   footer: {
     tmdbAttribution: 'This product uses the TMDB API but is not endorsed or certified by TMDB. Posters and imagery are sourced via TMDB.',
     copyrightNotice: 'All titles, character names, imagery, and related media are copyright and trademarks of their respective owners and production studios.',
-    editorialPledge: 'I only list what I have personally watched and what is currently on my watchlist, clearly labeled so you always know where each recommendation comes from.'
+    editorialPledge: 'Every title is transparently classified under one of three clear categories: what I have personally watched, what is on my watchlist, and compiled reference guides — so you always know exactly what context you are getting.'
   }
 };
