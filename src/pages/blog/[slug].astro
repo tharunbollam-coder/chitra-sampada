@@ -18,131 +18,101 @@ const { post } = Astro.props;
 // Compile markdown into clean HTML
 const renderedHtml = marked.parse(post.content);
 
-// Format dates
+// Format date in clean editorial style
 const pubDateObj = new Date(post.publishedDate);
 const formattedPubDate = !isNaN(pubDateObj.getTime())
-  ? pubDateObj.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+  ? pubDateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
   : post.publishedDate;
-
-let formattedUpdatedDate = null;
-if (post.lastUpdated && post.lastUpdated !== post.publishedDate) {
-  const updDateObj = new Date(post.lastUpdated);
-  if (!isNaN(updDateObj.getTime())) {
-    formattedUpdatedDate = updDateObj.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-  } else {
-    formattedUpdatedDate = post.lastUpdated;
-  }
-}
 
 const pageTitle = `${post.title} | ${siteConfig.name}`;
 const pageDescription = post.excerpt;
 ---
 
 <BaseLayout title={pageTitle} description={pageDescription}>
-  <article class="max-w-3xl mx-auto px-4 sm:px-6 py-12 sm:py-20">
-    
-    <!-- Top Navigation Breadcrumbs -->
-    <nav class="flex items-center gap-2 text-xs text-slate-500 mb-8" aria-label="Breadcrumb">
-      <a href="/" class="hover:text-slate-900 transition-colors">Home</a>
-      <span class="text-slate-300">/</span>
-      <a href="/blog" class="hover:text-slate-900 transition-colors">Blog</a>
-      <span class="text-slate-300">/</span>
-      <span class="text-[#4F46E5] font-semibold truncate max-w-[220px] sm:max-w-md">{post.title}</span>
-    </nav>
-
-    <!-- Article Header -->
-    <header class="space-y-6 pb-10 border-b border-slate-200/90">
+  <main class="min-h-screen py-16 sm:py-24 lg:py-28">
+    <div class="max-w-[680px] mx-auto px-5 sm:px-6">
       
-      <!-- Meta Information Row -->
-      <div class="flex items-center gap-3 text-xs text-slate-500 font-medium flex-wrap">
-        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#EEF2FF] text-[#4F46E5] font-extrabold tracking-wider uppercase text-[10px] border border-[#C7D2FE] shadow-2xs">
-          Editorial Essay
-        </span>
-        <time datetime={post.publishedDate} class="font-semibold text-slate-700">
-          {formattedPubDate}
-        </time>
-        {formattedUpdatedDate && (
-          <>
-            <span class="text-slate-300">•</span>
-            <span>Updated: {formattedUpdatedDate}</span>
-          </>
-        )}
-        {post.readTime && (
-          <>
-            <span class="text-slate-300">•</span>
-            <span class="flex items-center gap-1">
-              <svg class="w-3.5 h-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <span>{post.readTime}</span>
-            </span>
-          </>
-        )}
-      </div>
-
-      <!-- Article Title -->
-      <h1 class="text-3xl sm:text-4xl lg:text-[2.65rem] font-extrabold text-[#0F172A] tracking-tight leading-[1.2] sm:leading-[1.18] font-heading">
-        {post.title}
-      </h1>
-
-      <!-- Article Lead Excerpt -->
-      <p class="text-lg sm:text-xl text-slate-600 leading-[1.7] font-normal pt-1">
-        {post.excerpt}
-      </p>
-
-      <!-- Linked / Discussed Anime Callout Bar (if any) -->
-      {post.linkedAnime && post.linkedAnime.length > 0 && (
-        <div class="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200/90 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 mt-4">
-          <span class="text-xs font-bold uppercase tracking-wider text-slate-500 font-heading shrink-0 flex items-center gap-2">
-            <span class="w-1.5 h-1.5 rounded-full bg-[#6366F1]"></span>
-            <span>Discussed in This Post:</span>
-          </span>
-          <div class="flex items-center gap-2 flex-wrap">
-            {post.linkedAnime.map((anime) => (
-              <a
-                href={`/anime/${anime.slug}`}
-                class="inline-flex items-center gap-1.5 text-xs font-semibold text-[#4F46E5] bg-[#EEF2FF]/60 hover:bg-[#EEF2FF] border border-[#C7D2FE]/80 hover:border-[#6366F1] px-3 py-1.5 rounded-xl transition-all"
-              >
-                <span>{anime.title}</span>
-                <span class="text-slate-400 font-normal">({anime.year})</span>
-                <span class="text-[#6366F1]">→</span>
-              </a>
-            ))}
-          </div>
-        </div>
-      )}
-
-    </header>
-
-    <!-- Main Markdown Body Content -->
-    <div class="chitra-markdown mt-10">
-      <Fragment set:html={renderedHtml} />
-    </div>
-
-    <!-- Article Bottom / Navigation Footer -->
-    <footer class="mt-16 pt-10 border-t border-slate-200 space-y-6">
-      <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
+      <!-- Minimalist Navigation Back Link -->
+      <nav class="mb-10 sm:mb-14">
         <a
           href="/blog"
-          class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold border border-slate-200 transition-colors"
+          class="inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-900 transition-colors group"
         >
-          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg class="w-3.5 h-3.5 text-slate-400 group-hover:-translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
           </svg>
-          <span>Back to All Articles</span>
+          <span>All Articles</span>
+        </a>
+      </nav>
+
+      <!-- Dedicated Header Container (Title, Excerpt, Metadata, Tags) with Generous Whitespace Transition -->
+      <header class="space-y-4 sm:space-y-5 mb-16 sm:mb-20">
+        
+        <!-- Main Title -->
+        <h1 class="text-3xl sm:text-4xl lg:text-[2.75rem] font-bold text-slate-900 tracking-tight leading-[1.18] sm:leading-[1.15] font-heading">
+          {post.title}
+        </h1>
+
+        <!-- Lead Excerpt -->
+        <p class="text-lg sm:text-xl text-slate-600 leading-relaxed font-normal">
+          {post.excerpt}
+        </p>
+
+        <!-- Streamlined Metadata Row (Date & Read Time ONLY) -->
+        <div class="flex items-center gap-2 text-xs sm:text-sm text-slate-400 font-normal pt-1">
+          <time datetime={post.publishedDate} class="text-slate-500">
+            {formattedPubDate}
+          </time>
+          {post.readTime && (
+            <>
+              <span class="text-slate-300" aria-hidden="true">·</span>
+              <span class="text-slate-500">{post.readTime}</span>
+            </>
+          )}
+        </div>
+
+        <!-- Subtle Tags: Discussed in this post (Lightweight inline text links) -->
+        {post.linkedAnime && post.linkedAnime.length > 0 && (
+          <p class="text-xs text-slate-400 font-normal pt-1">
+            <span>Discussed in this post:</span>{' '}
+            {post.linkedAnime.map((anime, idx) => (
+              <>
+                <a
+                  href={`/anime/${anime.slug}`}
+                  class="text-slate-600 hover:text-indigo-600 underline underline-offset-2 decoration-slate-300 hover:decoration-indigo-600 transition-colors font-medium"
+                >
+                  {anime.title} ({anime.year})
+                </a>
+                {idx < post.linkedAnime.length - 1 ? <span class="text-slate-300 mx-1">·</span> : null}
+              </>
+            ))}
+          </p>
+        )}
+
+      </header>
+
+      <!-- Dedicated Article Container (Main Blog Content) -->
+      <article class="chitra-markdown">
+        <Fragment set:html={renderedHtml} />
+      </article>
+
+      <!-- Subtle Footer Navigation (Clean, text-only, no divider lines) -->
+      <footer class="mt-24 sm:mt-32 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-slate-400">
+        <a
+          href="/blog"
+          class="hover:text-slate-900 transition-colors"
+        >
+          ← Back to all articles
         </a>
 
         <a
           href="/anime"
-          class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#6366F1] hover:bg-[#4F46E5] text-white text-xs font-bold shadow-md shadow-indigo-500/20 transition-all"
+          class="text-indigo-600 hover:text-indigo-700 font-medium transition-colors"
         >
-          <span>Explore Anime Catalog</span>
-          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-          </svg>
+          Explore anime catalog →
         </a>
-      </div>
-    </footer>
+      </footer>
 
-  </article>
+    </div>
+  </main>
 </BaseLayout>

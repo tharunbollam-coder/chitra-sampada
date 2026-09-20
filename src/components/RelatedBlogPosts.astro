@@ -49,19 +49,19 @@ const relatedPosts = getBlogPostsForAnime(animeId);
           : post.publishedDate;
 
         return (
-          <article class="p-5 sm:p-6 rounded-2xl bg-white border border-slate-200/90 hover:border-slate-300 shadow-xs hover:shadow-md transition-all duration-300 group flex flex-col justify-between">
+          <article class="p-5 sm:p-6 rounded-2xl bg-white border border-slate-200/80 hover:border-slate-300 shadow-xs hover:shadow-md transition-all duration-300 group flex flex-col h-full">
             <div class="space-y-2.5">
-              <div class="flex items-center gap-2 text-xs text-slate-500 font-medium">
+              <div class="flex items-center gap-2 text-xs text-slate-400 font-normal">
                 <time datetime={post.publishedDate}>{formattedDate}</time>
                 {post.readTime && (
                   <>
-                    <span class="text-slate-300">•</span>
+                    <span class="text-slate-300" aria-hidden="true">·</span>
                     <span>{post.readTime}</span>
                   </>
                 )}
               </div>
 
-              <h4 class="font-heading text-base sm:text-lg font-bold text-[#0F172A] group-hover:text-[#6366F1] transition-colors leading-snug">
+              <h4 class="font-heading text-base sm:text-lg font-bold text-slate-900 group-hover:text-indigo-600 transition-colors leading-snug">
                 <a href={`/blog/${post.slug}`}>
                   {post.title}
                 </a>
@@ -72,13 +72,13 @@ const relatedPosts = getBlogPostsForAnime(animeId);
               </p>
             </div>
 
-            <div class="pt-4 mt-4 border-t border-slate-100 flex items-center justify-between">
+            <div class="mt-auto pt-5 flex items-center">
               <a
                 href={`/blog/${post.slug}`}
-                class="inline-flex items-center gap-1 text-xs font-bold text-[#4F46E5] group-hover:text-[#4338CA] transition-colors"
+                class="inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-indigo-600 group-hover:text-indigo-700 transition-colors"
               >
                 <span>Read article</span>
-                <svg class="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg class="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                 </svg>
               </a>

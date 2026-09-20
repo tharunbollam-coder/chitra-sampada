@@ -29,21 +29,22 @@ const formattedDate = !isNaN(dateObj.getTime())
   : post.publishedDate;
 ---
 
-<article class="group relative flex flex-col justify-between p-6 sm:p-7 rounded-2xl bg-white border border-slate-200/90 hover:border-slate-300 shadow-xs hover:shadow-md transition-all duration-300 hover:-translate-y-1">
+<article class="group relative flex flex-col h-full p-6 sm:p-7 rounded-2xl bg-white border border-slate-200/80 hover:border-slate-300 shadow-xs hover:shadow-md transition-all duration-300 hover:-translate-y-0.5">
+  <!-- Top Content Area -->
   <div class="space-y-3">
     <!-- Meta row: Date and Reading Time -->
-    <div class="flex items-center gap-2.5 text-xs text-slate-500 font-medium">
+    <div class="flex items-center gap-2 text-xs text-slate-400 font-normal">
       <time datetime={post.publishedDate}>{formattedDate}</time>
       {post.readTime && (
         <>
-          <span class="text-slate-300">•</span>
+          <span class="text-slate-300" aria-hidden="true">·</span>
           <span>{post.readTime}</span>
         </>
       )}
     </div>
 
     <!-- Title -->
-    <h2 class="font-heading text-lg sm:text-xl font-bold text-[#0F172A] group-hover:text-[#6366F1] transition-colors line-clamp-2 leading-snug tracking-tight">
+    <h2 class="font-heading text-lg sm:text-xl font-bold text-slate-900 group-hover:text-indigo-600 transition-colors line-clamp-2 leading-snug tracking-tight">
       <a href={`/blog/${post.slug}`} class="after:absolute after:inset-0 focus:outline-none">
         {post.title}
       </a>
@@ -55,34 +56,34 @@ const formattedDate = !isNaN(dateObj.getTime())
     </p>
   </div>
 
-  <!-- Bottom row: Linked Anime Pills & Read More Indicator -->
-  <div class="pt-5 mt-5 border-t border-slate-100 flex items-center justify-between gap-3 flex-wrap relative z-10">
-    {post.linkedAnime && post.linkedAnime.length > 0 ? (
-      <div class="flex items-center gap-1.5 flex-wrap">
-        <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Discusses:</span>
-        {post.linkedAnime.slice(0, 2).map((anime) => (
+  <!-- Footer Area (Always pushed to bottom via mt-auto, no divider lines) -->
+  <div class="mt-auto pt-6 space-y-3 relative z-10">
+    <!-- Subtle Text Tag: Discusses -->
+    {post.linkedAnime && post.linkedAnime.length > 0 && (
+      <div class="text-xs sm:text-sm font-medium text-slate-400">
+        <span>Discusses:</span>{' '}
+        {post.linkedAnime.slice(0, 2).map((anime, idx) => (
           <a
             href={`/anime/${anime.slug}`}
-            class="text-[11px] font-semibold text-[#4F46E5] bg-[#EEF2FF] border border-[#C7D2FE]/70 hover:bg-[#E0E7FF] px-2 py-0.5 rounded-md transition-colors"
+            class="text-indigo-600 hover:text-indigo-700 hover:underline transition-colors"
           >
-            {anime.title}
+            {anime.title}{idx < Math.min(post.linkedAnime.length, 2) - 1 ? ', ' : ''}
           </a>
         ))}
         {post.linkedAnime.length > 2 && (
-          <span class="text-[10px] text-slate-500 font-medium">
-            +{post.linkedAnime.length - 2} more
-          </span>
+          <span class="text-slate-400"> +{post.linkedAnime.length - 2} more</span>
         )}
       </div>
-    ) : (
-      <div></div>
     )}
 
-    <span class="inline-flex items-center gap-1 text-xs font-bold text-[#4F46E5] group-hover:text-[#4338CA] transition-colors ml-auto">
-      <span>Read article</span>
-      <svg class="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-      </svg>
-    </span>
+    <!-- Read Article Action -->
+    <div class="flex items-center">
+      <span class="inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-indigo-600 group-hover:text-indigo-700 transition-colors">
+        <span>Read article</span>
+        <svg class="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+        </svg>
+      </span>
+    </div>
   </div>
 </article>

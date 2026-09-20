@@ -1,3 +1,6 @@
+/*
+-- Data-insertion code commented out for manual production data entry.
+-- To re-enable or restore test data, uncomment this block.
 INSERT OR REPLACE INTO franchises (id, name, description) VALUES ('naruto', 'Naruto', NULL);
 INSERT INTO franchise_watch_order (franchise_id, step_order, title, type, episodes, anime_id, note) VALUES ('naruto', 1, 'Naruto (Original)', 'TV Series', '220 Episodes (Skip fillers 136–219)', NULL, 'The foundational original series covering Part 1.');
 INSERT INTO franchise_watch_order (franchise_id, step_order, title, type, episodes, anime_id, note) VALUES ('naruto', 2, 'Naruto Shippuden (Episodes 1–175)', 'TV Series', 'Episodes 1–175', 'naruto-shippuden', 'From Kazekage Rescue through the Pain Assault arc.');
@@ -486,3 +489,4 @@ INSERT OR REPLACE INTO anime_vibes (anime_id, vibe_id) VALUES ('kaguya-sama', 'b
 INSERT INTO anime_filler_ranges (anime_id, range, type, arc, range_order) VALUES ('kaguya-sama', '1–37', 'Canon', 'Manga Chapters 1 through 151', 1);
 INSERT INTO anime_characters (anime_id, rank, name, category, role, commentary) VALUES ('kaguya-sama', 1, 'Yu Ishigami', 'Best Written', 'Student Council Treasurer', 'Grows from cynical loner into the most beloved character with one of the best redemption arcs in comedy.');
 INSERT INTO anime_characters (anime_id, rank, name, category, role, commentary) VALUES ('kaguya-sama', 2, 'Kaguya Shinomiya', 'Fan Favorite', 'Vice President', 'A wealthy heiress torn between pride and genuine teenage infatuation.');
+*/

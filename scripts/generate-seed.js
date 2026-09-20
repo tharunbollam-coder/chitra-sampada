@@ -75,6 +75,8 @@ function escapeSql(val) {
 const sqlStatements = [];
 const insertedFranchises = new Set();
 
+/*
+// Data-insertion code commented out for production/manual data entry
 for (const anime of animeList) {
   const fInfo = franchiseDefs[anime.id];
   const franchiseId = fInfo ? fInfo.franchiseId : anime.id;
@@ -166,3 +168,5 @@ for (const anime of animeList) {
 
 fs.writeFileSync('seed.sql', sqlStatements.join('\n'), 'utf8');
 console.log('Successfully generated seed.sql with', sqlStatements.length, 'statements');
+*/
+console.log('Data-insertion code in generate-seed.js is commented out. No statements executed.');
