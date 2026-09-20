@@ -79,3 +79,204 @@
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
 }
+
+/* Flexible Markdown Prose Styling for Blog System */
+.chitra-markdown {
+  color: #334155;
+  font-family: var(--font-sans);
+  font-size: 1.125rem; /* 18px for optimal reading */
+  line-height: 1.85; /* Generous line height for visual breathing room */
+  letter-spacing: -0.011em;
+}
+
+.chitra-markdown h1 {
+  font-family: var(--font-heading);
+  font-size: 2.25rem;
+  font-weight: 800;
+  line-height: 1.25;
+  color: #0F172A;
+  margin-top: 3.5rem;
+  margin-bottom: 1.5rem;
+  letter-spacing: -0.025em;
+}
+
+.chitra-markdown h2 {
+  font-family: var(--font-heading);
+  font-size: 1.625rem;
+  font-weight: 800;
+  line-height: 1.3;
+  color: #0F172A;
+  margin-top: 4rem; /* Real section break breathing room */
+  margin-bottom: 1.5rem;
+  letter-spacing: -0.025em;
+  padding-bottom: 0.75rem;
+  border-bottom: 2px solid #E2E8F0;
+}
+
+/* Listicle and subsection entry headers: treated as individual card-like blocks */
+.chitra-markdown h3 {
+  font-family: var(--font-heading);
+  font-size: 1.25rem;
+  font-weight: 800;
+  line-height: 1.4;
+  color: #0F172A;
+  margin-top: 3.5rem;
+  margin-bottom: 1.25rem;
+  letter-spacing: -0.015em;
+  padding: 0.875rem 1.25rem;
+  background-color: #ffffff;
+  border: 1px solid #E2E8F0;
+  border-left: 4px solid #6366F1;
+  border-radius: 0.875rem;
+  box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.04);
+}
+
+.chitra-markdown h4 {
+  font-family: var(--font-heading);
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #0F172A;
+  margin-top: 2rem;
+  margin-bottom: 0.75rem;
+}
+
+.chitra-markdown p {
+  margin-bottom: 1.875rem; /* 30px generous paragraph separation */
+  color: #334155;
+}
+
+.chitra-markdown a {
+  color: #4F46E5;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1.5px;
+  transition: color 0.15s ease-in-out;
+}
+
+.chitra-markdown a:hover {
+  color: #4338CA;
+}
+
+.chitra-markdown strong {
+  font-weight: 700;
+  color: #0F172A;
+}
+
+.chitra-markdown em {
+  font-style: italic;
+}
+
+/* Distinct styled lists with custom container cards and markers */
+.chitra-markdown ul,
+.chitra-markdown ol {
+  margin: 2rem 0 2.5rem 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+}
+
+.chitra-markdown ol {
+  counter-reset: chitra-ol-counter;
+}
+
+.chitra-markdown ol > li {
+  counter-increment: chitra-ol-counter;
+  position: relative;
+  padding: 1.125rem 1.35rem 1.125rem 3.5rem;
+  background-color: #ffffff;
+  border: 1px solid #E2E8F0;
+  border-radius: 1rem;
+  box-shadow: 0 1px 2px 0 rgba(15, 23, 42, 0.03);
+  line-height: 1.75;
+  font-size: 1.0625rem;
+  color: #334155;
+}
+
+.chitra-markdown ol > li::before {
+  content: counter(chitra-ol-counter);
+  position: absolute;
+  left: 1.125rem;
+  top: 1.125rem;
+  width: 1.625rem;
+  height: 1.625rem;
+  background-color: #EEF2FF;
+  color: #4F46E5;
+  font-family: var(--font-heading);
+  font-weight: 800;
+  font-size: 0.8125rem;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #C7D2FE;
+}
+
+.chitra-markdown ul > li {
+  position: relative;
+  padding: 1.125rem 1.35rem 1.125rem 3.25rem;
+  background-color: #ffffff;
+  border: 1px solid #E2E8F0;
+  border-radius: 1rem;
+  box-shadow: 0 1px 2px 0 rgba(15, 23, 42, 0.03);
+  line-height: 1.75;
+  font-size: 1.0625rem;
+  color: #334155;
+}
+
+.chitra-markdown ul > li::before {
+  content: "";
+  position: absolute;
+  left: 1.35rem;
+  top: 1.65rem;
+  width: 0.5rem;
+  height: 0.5rem;
+  background-color: #6366F1;
+  border-radius: 9999px;
+  box-shadow: 0 0 0 3px #EEF2FF;
+}
+
+/* Distinct elevated blockquotes with accent left border and soft background */
+.chitra-markdown blockquote {
+  position: relative;
+  margin: 3rem 0;
+  padding: 1.75rem 2rem 1.75rem 2.25rem;
+  background-color: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-left: 5px solid #6366F1;
+  border-radius: 0 1.25rem 1.25rem 0;
+  color: #1E293B;
+  box-shadow: 0 2px 4px 0 rgba(15, 23, 42, 0.04);
+}
+
+.chitra-markdown blockquote p {
+  font-family: var(--font-heading);
+  font-style: italic;
+  font-size: 1.1875rem;
+  line-height: 1.8;
+  font-weight: 500;
+  color: #0F172A;
+  margin-bottom: 0;
+}
+
+/* Clear section divider with gradient fade */
+.chitra-markdown hr {
+  border: 0;
+  height: 1px;
+  background: linear-gradient(to right, transparent, #CBD5E1, transparent);
+  margin: 3.75rem 0;
+}
+
+.chitra-markdown code {
+  background-color: #F1F5F9;
+  border: 1px solid #E2E8F0;
+  border-radius: 0.375rem;
+  padding: 0.15rem 0.35rem;
+  font-size: 0.875em;
+  color: #4F46E5;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+

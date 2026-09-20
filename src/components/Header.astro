@@ -38,7 +38,10 @@ const currentPath = Astro.url.pathname;
       {siteConfig.navLinks.map((link) => {
         const isAnime = link.name === 'Anime';
         const isAbout = link.name === 'About';
-        const isActive = (isAnime && currentPath.startsWith('/anime')) || (isAbout && currentPath.startsWith('/about'));
+        const isBlog = link.name === 'Blog';
+        const isActive = (isAnime && currentPath.startsWith('/anime')) || 
+                         (isAbout && currentPath.startsWith('/about')) || 
+                         (isBlog && currentPath.startsWith('/blog'));
         const isLive = link.status === 'live';
 
         return (

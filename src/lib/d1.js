@@ -269,6 +269,96 @@ export function getAvailableTabs(anime) {
 }
 
 /**
+ * Fetch all blog posts from D1 SQLite (optionally including drafts)
+ */
+export function getAllBlogPosts({ includeDrafts = false } = {}) {
+  const db = getSqliteDb();
+  const query = includeDrafts
+    ? `SELECT * FROM blog_posts ORDER BY published_date DESC`
+    : `SELECT * FROM blog_posts WHERE status = 'published' ORDER BY published_date DESC`;
+
+  const postRows = db.prepare(query).all();
+
+  // Fetch linked anime
+  const linkRows = db.prepare(`
+    SELECT bpa.post_id, a.id, a.slug, a.title, a.year, a.honesty_status
+    FROM blog_post_anime bpa
+    JOIN anime a ON bpa.anime_id = a.id
+    ORDER BY a.title ASC
+  `).all();
+
+  const linksMap = new Map();
+  for (const row of linkRows) {
+    if (!linksMap.has(row.post_id)) linksMap.set(row.post_id, []);
+    linksMap.get(row.post_id).push({
+      id: row.id,
+      slug: row.slug,
+      title: row.title,
+      year: row.year,
+      honestyStatus: row.honesty_status
+    });
+  }
+
+  return postRows.map((row) => {
+    const wordCount = row.content ? row.content.trim().split(/\s+/).length : 0;
+    const readTimeMinutes = Math.max(1, Math.ceil(wordCount / 200));
+
+    return {
+      id: row.id,
+      slug: row.slug,
+      title: row.title,
+      excerpt: row.excerpt,
+      content: row.content,
+      publishedDate: row.published_date,
+      lastUpdated: row.last_updated,
+      status: row.status,
+      readTime: `${readTimeMinutes} min read`,
+      linkedAnime: linksMap.get(row.id) || []
+    };
+  });
+}
+
+/**
+ * Fetch a single blog post by slug
+ */
+export function getBlogPostBySlug(slug, { includeDrafts = false } = {}) {
+  const posts = getAllBlogPosts({ includeDrafts });
+  return posts.find((p) => p.slug === slug) || null;
+}
+
+/**
+ * Fetch all published blog posts linked to a specific anime ID
+ */
+export function getBlogPostsForAnime(animeId) {
+  if (!animeId) return [];
+  const db = getSqliteDb();
+  const rows = db.prepare(`
+    SELECT bp.*
+    FROM blog_posts bp
+    JOIN blog_post_anime bpa ON bp.id = bpa.post_id
+    WHERE bpa.anime_id = ? AND bp.status = 'published'
+    ORDER BY bp.published_date DESC
+  `).all(animeId);
+
+  return rows.map((row) => {
+    const wordCount = row.content ? row.content.trim().split(/\s+/).length : 0;
+    const readTimeMinutes = Math.max(1, Math.ceil(wordCount / 200));
+
+    return {
+      id: row.id,
+      slug: row.slug,
+      title: row.title,
+      excerpt: row.excerpt,
+      content: row.content,
+      publishedDate: row.published_date,
+      lastUpdated: row.last_updated,
+      status: row.status,
+      readTime: `${readTimeMinutes} min read`
+    };
+  });
+}
+
+/**
  * Helper function to determine the preferred default tab.
  * Prefers "My Take" ('review') if available; otherwise falls back to the first available tab.
  */

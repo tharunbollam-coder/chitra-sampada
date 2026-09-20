@@ -21,6 +21,13 @@ export const siteConfig = {
       description: 'Filler lists, watch orders, and honest status guides'
     },
     {
+      name: 'Blog',
+      href: '/blog',
+      status: 'live',
+      badge: '',
+      description: 'Articles, pacing breakdowns, and watch guides'
+    },
+    {
       name: 'About',
       href: '/about',
       status: 'live',

@@ -1,0 +1,60 @@
+---
+// src/pages/blog/index.astro
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import BlogPostCard from '../../components/BlogPostCard.astro';
+import { getAllBlogPosts } from '../../lib/d1.js';
+import { siteConfig } from '../../config/site.js';
+
+const posts = getAllBlogPosts();
+
+const pageTitle = `Articles & Insights | ${siteConfig.name}`;
+const pageDescription = `Honest anime commentary, filler breakdowns, and in-depth companion essays for real viewers from ${siteConfig.name}.`;
+---
+
+<BaseLayout title={pageTitle} description={pageDescription}>
+  <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 space-y-10">
+    
+    <!-- Breadcrumb & Header -->
+    <header class="space-y-4 border-b border-slate-200/90 pb-8">
+      <nav class="flex items-center gap-2 text-xs text-slate-500" aria-label="Breadcrumb">
+        <a href="/" class="hover:text-slate-900 transition-colors">Home</a>
+        <span>/</span>
+        <span class="text-[#4F46E5] font-bold">Blog</span>
+      </nav>
+
+      <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+        <div class="space-y-2 max-w-2xl">
+          <div class="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#4F46E5]">
+            <span class="w-2 h-2 rounded-full bg-[#6366F1]"></span>
+            <span>Editorial & Guides</span>
+          </div>
+          <h1 class="text-3xl sm:text-5xl font-extrabold text-[#0F172A] tracking-tight leading-tight font-heading">
+            Articles & Insights
+          </h1>
+          <p class="text-base sm:text-lg text-slate-600 leading-relaxed font-normal pt-1">
+            Honest commentary, filler breakdowns, and companion essays on anime storytelling and watch pacing.
+          </p>
+        </div>
+
+        <div class="text-xs text-slate-500 font-medium shrink-0 bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200/80 self-start sm:self-auto">
+          {posts.length} {posts.length === 1 ? 'Article' : 'Articles'} Published
+        </div>
+      </div>
+    </header>
+
+    <!-- Blog Posts Grid -->
+    {posts.length > 0 ? (
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-7">
+        {posts.map((post) => (
+          <BlogPostCard post={post} />
+        ))}
+      </div>
+    ) : (
+      <div class="p-12 text-center rounded-3xl bg-white border border-slate-200 space-y-3">
+        <p class="text-base font-semibold text-slate-700">No articles published yet.</p>
+        <p class="text-xs text-slate-500">Check back soon for new watch guides and commentary.</p>
+      </div>
+    )}
+
+  </div>
+</BaseLayout>

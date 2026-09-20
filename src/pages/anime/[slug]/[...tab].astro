@@ -8,6 +8,7 @@ import TabCharacters from '../../../components/anime/TabCharacters.astro';
 import TabSource from '../../../components/anime/TabSource.astro';
 import TabPowerSystem from '../../../components/anime/TabPowerSystem.astro';
 import TabReview from '../../../components/anime/TabReview.astro';
+import RelatedBlogPosts from '../../../components/RelatedBlogPosts.astro';
 import { getAllAnime, getAvailableTabs, getDefaultTabKey } from '../../../lib/d1.js';
 import { theme } from '../../../config/theme.js';
 
@@ -317,6 +318,9 @@ const pageDescription = `Complete guide for ${anime.title}. ${currentTabLabel} w
           </div>
         ))}
       </div>
+
+      <!-- Related Blog Posts / Articles discussing this anime -->
+      <RelatedBlogPosts animeId={anime.id} animeTitle={anime.title} />
     </main>
 
     <!-- 5. END-OF-PAGE BUTTON (Back to Anime Home + Explore Full Catalog) -->
