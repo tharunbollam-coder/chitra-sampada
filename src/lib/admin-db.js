@@ -2,6 +2,7 @@
 // Server-side SQLite / D1 data mutations using parameterized queries.
 
 import { getSqliteDb } from './d1.js';
+import { validateEpisodeString } from './filler-utils.js';
 
 /**
  * Fetch an anime entry by ID along with all its related normalized records.
@@ -17,12 +18,17 @@ export function getAnimeById(idOrSlug) {
   const aliases = db.prepare(`SELECT alias FROM anime_aliases WHERE anime_id = ?`).all(actualId).map(r => r.alias);
   const genres = db.prepare(`SELECT genre FROM anime_genres WHERE anime_id = ?`).all(actualId).map(r => r.genre);
   const vibes = db.prepare(`SELECT vibe_id FROM anime_vibes WHERE anime_id = ?`).all(actualId).map(r => r.vibe_id);
-  const fillerRanges = db.prepare(`
-    SELECT id, range, type, arc, range_order as rangeOrder 
+  const fillerRows = db.prepare(`
+    SELECT type, episodes, episode_count as episodeCount 
     FROM anime_filler_ranges 
-    WHERE anime_id = ? 
-    ORDER BY range_order ASC
+    WHERE anime_id = ?
   `).all(actualId);
+  const fillerBreakdown = {
+    mangaCanon: fillerRows.find(r => r.type === 'Manga Canon')?.episodes || '',
+    animeCanon: fillerRows.find(r => r.type === 'Anime Canon')?.episodes || '',
+    mixedCanon: fillerRows.find(r => r.type === 'Mixed Canon/Filler')?.episodes || '',
+    filler: fillerRows.find(r => r.type === 'Filler')?.episodes || ''
+  };
   const characters = db.prepare(`
     SELECT id, rank, name, category, role, commentary 
     FROM anime_characters 
@@ -93,7 +99,8 @@ export function getAnimeById(idOrSlug) {
       name: animeRow.power_system_name || '',
       paragraphs: powerParagraphs
     },
-    fillerRanges,
+    fillerBreakdown,
+    fillerRows,
     characters
   };
 }
@@ -252,44 +259,58 @@ export function saveAnimeWatchOrderLink(animeId, { franchiseId = null, franchise
 
 /**
  * Save Filler & Canon Breakdown and recalculate filler_percentage.
+ * Accepts { mangaCanon, animeCanon, mixedCanon, filler }.
  */
-export function saveAnimeFillerList(animeId, ranges = []) {
+export function saveAnimeFillerList(animeId, breakdown = {}) {
   const db = getSqliteDb();
   const anime = db.prepare(`SELECT episodes FROM anime WHERE id = ?`).get(animeId);
   if (!anime) throw new Error('Anime not found.');
+
+  const {
+    mangaCanon = '',
+    animeCanon = '',
+    mixedCanon = '',
+    filler = ''
+  } = breakdown;
+
+  const valManga = validateEpisodeString(mangaCanon);
+  if (!valManga.valid) throw new Error(`[Manga Canon] ${valManga.error}`);
+
+  const valAnime = validateEpisodeString(animeCanon);
+  if (!valAnime.valid) throw new Error(`[Anime Canon] ${valAnime.error}`);
+
+  const valMixed = validateEpisodeString(mixedCanon);
+  if (!valMixed.valid) throw new Error(`[Mixed Canon/Filler] ${valMixed.error}`);
+
+  const valFiller = validateEpisodeString(filler);
+  if (!valFiller.valid) throw new Error(`[Filler] ${valFiller.error}`);
 
   db.exec('BEGIN IMMEDIATE TRANSACTION;');
   try {
     db.prepare(`DELETE FROM anime_filler_ranges WHERE anime_id = ?`).run(animeId);
 
-    const insertRange = db.prepare(`
-      INSERT INTO anime_filler_ranges (anime_id, range, type, arc, range_order) 
-      VALUES (?, ?, ?, ?, ?)
+    const insertType = db.prepare(`
+      INSERT INTO anime_filler_ranges (anime_id, type, episodes, episode_count) 
+      VALUES (?, ?, ?, ?)
     `);
 
-    let fillerEpisodeCount = 0;
-    ranges.forEach((item, index) => {
-      const cleanRange = String(item.range).trim();
-      const cleanType = String(item.type || 'Canon').trim();
-      const cleanArc = item.arc ? String(item.arc).trim() : null;
-      const order = Number(item.rangeOrder || index + 1);
-
-      insertRange.run(animeId, cleanRange, cleanType, cleanArc, order);
-
-      if (cleanType.toLowerCase() === 'filler') {
-        const parts = cleanRange.split('-').map(s => parseInt(s.trim(), 10));
-        if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
-          fillerEpisodeCount += Math.max(0, parts[1] - parts[0] + 1);
-        } else if (parts.length === 1 && !isNaN(parts[0])) {
-          fillerEpisodeCount += 1;
-        }
-      }
-    });
+    if (valManga.normalized) {
+      insertType.run(animeId, 'Manga Canon', valManga.normalized, valManga.count);
+    }
+    if (valAnime.normalized) {
+      insertType.run(animeId, 'Anime Canon', valAnime.normalized, valAnime.count);
+    }
+    if (valMixed.normalized) {
+      insertType.run(animeId, 'Mixed Canon/Filler', valMixed.normalized, valMixed.count);
+    }
+    if (valFiller.normalized) {
+      insertType.run(animeId, 'Filler', valFiller.normalized, valFiller.count);
+    }
 
     // Auto-calculate filler percentage
     let calculatedPercentage = 0;
-    if (anime.episodes > 0 && fillerEpisodeCount > 0) {
-      calculatedPercentage = Math.min(100, Math.round((fillerEpisodeCount / anime.episodes) * 100));
+    if (anime.episodes > 0 && valFiller.count > 0) {
+      calculatedPercentage = Math.min(100, Math.round((valFiller.count / anime.episodes) * 100));
     }
 
     db.prepare(`
@@ -299,7 +320,16 @@ export function saveAnimeFillerList(animeId, ranges = []) {
     `).run(calculatedPercentage, animeId);
 
     db.exec('COMMIT;');
-    return { success: true, fillerPercentage: calculatedPercentage };
+    return {
+      success: true,
+      fillerPercentage: calculatedPercentage,
+      counts: {
+        mangaCanon: valManga.count,
+        animeCanon: valAnime.count,
+        mixedCanon: valMixed.count,
+        filler: valFiller.count
+      }
+    };
   } catch (err) {
     db.exec('ROLLBACK;');
     throw err;

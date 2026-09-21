@@ -636,6 +636,9 @@ const existingGenres = existingGenreRows.map(r => r.genre);
     <!-- ============================================================= -->
     <!-- SECTION 5: FILLER & CANON BREAKDOWN -->
     <!-- ============================================================= -->
+    <!-- ============================================================= -->
+    <!-- SECTION 5: FILLER & CANON BREAKDOWN -->
+    <!-- ============================================================= -->
     <div class={`bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden transition dependent-section ${isNew ? 'opacity-50 pointer-events-none' : ''}`} id="section-filler-container">
       <button
         type="button"
@@ -649,7 +652,7 @@ const existingGenres = existingGenreRows.map(r => r.genre);
           <div>
             <h2 class="text-base font-semibold text-white font-heading">Filler & Canon Episode Breakdown</h2>
             <p class="text-xs text-slate-400">
-              Episode ranges with automatic filler percentage calculation
+              Comma-separated lists of episodes and ranges with automatic filler percentage calculation
               <span id="filler-pct-display" class={`text-indigo-400 font-mono ml-1 font-semibold ${anime?.fillerPercentage !== undefined ? '' : 'hidden'}`}>
                 ({anime?.fillerPercentage || 0}% filler)
               </span>
@@ -668,62 +671,78 @@ const existingGenres = existingGenreRows.map(r => r.genre);
         <div id="filler-feedback" class="hidden mb-5 p-3.5 rounded-xl text-xs sm:text-sm font-medium border"></div>
 
         <form id="form-filler" class="space-y-4">
-          <div class="flex items-center justify-between">
-            <p class="text-xs text-slate-400">
-              Define episode ranges (e.g. "1-28" or "14"). Marking a range as "Filler" automatically recalculates the anime's total filler percentage upon saving.
-            </p>
-            <button
-              type="button"
-              id="btn-add-filler-row"
-              class="text-xs px-3 py-1.5 bg-indigo-600/20 text-indigo-300 border border-indigo-500/40 rounded-lg hover:bg-indigo-600/30 font-semibold flex items-center gap-1 shrink-0 cursor-pointer"
-            >
-              + Add Range
-            </button>
-          </div>
+          <p class="text-xs text-slate-400">
+            Type or paste a comma-separated list of ranges and single episode numbers directly into each category below (e.g. <code class="text-indigo-300 font-mono">1-44, 48-49, 52-53, 100, 103-130</code>). All four types are always available.
+          </p>
 
-          <div id="filler-ranges-table" class="space-y-2">
-            {(anime?.fillerRanges?.length ? anime.fillerRanges : [{ range: '1-' + (anime?.episodes || 12), type: 'Canon', arc: 'Main Story' }]).map((r, i) => (
-              <div class="grid grid-cols-12 gap-2 p-2.5 bg-slate-950 border border-slate-800 rounded-xl items-center filler-row">
-                <div class="col-span-4 sm:col-span-3">
-                  <label class="block text-[10px] uppercase font-bold text-slate-500 mb-1">Episodes</label>
-                  <input
-                    type="text"
-                    value={r.range}
-                    placeholder="1-28"
-                    class="filler-input-range w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-xs text-white font-mono"
-                    required
-                  />
-                </div>
-                <div class="col-span-4 sm:col-span-3">
-                  <label class="block text-[10px] uppercase font-bold text-slate-500 mb-1">Type</label>
-                  <select class="filler-input-type w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-xs text-white">
-                    <option value="Manga Canon" selected={r.type === 'Manga Canon' || r.type === 'Canon'}>Manga Canon</option>
-                    <option value="Anime Canon" selected={r.type === 'Anime Canon'}>Anime Canon</option>
-                    <option value="Filler" selected={r.type === 'Filler'}>Filler</option>
-                  </select>
-                </div>
-                <div class="col-span-3 sm:col-span-5">
-                  <label class="block text-[10px] uppercase font-bold text-slate-500 mb-1">Arc Name / Description</label>
-                  <input
-                    type="text"
-                    value={r.arc || ''}
-                    placeholder="Arc name"
-                    class="filler-input-arc w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-xs text-white"
-                  />
-                </div>
-                <div class="col-span-1 flex justify-end pt-3 sm:pt-4">
-                  <button
-                    type="button"
-                    class="btn-remove-filler text-slate-500 hover:text-rose-400 p-1 cursor-pointer"
-                    title="Remove range"
-                  >
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                  </button>
-                </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- 1. Manga Canon -->
+            <div class="p-4 bg-slate-950 border border-slate-800 rounded-xl space-y-1.5">
+              <div class="flex items-center justify-between">
+                <label class="block text-xs font-bold text-slate-200 uppercase tracking-wider" for="filler-manga-canon">
+                  Manga Canon
+                </label>
+                <span class="text-[11px] text-emerald-400 font-medium">Original Source Material</span>
               </div>
-            ))}
+              <textarea
+                id="filler-manga-canon"
+                name="mangaCanon"
+                rows="3"
+                placeholder="e.g. 1-135, 220"
+                class="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700/80 rounded-xl text-sm font-mono text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+              >{anime?.fillerBreakdown?.mangaCanon || ''}</textarea>
+            </div>
+
+            <!-- 2. Anime Canon -->
+            <div class="p-4 bg-slate-950 border border-slate-800 rounded-xl space-y-1.5">
+              <div class="flex items-center justify-between">
+                <label class="block text-xs font-bold text-slate-200 uppercase tracking-wider" for="filler-anime-canon">
+                  Anime Canon
+                </label>
+                <span class="text-[11px] text-sky-400 font-medium">Official Anime Continuity</span>
+              </div>
+              <textarea
+                id="filler-anime-canon"
+                name="animeCanon"
+                rows="3"
+                placeholder="e.g. 1-66, 141-151"
+                class="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700/80 rounded-xl text-sm font-mono text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+              >{anime?.fillerBreakdown?.animeCanon || ''}</textarea>
+            </div>
+
+            <!-- 3. Mixed Canon/Filler -->
+            <div class="p-4 bg-slate-950 border border-slate-800 rounded-xl space-y-1.5">
+              <div class="flex items-center justify-between">
+                <label class="block text-xs font-bold text-slate-200 uppercase tracking-wider" for="filler-mixed">
+                  Mixed Canon/Filler
+                </label>
+                <span class="text-[11px] text-purple-400 font-medium">Blends Canon & Anime Content</span>
+              </div>
+              <textarea
+                id="filler-mixed"
+                name="mixedCanon"
+                rows="3"
+                placeholder="e.g. 9, 14-18"
+                class="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700/80 rounded-xl text-sm font-mono text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+              >{anime?.fillerBreakdown?.mixedCanon || ''}</textarea>
+            </div>
+
+            <!-- 4. Filler -->
+            <div class="p-4 bg-slate-950 border border-slate-800 rounded-xl space-y-1.5">
+              <div class="flex items-center justify-between">
+                <label class="block text-xs font-bold text-amber-300 uppercase tracking-wider" for="filler-filler">
+                  Filler (Skippable)
+                </label>
+                <span class="text-[11px] text-amber-400 font-medium">Side Content (Safe to Skip)</span>
+              </div>
+              <textarea
+                id="filler-filler"
+                name="filler"
+                rows="3"
+                placeholder="e.g. 136-219"
+                class="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700/80 rounded-xl text-sm font-mono text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+              >{anime?.fillerBreakdown?.filler || ''}</textarea>
+            </div>
           </div>
 
           <div class="pt-4 border-t border-slate-800 flex justify-end">
@@ -731,7 +750,7 @@ const existingGenres = existingGenreRows.map(r => r.genre);
               type="submit"
               class="w-full sm:w-auto px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold rounded-xl shadow-sm transition cursor-pointer"
             >
-              Save Filler Ranges & Recalculate
+              Save Episode Breakdown & Recalculate
             </button>
           </div>
         </form>
@@ -1306,46 +1325,23 @@ const existingGenres = existingGenreRows.map(r => r.genre);
       const woStep = document.getElementById('wo-step');
       if (woStep) woStep.value = a.franchiseStepOrder || '';
 
-      // 7. Populate Section 5: Filler Ranges
-      const fillerTable = document.getElementById('filler-ranges-table');
-      if (fillerTable) {
-        fillerTable.innerHTML = '';
-        const ranges = a.fillerRanges?.length ? a.fillerRanges : [{ range: '1-' + (a.episodes || 12), type: 'Canon', arc: 'Main Story' }];
-        ranges.forEach(r => {
-          const div = document.createElement('div');
-          div.className = 'grid grid-cols-12 gap-2 p-2.5 bg-slate-950 border border-slate-800 rounded-xl items-center filler-row';
-          div.innerHTML = `
-            <div class="col-span-4 sm:col-span-3">
-              <label class="block text-[10px] uppercase font-bold text-slate-500 mb-1">Episodes</label>
-              <input type="text" value="${r.range || ''}" placeholder="1-28" class="filler-input-range w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-xs text-white font-mono" required />
-            </div>
-            <div class="col-span-4 sm:col-span-3">
-              <label class="block text-[10px] uppercase font-bold text-slate-500 mb-1">Type</label>
-              <select class="filler-input-type w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-xs text-white">
-                <option value="Manga Canon" ${(r.type === 'Manga Canon' || r.type === 'Canon') ? 'selected' : ''}>Manga Canon</option>
-                <option value="Anime Canon" ${r.type === 'Anime Canon' ? 'selected' : ''}>Anime Canon</option>
-                <option value="Filler" ${r.type === 'Filler' ? 'selected' : ''}>Filler</option>
-              </select>
-            </div>
-            <div class="col-span-3 sm:col-span-5">
-              <label class="block text-[10px] uppercase font-bold text-slate-500 mb-1">Arc Name / Description</label>
-              <input type="text" value="${r.arc || ''}" placeholder="Arc name" class="filler-input-arc w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-xs text-white" />
-            </div>
-            <div class="col-span-1 flex justify-end pt-3 sm:pt-4">
-              <button type="button" class="btn-remove-filler text-slate-500 hover:text-rose-400 p-1 cursor-pointer" title="Remove range">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-              </button>
-            </div>
-          `;
-          div.querySelector('.btn-remove-filler').addEventListener('click', () => div.remove());
-          fillerTable.appendChild(div);
-        });
+      // 7. Populate Section 5: Filler Breakdown
+      const fManga = document.getElementById('filler-manga-canon');
+      if (fManga) fManga.value = a.fillerBreakdown?.mangaCanon || '';
 
-        const pctDisplay = document.getElementById('filler-pct-display');
-        if (pctDisplay && a.fillerPercentage !== undefined) {
-          pctDisplay.textContent = `(${a.fillerPercentage}% filler)`;
-          pctDisplay.classList.remove('hidden');
-        }
+      const fAnime = document.getElementById('filler-anime-canon');
+      if (fAnime) fAnime.value = a.fillerBreakdown?.animeCanon || '';
+
+      const fMixed = document.getElementById('filler-mixed');
+      if (fMixed) fMixed.value = a.fillerBreakdown?.mixedCanon || '';
+
+      const fFiller = document.getElementById('filler-filler');
+      if (fFiller) fFiller.value = a.fillerBreakdown?.filler || '';
+
+      const pctDisplay = document.getElementById('filler-pct-display');
+      if (pctDisplay && a.fillerPercentage !== undefined) {
+        pctDisplay.textContent = `(${a.fillerPercentage}% filler)`;
+        pctDisplay.classList.remove('hidden');
       }
 
       // 8. Populate Section 6: Characters
@@ -1666,41 +1662,25 @@ const existingGenres = existingGenreRows.map(r => r.genre);
     const fillerFeedback = document.getElementById('filler-feedback');
     const fillerBadge = document.getElementById('filler-badge');
 
-    document.getElementById('btn-add-filler-row').addEventListener('click', () => {
-      const table = document.getElementById('filler-ranges-table');
-      const div = document.createElement('div');
-      div.className = 'grid grid-cols-12 gap-2 p-2.5 bg-slate-950 border border-slate-800 rounded-xl items-center filler-row';
-      div.innerHTML = `
-        <div class="col-span-4 sm:col-span-3">
-          <label class="block text-[10px] uppercase font-bold text-slate-500 mb-1">Episodes</label>
-          <input type="text" placeholder="1-12" class="filler-input-range w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-xs text-white font-mono" required />
-        </div>
-        <div class="col-span-4 sm:col-span-3">
-          <label class="block text-[10px] uppercase font-bold text-slate-500 mb-1">Type</label>
-          <select class="filler-input-type w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-xs text-white">
-            <option value="Manga Canon">Manga Canon</option>
-            <option value="Anime Canon">Anime Canon</option>
-            <option value="Filler">Filler</option>
-          </select>
-        </div>
-        <div class="col-span-3 sm:col-span-5">
-          <label class="block text-[10px] uppercase font-bold text-slate-500 mb-1">Arc Name / Description</label>
-          <input type="text" placeholder="Arc name" class="filler-input-arc w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-xs text-white" />
-        </div>
-        <div class="col-span-1 flex justify-end pt-3 sm:pt-4">
-          <button type="button" class="btn-remove-filler text-slate-500 hover:text-rose-400 p-1 cursor-pointer" title="Remove range">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-          </button>
-        </div>
-      `;
-      div.querySelector('.btn-remove-filler').addEventListener('click', () => div.remove());
-      table.appendChild(div);
-    });
-
-    document.getElementById('filler-ranges-table').addEventListener('click', (e) => {
-      const btn = e.target.closest('.btn-remove-filler');
-      if (btn) btn.closest('.filler-row').remove();
-    });
+    // Light client-side validation
+    function validateRangeInput(name, value) {
+      if (!value || !value.trim()) return null;
+      const parts = value.split(',').map(s => s.trim()).filter(Boolean);
+      for (const p of parts) {
+        const rm = p.match(/^(\d+)\s*[-–—]\s*(\d+)$/);
+        if (rm) {
+          const start = parseInt(rm[1], 10);
+          const end = parseInt(rm[2], 10);
+          if (start > end) {
+            return `[${name}] Invalid range "${p}": start episode (${start}) cannot be greater than end episode (${end}).`;
+          }
+          continue;
+        }
+        if (/^\d+$/.test(p)) continue;
+        return `[${name}] Invalid entry "${p}". Only episode numbers (e.g. "50") and ranges (e.g. "1-24") separated by commas are allowed.`;
+      }
+      return null;
+    }
 
     formFiller.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -1709,26 +1689,38 @@ const existingGenres = existingGenreRows.map(r => r.genre);
         return;
       }
 
-      const rows = document.querySelectorAll('.filler-row');
-      const ranges = [];
-      rows.forEach((row, idx) => {
-        const range = row.querySelector('.filler-input-range').value.trim();
-        const type = row.querySelector('.filler-input-type').value;
-        const arc = row.querySelector('.filler-input-arc').value.trim();
-        if (range) {
-          ranges.push({ range, type, arc, rangeOrder: idx + 1 });
-        }
-      });
+      const mangaCanon = document.getElementById('filler-manga-canon').value.trim();
+      const animeCanon = document.getElementById('filler-anime-canon').value.trim();
+      const mixedCanon = document.getElementById('filler-mixed').value.trim();
+      const filler = document.getElementById('filler-filler').value.trim();
+
+      const errManga = validateRangeInput('Manga Canon', mangaCanon);
+      if (errManga) { setFeedback(fillerFeedback, errManga, 'error'); return; }
+
+      const errAnime = validateRangeInput('Anime Canon', animeCanon);
+      if (errAnime) { setFeedback(fillerFeedback, errAnime, 'error'); return; }
+
+      const errMixed = validateRangeInput('Mixed Canon/Filler', mixedCanon);
+      if (errMixed) { setFeedback(fillerFeedback, errMixed, 'error'); return; }
+
+      const errFiller = validateRangeInput('Filler', filler);
+      if (errFiller) { setFeedback(fillerFeedback, errFiller, 'error'); return; }
 
       try {
         const res = await fetch('/api/admin/anime/filler-ranges', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ animeId: currentAnimeId, ranges })
+          body: JSON.stringify({
+            animeId: currentAnimeId,
+            mangaCanon,
+            animeCanon,
+            mixedCanon,
+            filler
+          })
         });
         const data = await res.json();
         if (data.success) {
-          setFeedback(fillerFeedback, `✓ Filler ranges saved! Recalculated total filler: ${data.fillerPercentage}%`, 'success');
+          setFeedback(fillerFeedback, `✓ Episode breakdown saved! Recalculated total filler: ${data.fillerPercentage}%`, 'success');
           fillerBadge.classList.remove('hidden');
           window.showAdminToast(`Filler updated (${data.fillerPercentage}% filler)`, 'success');
           const pctDisplay = document.getElementById('filler-pct-display');

@@ -58,13 +58,6 @@ export function adminApiPlugin() {
         const url = new URL(req.url, 'http://localhost');
         const pathname = url.pathname;
 
-        if (pathname === '/admin/anime/editor' || pathname === '/admin/anime/editor/') {
-          const qId = url.searchParams.get('id') || url.searchParams.get('slug');
-          if (qId) {
-            req.headers['x-admin-anime-lookup'] = qId;
-          }
-        }
-
         if (!pathname.startsWith('/api/admin')) {
           return next();
         }
@@ -210,19 +203,27 @@ export function adminApiPlugin() {
           // Section 5: Filler & Canon Breakdown
           if (pathname === '/api/admin/anime/filler-ranges' && method === 'POST') {
             const body = await parseJsonBody(req);
-            const { animeId, ranges } = body;
+            const { animeId, mangaCanon, animeCanon, mixedCanon, filler } = body;
             if (!animeId) {
               return sendJson(res, 400, { success: false, error: 'Anime ID is required' });
             }
-            if (!Array.isArray(ranges)) {
-              return sendJson(res, 400, { success: false, error: 'Ranges must be an array' });
+
+            try {
+              const result = saveAnimeFillerList(animeId, {
+                mangaCanon,
+                animeCanon,
+                mixedCanon,
+                filler
+              });
+              return sendJson(res, 200, {
+                success: true,
+                message: `Episode breakdown saved. Recalculated filler: ${result.fillerPercentage}%`,
+                fillerPercentage: result.fillerPercentage,
+                counts: result.counts
+              });
+            } catch (err) {
+              return sendJson(res, 400, { success: false, error: err.message });
             }
-            const result = saveAnimeFillerList(animeId, ranges);
-            return sendJson(res, 200, {
-              success: true,
-              message: `Filler ranges saved. Recalculated filler: ${result.fillerPercentage}%`,
-              fillerPercentage: result.fillerPercentage
-            });
           }
 
           // Section 6: Key Characters

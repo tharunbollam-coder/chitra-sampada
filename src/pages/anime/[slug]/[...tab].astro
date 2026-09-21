@@ -10,7 +10,6 @@ import TabPowerSystem from '../../../components/anime/TabPowerSystem.astro';
 import TabReview from '../../../components/anime/TabReview.astro';
 import RelatedBlogPosts from '../../../components/RelatedBlogPosts.astro';
 import { getAllAnime, getAvailableTabs, getDefaultTabKey } from '../../../lib/d1.js';
-import { theme } from '../../../config/theme.js';
 
 export function getStaticPaths() {
   const animeList = getAllAnime();

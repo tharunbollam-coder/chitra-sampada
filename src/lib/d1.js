@@ -52,7 +52,7 @@ export function getAllAnime() {
   const aliasesRows = db.prepare(`SELECT anime_id, alias FROM anime_aliases`).all();
   const genresRows = db.prepare(`SELECT anime_id, genre FROM anime_genres`).all();
   const vibesRows = db.prepare(`SELECT anime_id, vibe_id FROM anime_vibes`).all();
-  const fillerRows = db.prepare(`SELECT anime_id, range, type, arc, range_order FROM anime_filler_ranges ORDER BY range_order ASC`).all();
+  const fillerRows = db.prepare(`SELECT anime_id, type, episodes, episode_count FROM anime_filler_ranges`).all();
   const characterRows = db.prepare(`SELECT anime_id, rank, name, category, role, commentary FROM anime_characters ORDER BY rank ASC`).all();
   const watchOrderRows = db.prepare(`SELECT franchise_id, step_order, title, type, episodes, anime_id, note FROM franchise_watch_order ORDER BY step_order ASC`).all();
 
@@ -79,9 +79,9 @@ export function getAllAnime() {
   for (const row of fillerRows) {
     if (!fillerMap.has(row.anime_id)) fillerMap.set(row.anime_id, []);
     fillerMap.get(row.anime_id).push({
-      range: row.range,
       type: row.type,
-      arc: row.arc
+      episodes: row.episodes,
+      count: row.episode_count || 0
     });
   }
 
@@ -134,15 +134,36 @@ export function getAllAnime() {
     }));
 
     // Reconstruct fillerList
-    const ranges = fillerMap.get(row.id) || [];
+    const rawFillerEntries = fillerMap.get(row.id) || [];
     let fillerList = null;
-    if (ranges.length > 0) {
-      const fillerCount = Math.round((row.filler_percentage / 100) * row.episodes);
-      const canonCount = row.episodes - fillerCount;
+    const activeFillerTypes = rawFillerEntries.filter(e => e.episodes && e.episodes.trim().length > 0);
+
+    if (activeFillerTypes.length > 0) {
+      let mangaCanonCount = 0;
+      let animeCanonCount = 0;
+      let mixedCount = 0;
+      let fillerCount = 0;
+
+      for (const entry of activeFillerTypes) {
+        if (entry.type === 'Manga Canon') mangaCanonCount = entry.count;
+        else if (entry.type === 'Anime Canon') animeCanonCount = entry.count;
+        else if (entry.type === 'Mixed Canon/Filler') mixedCount = entry.count;
+        else if (entry.type === 'Filler') fillerCount = entry.count;
+      }
+
+      const totalCanonCount = mangaCanonCount + animeCanonCount;
+
       fillerList = {
         fillerEpisodes: fillerCount,
-        canonEpisodes: canonCount,
-        ranges
+        canonEpisodes: totalCanonCount,
+        mangaCanonEpisodes: mangaCanonCount,
+        animeCanonEpisodes: animeCanonCount,
+        mixedEpisodes: mixedCount,
+        types: activeFillerTypes.map(t => ({
+          type: t.type,
+          episodes: t.episodes,
+          count: t.count
+        }))
       };
     }
 
@@ -246,7 +267,7 @@ export function getAvailableTabs(anime) {
   }
 
   // 3. Filler List
-  if (anime.fillerList && anime.fillerList.ranges && anime.fillerList.ranges.length > 0) {
+  if (anime.fillerList && anime.fillerList.types && anime.fillerList.types.length > 0) {
     tabs.push({ key: 'filler-list', label: 'Filler List' });
   }
 

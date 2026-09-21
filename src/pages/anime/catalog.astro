@@ -2,10 +2,8 @@
 // src/pages/anime/catalog.astro
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import AnimeCard from '../../components/AnimeCard.astro';
-import HonestyBadge from '../../components/HonestyBadge.astro';
 import { getAllAnime } from '../../lib/d1.js';
 import { vibes } from '../../data/vibes.js';
-import { theme } from '../../config/theme.js';
 
 const animeList = getAllAnime();
 

@@ -4,7 +4,6 @@ import BaseLayout from '../../../layouts/BaseLayout.astro';
 import AnimeCard from '../../../components/AnimeCard.astro';
 import { getAllAnime } from '../../../lib/d1.js';
 import { vibes } from '../../../data/vibes.js';
-import { theme } from '../../../config/theme.js';
 
 export function getStaticPaths() {
   return vibes.map((vibe) => ({
