@@ -1,0 +1,309 @@
+---
+// src/pages/admin/blog/editor.astro
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import { getAdminBlogPostById } from '../../../lib/admin-db.js';
+import { getSqliteDb } from '../../../lib/d1.js';
+
+const url = new URL(Astro.request.url);
+const postId = url.searchParams.get('id');
+
+let post = null;
+if (postId) {
+  post = getAdminBlogPostById(postId);
+}
+
+const db = getSqliteDb();
+const animeList = db.prepare('SELECT id, title, year FROM anime ORDER BY title ASC').all();
+
+const isNew = !post;
+const todayStr = new Date().toISOString().split('T')[0];
+const linkedAnimeIds = post ? post.linkedAnime.map(a => a.id) : [];
+---
+
+<AdminLayout title={isNew ? 'Write New Blog Post' : `Edit Post: ${post.title}`} activeSection="blog">
+  <!-- Header / Breadcrumb -->
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-800">
+    <div class="flex items-center gap-3">
+      <a
+        href="/admin/blog"
+        class="p-2 text-slate-400 hover:text-white bg-slate-900 border border-slate-800 rounded-xl hover:bg-slate-800 transition"
+        title="Back to Blog List"
+      >
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+        </svg>
+      </a>
+      <div>
+        <h1 class="text-xl sm:text-2xl font-bold font-heading text-white tracking-tight">
+          {isNew ? 'Write New Blog Post' : `Edit: ${post.title}`}
+        </h1>
+        <p class="text-xs sm:text-sm text-slate-400 mt-0.5">
+          {isNew ? 'Draft a new essay or editorial guide.' : `Post ID: ${post.id}`}
+        </p>
+      </div>
+    </div>
+
+    {!isNew && (
+      <a
+        href={`/blog/${post.slug}`}
+        target="_blank"
+        rel="noopener noreferrer"
+        class="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-medium text-slate-300 hover:text-white bg-slate-900 border border-slate-700/80 rounded-xl transition hover:bg-slate-800"
+      >
+        <span>View Live Post</span>
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+        </svg>
+      </a>
+    )}
+  </div>
+
+  <!-- Editor Container -->
+  <div class="mt-8">
+    <div id="blog-feedback" class="hidden mb-6 p-4 rounded-xl text-sm font-medium border"></div>
+
+    <form id="form-blog" class="space-y-6">
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-5">
+        <!-- Top metadata grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <!-- Post ID -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5" for="blog-id">
+              Post ID <span class="text-rose-400">*</span>
+            </label>
+            <input
+              type="text"
+              id="blog-id"
+              value={post?.id || ''}
+              placeholder="e.g. why-frieren-redefines-fantasy"
+              required
+              readonly={!isNew}
+              class={`w-full px-3.5 py-2.5 bg-slate-950 border rounded-xl text-sm font-mono text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 ${
+                !isNew ? 'opacity-70 cursor-not-allowed border-slate-800' : 'border-slate-700/80 focus:border-indigo-500'
+              }`}
+            />
+          </div>
+
+          <!-- Slug -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5" for="blog-slug">
+              URL Slug <span class="text-rose-400">*</span>
+            </label>
+            <input
+              type="text"
+              id="blog-slug"
+              value={post?.slug || ''}
+              placeholder="why-frieren-redefines-fantasy"
+              required
+              class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-sm font-mono text-white focus:outline-none focus:border-indigo-500"
+            />
+          </div>
+
+          <!-- Status & Date -->
+          <div class="grid grid-cols-2 gap-3 sm:col-span-2 lg:col-span-1">
+            <div>
+              <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5" for="blog-status">
+                Status
+              </label>
+              <select
+                id="blog-status"
+                class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-sm text-white focus:outline-none focus:border-indigo-500"
+              >
+                <option value="published" selected={post?.status === 'published' || isNew}>Published</option>
+                <option value="draft" selected={post?.status === 'draft'}>Draft</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5" for="blog-date">
+                Date
+              </label>
+              <input
+                type="date"
+                id="blog-date"
+                value={post?.publishedDate || todayStr}
+                required
+                class="w-full px-3 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-xs text-white focus:outline-none focus:border-indigo-500"
+              />
+            </div>
+          </div>
+        </div>
+
+        <!-- Title -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5" for="blog-title">
+            Article Title <span class="text-rose-400">*</span>
+          </label>
+          <input
+            type="text"
+            id="blog-title"
+            value={post?.title || ''}
+            placeholder="e.g. Why Frieren Redefines the Fantasy Journey"
+            required
+            class="w-full px-4 py-3 bg-slate-950 border border-slate-700/80 rounded-xl text-base font-semibold text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+          />
+        </div>
+
+        <!-- Excerpt -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5" for="blog-excerpt">
+            Excerpt / Summary (Subheading)
+          </label>
+          <textarea
+            id="blog-excerpt"
+            rows="2"
+            placeholder="Brief teaser or editorial summary shown on listing cards..."
+            class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+          >{post?.excerpt || ''}</textarea>
+        </div>
+
+        <!-- Linked Anime -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
+            Discusses / Linked Anime Series
+          </label>
+          <div class="flex flex-wrap gap-2 max-h-36 overflow-y-auto p-3 bg-slate-950 border border-slate-800 rounded-xl">
+            {animeList.map(a => (
+              <label class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs font-medium cursor-pointer hover:border-slate-700 transition">
+                <input
+                  type="checkbox"
+                  name="linkedAnime"
+                  value={a.id}
+                  checked={linkedAnimeIds.includes(a.id)}
+                  class="rounded text-indigo-600 focus:ring-indigo-500 bg-slate-950 border-slate-700"
+                />
+                <span class="text-slate-300">{a.title}</span>
+              </label>
+            ))}
+            {animeList.length === 0 && (
+              <span class="text-xs text-slate-500">No anime in catalog yet.</span>
+            )}
+          </div>
+        </div>
+
+        <!-- Markdown Content -->
+        <div>
+          <div class="flex items-center justify-between mb-1.5">
+            <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider" for="blog-content">
+              Content (Markdown) <span class="text-rose-400">*</span>
+            </label>
+            <div class="text-xs text-slate-400 font-mono flex items-center gap-3">
+              <span id="word-count-badge">0 words</span>
+              <span>&bull;</span>
+              <span id="read-time-badge" class="text-indigo-400">1 min read</span>
+            </div>
+          </div>
+          <textarea
+            id="blog-content"
+            rows="18"
+            placeholder="Write your article in Markdown here... Use ## for H2 headings, ### for H3, lists, blockquotes, etc."
+            required
+            class="w-full px-4 py-3 bg-slate-950 border border-slate-700/80 rounded-xl text-sm font-mono text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500 leading-relaxed"
+          >{post?.content || ''}</textarea>
+        </div>
+
+        <!-- Save Button -->
+        <div class="pt-4 border-t border-slate-800 flex justify-end">
+          <button
+            type="submit"
+            class="w-full sm:w-auto px-8 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm rounded-xl shadow-sm transition flex items-center justify-center gap-2 cursor-pointer"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+            <span>Save Blog Post</span>
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <!-- Client Script for Live Word Count & Save Logic -->
+  <script is:inline define:vars={{ isNewPost: isNew }}>
+    const titleInput = document.getElementById('blog-title');
+    const slugInput = document.getElementById('blog-slug');
+    const idInput = document.getElementById('blog-id');
+    const contentInput = document.getElementById('blog-content');
+    const wordBadge = document.getElementById('word-count-badge');
+    const readBadge = document.getElementById('read-time-badge');
+    const feedback = document.getElementById('blog-feedback');
+    const form = document.getElementById('form-blog');
+
+    // Auto-generate slug from title for new posts
+    if (isNewPost && titleInput && slugInput && idInput) {
+      titleInput.addEventListener('input', () => {
+        if (!slugInput.dataset.touched) {
+          const clean = titleInput.value
+            .toLowerCase()
+            .replace(/['’]/g, '')
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/^-+|-+$/g, '');
+          slugInput.value = clean;
+          if (!idInput.dataset.touched) {
+            idInput.value = clean;
+          }
+        }
+      });
+      slugInput.addEventListener('input', () => { slugInput.dataset.touched = 'true'; });
+      idInput.addEventListener('input', () => { idInput.dataset.touched = 'true'; });
+    }
+
+    // Live word count & reading time calculation
+    function updateMetrics() {
+      const text = contentInput.value.trim();
+      const words = text ? text.split(/\s+/).length : 0;
+      const readMinutes = Math.max(1, Math.ceil(words / 200));
+      wordBadge.textContent = `${words} words`;
+      readBadge.textContent = `${readMinutes} min read`;
+    }
+
+    contentInput.addEventListener('input', updateMetrics);
+    updateMetrics(); // Initial call
+
+    // Save handler
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      feedback.classList.remove('hidden', 'bg-rose-950/80', 'border-rose-700', 'text-rose-300', 'bg-emerald-950/80', 'border-emerald-700', 'text-emerald-300');
+
+      const checkedAnime = Array.from(document.querySelectorAll('input[name="linkedAnime"]:checked')).map(el => el.value);
+
+      const payload = {
+        id: idInput.value.trim(),
+        slug: slugInput.value.trim(),
+        title: titleInput.value.trim(),
+        excerpt: document.getElementById('blog-excerpt').value.trim(),
+        content: contentInput.value.trim(),
+        publishedDate: document.getElementById('blog-date').value,
+        status: document.getElementById('blog-status').value,
+        linkedAnimeIds: checkedAnime
+      };
+
+      try {
+        const res = await fetch('/api/admin/blog', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+        if (data.success) {
+          feedback.classList.add('bg-emerald-950/80', 'border-emerald-700', 'text-emerald-300');
+          feedback.textContent = `✓ Blog post "${payload.title}" saved successfully!`;
+          window.showAdminToast(`Saved blog post "${payload.title}"`, 'success');
+
+          if (isNewPost) {
+            const newUrl = new URL(window.location);
+            newUrl.searchParams.set('id', payload.id);
+            window.history.replaceState({}, '', newUrl);
+          }
+        } else {
+          feedback.classList.add('bg-rose-950/80', 'border-rose-700', 'text-rose-300');
+          feedback.textContent = 'Error: ' + data.error;
+          window.showAdminToast(data.error || 'Failed to save blog post', 'error');
+        }
+      } catch (err) {
+        feedback.classList.add('bg-rose-950/80', 'border-rose-700', 'text-rose-300');
+        feedback.textContent = 'Network error: ' + err.message;
+      }
+    });
+  </script>
+</AdminLayout>

@@ -1,0 +1,26 @@
+---
+// src/pages/admin/anime/editor/[id].astro
+import AnimeEditor from '../../../../components/admin/AnimeEditor.astro';
+import { getAnimeById } from '../../../../lib/admin-db.js';
+import { getSqliteDb } from '../../../../lib/d1.js';
+
+export function getStaticPaths() {
+  const db = getSqliteDb();
+  const rows = db.prepare('SELECT id, slug FROM anime').all();
+  const paths = [];
+  for (const r of rows) {
+    if (r.id) {
+      paths.push({ params: { id: r.id } });
+    }
+    if (r.slug && r.slug !== r.id) {
+      paths.push({ params: { id: r.slug } });
+    }
+  }
+  return paths;
+}
+
+const { id } = Astro.params;
+const anime = getAnimeById(id);
+---
+
+<AnimeEditor initialAnime={anime} />

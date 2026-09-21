@@ -1,0 +1,1933 @@
+---
+// src/components/admin/AnimeEditor.astro
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import { getAllFranchises } from '../../lib/admin-db.js';
+import { getSqliteDb } from '../../lib/d1.js';
+import { vibes } from '../../data/vibes.js';
+
+interface Props {
+  initialAnime?: any;
+}
+
+const { initialAnime = null } = Astro.props;
+const anime = initialAnime;
+const isNew = !anime;
+const pageTitle = isNew ? 'Add New Anime' : `Edit Anime: ${anime.title}`;
+
+const franchises = getAllFranchises();
+const db = getSqliteDb();
+const existingGenreRows = db.prepare('SELECT DISTINCT genre FROM anime_genres ORDER BY genre ASC').all();
+const existingGenres = existingGenreRows.map(r => r.genre);
+---
+
+<AdminLayout title={pageTitle} activeSection="anime">
+  <!-- Top Breadcrumb & Action Bar -->
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-800">
+    <div class="flex items-center gap-3">
+      <a
+        href="/admin"
+        class="p-2 text-slate-400 hover:text-white bg-slate-900 border border-slate-800 rounded-xl hover:bg-slate-800 transition"
+        title="Back to Anime List"
+      >
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+        </svg>
+      </a>
+      <div>
+        <h1 id="page-main-heading" class="text-xl sm:text-2xl font-bold font-heading text-white tracking-tight flex items-center gap-2">
+          <span id="heading-title-text">{isNew ? 'Add New Anime' : `Edit Anime: ${anime.title}`}</span>
+          <span
+            id="heading-id-badge"
+            class={`text-xs font-mono font-normal px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-slate-700 ${isNew ? 'hidden' : ''}`}
+          >
+            {anime?.id || ''}
+          </span>
+        </h1>
+        <p id="heading-subtext" class="text-xs sm:text-sm text-slate-400 mt-0.5">
+          {isNew ? 'Complete Section 1 first to create the record, then fill in any other sections.' : ''}
+        </p>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-2">
+      <a
+        id="view-public-link"
+        href={anime ? `/anime/${anime.slug}` : '#'}
+        target="_blank"
+        rel="noopener noreferrer"
+        class={`inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-medium text-slate-300 hover:text-white bg-slate-900 border border-slate-700/80 rounded-xl transition hover:bg-slate-800 ${isNew ? 'hidden' : ''}`}
+      >
+        <span>View Public Page</span>
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+        </svg>
+      </a>
+    </div>
+  </div>
+
+  <!-- Main Accordion Container -->
+  <div class="mt-8 space-y-6">
+
+    <!-- ============================================================= -->
+    <!-- SECTION 1: CORE DETAILS -->
+    <!-- ============================================================= -->
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden transition" id="section-core-container">
+      <button
+        type="button"
+        class="w-full px-6 py-4 flex items-center justify-between text-left hover:bg-slate-850/50 transition cursor-pointer section-toggle"
+        data-target="section-core-body"
+      >
+        <div class="flex items-center gap-3">
+          <span class="w-7 h-7 rounded-lg bg-indigo-600/20 text-indigo-400 font-bold text-xs flex items-center justify-center border border-indigo-500/30">
+            1
+          </span>
+          <div>
+            <h2 class="text-base font-semibold text-white font-heading">Core Information & Taxonomy</h2>
+            <p class="text-xs text-slate-400">ID, title, slug, year, episodes, status, rating, genres & vibes</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <span id="core-badge" class="hidden text-xs px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800/80 font-medium">Saved</span>
+          <svg class="w-5 h-5 text-slate-400 transform transition-transform duration-200 section-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+          </svg>
+        </div>
+      </button>
+
+      <div id="section-core-body" class="px-6 pb-6 pt-2 border-t border-slate-800/80">
+        <!-- Local Inline Feedback Banner -->
+        <div id="core-feedback" class="hidden mb-5 p-3.5 rounded-xl text-xs sm:text-sm font-medium border"></div>
+
+        <form id="form-core" class="space-y-5">
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <!-- ID -->
+            <div>
+              <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5" for="core-id">
+                Internal ID <span class="text-rose-400">*</span>
+              </label>
+              <input
+                type="text"
+                id="core-id"
+                name="id"
+                value={anime?.id || ''}
+                placeholder="e.g. frieren"
+                required
+                readonly={!isNew}
+                class={`w-full px-3.5 py-2.5 bg-slate-950 border rounded-xl text-sm font-mono text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 ${
+                  !isNew ? 'opacity-70 cursor-not-allowed border-slate-800' : 'border-slate-700/80 focus:border-indigo-500'
+                }`}
+              />
+              <span class="text-[11px] text-slate-500 mt-1 block">Unique key used across database tables.</span>
+            </div>
+
+            <!-- Slug -->
+            <div>
+              <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5" for="core-slug">
+                URL Slug <span class="text-rose-400">*</span>
+              </label>
+              <input
+                type="text"
+                id="core-slug"
+                name="slug"
+                value={anime?.slug || ''}
+                placeholder="e.g. frieren-beyond-journeys-end"
+                required
+                class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-sm font-mono text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+              />
+              <span class="text-[11px] text-slate-500 mt-1 block">Path on website: /anime/[slug]</span>
+            </div>
+
+            <!-- Title -->
+            <div class="sm:col-span-2 lg:col-span-1">
+              <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5" for="core-title">
+                English / Main Title <span class="text-rose-400">*</span>
+              </label>
+              <input
+                type="text"
+                id="core-title"
+                name="title"
+                value={anime?.title || ''}
+                placeholder="e.g. Frieren: Beyond Journey's End"
+                required
+                class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+              />
+            </div>
+
+            <!-- Original Title -->
+            <div>
+              <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5" for="core-original-title">
+                Japanese / Romaji Title
+              </label>
+              <input
+                type="text"
+                id="core-original-title"
+                name="originalTitle"
+                value={anime?.originalTitle || ''}
+                placeholder="Sousou no Frieren"
+                class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+              />
+            </div>
+
+            <!-- Year -->
+            <div>
+              <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5" for="core-year">
+                Release Year <span class="text-rose-400">*</span>
+              </label>
+              <input
+                type="number"
+                id="core-year"
+                name="year"
+                value={anime?.year || new Date().getFullYear()}
+                min="1960"
+                max="2099"
+                required
+                class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-sm text-white focus:outline-none focus:border-indigo-500"
+              />
+            </div>
+
+            <!-- Episodes -->
+            <div>
+              <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5" for="core-episodes">
+                Total Episodes <span class="text-rose-400">*</span>
+              </label>
+              <input
+                type="number"
+                id="core-episodes"
+                name="episodes"
+                value={anime?.episodes || 12}
+                min="1"
+                required
+                class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-sm text-white focus:outline-none focus:border-indigo-500"
+              />
+            </div>
+
+            <!-- Status -->
+            <div>
+              <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5" for="core-status">
+                Air Status
+              </label>
+              <select
+                id="core-status"
+                name="status"
+                class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-sm text-white focus:outline-none focus:border-indigo-500"
+              >
+                <option value="Finished" selected={anime?.status === 'Finished'}>Finished</option>
+                <option value="Currently Airing" selected={anime?.status === 'Currently Airing'}>Currently Airing</option>
+                <option value="Upcoming" selected={anime?.status === 'Upcoming'}>Upcoming</option>
+              </select>
+            </div>
+
+            <!-- Honesty Status -->
+            <div>
+              <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5" for="core-honesty">
+                Honesty / Review Status
+              </label>
+              <select
+                id="core-honesty"
+                name="honestyStatus"
+                class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-sm text-white focus:outline-none focus:border-indigo-500"
+              >
+                <option value="watched" selected={anime?.honestyStatus === 'watched'}>watched (Full review active)</option>
+                <option value="watching" selected={anime?.honestyStatus === 'watching'}>watching (In progress)</option>
+                <option value="plan_to_watch" selected={anime?.honestyStatus === 'plan_to_watch'}>plan_to_watch (Coming soon)</option>
+                <option value="dropped" selected={anime?.honestyStatus === 'dropped'}>dropped</option>
+              </select>
+            </div>
+
+            <!-- Personal Rating -->
+            <div>
+              <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5" for="core-rating">
+                Personal Rating (0.0 – 10.0)
+              </label>
+              <input
+                type="number"
+                step="0.1"
+                min="0"
+                max="10"
+                id="core-rating"
+                name="personalRating"
+                value={anime?.personalRating ?? ''}
+                placeholder="e.g. 9.5"
+                class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+              />
+            </div>
+          </div>
+
+          <!-- Poster & Backdrop URLs -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5" for="core-poster">
+                Poster Image URL
+              </label>
+              <input
+                type="url"
+                id="core-poster"
+                name="poster"
+                value={anime?.poster || ''}
+                placeholder="https://..."
+                class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+              />
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5" for="core-backdrop">
+                Backdrop Image URL
+              </label>
+              <input
+                type="url"
+                id="core-backdrop"
+                name="backdrop"
+                value={anime?.backdrop || ''}
+                placeholder="https://..."
+                class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+              />
+            </div>
+          </div>
+
+          <!-- Synopsis -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5" for="core-synopsis">
+              Synopsis
+            </label>
+            <textarea
+              id="core-synopsis"
+              name="synopsis"
+              rows="3"
+              placeholder="Short premise of the series..."
+              class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+            >{anime?.synopsis || ''}</textarea>
+          </div>
+
+          <!-- Aliases -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5" for="core-aliases">
+              Alternative Titles / Aliases (Comma separated)
+            </label>
+            <input
+              type="text"
+              id="core-aliases"
+              name="aliases"
+              value={anime?.aliases?.join(', ') || ''}
+              placeholder="Sousou no Frieren, Frieren: Remnants of the Departed"
+              class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+            />
+          </div>
+
+          <!-- Genres (Checkboxes + custom input) -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
+              Genres
+            </label>
+            <div class="flex flex-wrap gap-2 mb-2" id="core-genres-container">
+              {['Adventure', 'Fantasy', 'Action', 'Drama', 'Comedy', 'Romance', 'Mystery', 'Sci-Fi', 'Slice of Life', 'Supernatural', 'Thriller'].map(genre => (
+                <label class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-950 border border-slate-800 rounded-lg text-xs font-medium cursor-pointer hover:border-slate-700 transition">
+                  <input
+                    type="checkbox"
+                    name="genres"
+                    value={genre}
+                    checked={anime?.genres?.includes(genre)}
+                    class="rounded text-indigo-600 focus:ring-indigo-500 bg-slate-900 border-slate-700"
+                  />
+                  <span>{genre}</span>
+                </label>
+              ))}
+            </div>
+            <input
+              type="text"
+              id="core-custom-genres"
+              placeholder="Additional genres (comma separated if not in list above)..."
+              class="w-full px-3.5 py-2 bg-slate-950 border border-slate-700/80 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+            />
+          </div>
+
+          <!-- Vibes Selection -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
+              Discovery Vibes
+            </label>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2" id="core-vibes-container">
+              {vibes.map(v => (
+                <label class="flex items-start gap-2.5 p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs cursor-pointer hover:border-slate-700 transition">
+                  <input
+                    type="checkbox"
+                    name="vibes"
+                    value={v.id}
+                    checked={anime?.vibes?.includes(v.id)}
+                    class="mt-0.5 rounded text-indigo-600 focus:ring-indigo-500 bg-slate-900 border-slate-700"
+                  />
+                  <div>
+                    <div class="font-semibold text-white">{v.title}</div>
+                    <div class="text-[11px] text-slate-400 leading-tight mt-0.5">{v.tagline}</div>
+                  </div>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <!-- Trending Toggle -->
+          <div class="flex items-center gap-3 pt-2">
+            <input
+              type="checkbox"
+              id="core-trending"
+              name="trending"
+              checked={anime?.trending}
+              class="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 bg-slate-900 border-slate-700"
+            />
+            <label for="core-trending" class="text-sm font-medium text-slate-200 cursor-pointer">
+              Feature on Homepage Spotlight (Trending)
+            </label>
+          </div>
+
+          <!-- Submit Button -->
+          <div class="pt-4 border-t border-slate-800 flex justify-end">
+            <button
+              type="submit"
+              id="btn-save-core"
+              class="w-full sm:w-auto px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold rounded-xl shadow-sm transition flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <span>Save Core Details</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+
+    <!-- ============================================================= -->
+    <!-- SECTION 2: PERSONAL TAKE (REVIEW) -->
+    <!-- ============================================================= -->
+    <div class={`bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden transition dependent-section ${isNew ? 'opacity-50 pointer-events-none' : ''}`} id="section-review-container">
+      <button
+        type="button"
+        class="w-full px-6 py-4 flex items-center justify-between text-left hover:bg-slate-850/50 transition cursor-pointer section-toggle"
+        data-target="section-review-body"
+      >
+        <div class="flex items-center gap-3">
+          <span class="w-7 h-7 rounded-lg bg-indigo-600/20 text-indigo-400 font-bold text-xs flex items-center justify-center border border-indigo-500/30">
+            2
+          </span>
+          <div>
+            <h2 class="text-base font-semibold text-white font-heading">Personal Take (Honest Review)</h2>
+            <p class="text-xs text-slate-400">Editorial heading and thoughtful review paragraphs</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <span id="review-badge" class="hidden text-xs px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800/80 font-medium">Saved</span>
+          <svg class="w-5 h-5 text-slate-400 transform transition-transform duration-200 section-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+          </svg>
+        </div>
+      </button>
+
+      <div id="section-review-body" class="px-6 pb-6 pt-2 border-t border-slate-800/80">
+        <div id="review-feedback" class="hidden mb-5 p-3.5 rounded-xl text-xs sm:text-sm font-medium border"></div>
+
+        <form id="form-review" class="space-y-5">
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5" for="review-heading">
+              Review Heading / Hook
+            </label>
+            <input
+              type="text"
+              id="review-heading"
+              value={anime?.review?.heading || ''}
+              placeholder="e.g. A Quiet Masterpiece That Redefines Fantasy"
+              class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+            />
+          </div>
+
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider">
+                Review Paragraphs
+              </label>
+              <button
+                type="button"
+                id="btn-add-review-p"
+                class="text-xs text-indigo-400 hover:text-indigo-300 font-medium flex items-center gap-1 cursor-pointer"
+              >
+                + Add Paragraph
+              </button>
+            </div>
+
+            <div id="review-paragraphs-container" class="space-y-3">
+              {(anime?.review?.paragraphs?.length ? anime.review.paragraphs : ['']).map((p, idx) => (
+                <div class="flex items-start gap-2 paragraph-row">
+                  <textarea
+                    rows="3"
+                    class="flex-1 px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 review-paragraph-input"
+                    placeholder={`Paragraph ${idx + 1}...`}
+                  >{p}</textarea>
+                  <button
+                    type="button"
+                    class="btn-remove-p p-2 text-slate-500 hover:text-rose-400 rounded-lg hover:bg-slate-800 transition cursor-pointer"
+                    title="Remove paragraph"
+                  >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div class="pt-4 border-t border-slate-800 flex justify-end">
+            <button
+              type="submit"
+              class="w-full sm:w-auto px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold rounded-xl shadow-sm transition cursor-pointer"
+            >
+              Save Review
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+
+    <!-- ============================================================= -->
+    <!-- SECTION 3: WHAT I LEARNED (LESSONS) -->
+    <!-- ============================================================= -->
+    <div class={`bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden transition dependent-section ${isNew ? 'opacity-50 pointer-events-none' : ''}`} id="section-lessons-container">
+      <button
+        type="button"
+        class="w-full px-6 py-4 flex items-center justify-between text-left hover:bg-slate-850/50 transition cursor-pointer section-toggle"
+        data-target="section-lessons-body"
+      >
+        <div class="flex items-center gap-3">
+          <span class="w-7 h-7 rounded-lg bg-indigo-600/20 text-indigo-400 font-bold text-xs flex items-center justify-center border border-indigo-500/30">
+            3
+          </span>
+          <div>
+            <h2 class="text-base font-semibold text-white font-heading">What I Learned (Philosophical Takeaway)</h2>
+            <p class="text-xs text-slate-400">Heading and core life lesson or reflection from the series</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <span id="lessons-badge" class="hidden text-xs px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800/80 font-medium">Saved</span>
+          <svg class="w-5 h-5 text-slate-400 transform transition-transform duration-200 section-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+          </svg>
+        </div>
+      </button>
+
+      <div id="section-lessons-body" class="px-6 pb-6 pt-2 border-t border-slate-800/80">
+        <div id="lessons-feedback" class="hidden mb-5 p-3.5 rounded-xl text-xs sm:text-sm font-medium border"></div>
+
+        <form id="form-lessons" class="space-y-5">
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5" for="lesson-heading">
+              Lesson Heading
+            </label>
+            <input
+              type="text"
+              id="lesson-heading"
+              value={anime?.lessons?.heading || ''}
+              placeholder="e.g. Time is the Most Meaningful Currency"
+              class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+            />
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5" for="lesson-takeaway">
+              Takeaway Content / Reflection
+            </label>
+            <textarea
+              id="lesson-takeaway"
+              rows="4"
+              placeholder="What this show taught about life, perspective, or empathy..."
+              class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+            >{anime?.lessons?.takeaway || ''}</textarea>
+          </div>
+
+          <div class="pt-4 border-t border-slate-800 flex justify-end">
+            <button
+              type="submit"
+              class="w-full sm:w-auto px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold rounded-xl shadow-sm transition cursor-pointer"
+            >
+              Save Lessons
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+
+    <!-- ============================================================= -->
+    <!-- SECTION 4: WATCH ORDER & FRANCHISE LINK -->
+    <!-- ============================================================= -->
+    <div class={`bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden transition dependent-section ${isNew ? 'opacity-50 pointer-events-none' : ''}`} id="section-watch-order-container">
+      <button
+        type="button"
+        class="w-full px-6 py-4 flex items-center justify-between text-left hover:bg-slate-850/50 transition cursor-pointer section-toggle"
+        data-target="section-watch-order-body"
+      >
+        <div class="flex items-center gap-3">
+          <span class="w-7 h-7 rounded-lg bg-indigo-600/20 text-indigo-400 font-bold text-xs flex items-center justify-center border border-indigo-500/30">
+            4
+          </span>
+          <div>
+            <h2 class="text-base font-semibold text-white font-heading">Franchise & Watch Order Placement</h2>
+            <p class="text-xs text-slate-400">Link to a franchise and assign step position</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <span id="watch-order-badge" class="hidden text-xs px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800/80 font-medium">Saved</span>
+          <svg class="w-5 h-5 text-slate-400 transform transition-transform duration-200 section-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+          </svg>
+        </div>
+      </button>
+
+      <div id="section-watch-order-body" class="px-6 pb-6 pt-2 border-t border-slate-800/80">
+        <div id="watch-order-feedback" class="hidden mb-5 p-3.5 rounded-xl text-xs sm:text-sm font-medium border"></div>
+
+        <form id="form-watch-order" class="space-y-5">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5" for="wo-franchise">
+                Franchise
+              </label>
+              <select
+                id="wo-franchise"
+                class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-sm text-white focus:outline-none focus:border-indigo-500"
+              >
+                <option value="">None / Standalone</option>
+                {franchises.map(f => (
+                  <option value={f.id} selected={anime?.franchiseId === f.id}>
+                    {f.name} ({f.id})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5" for="wo-step">
+                Step Order Number (Optional)
+              </label>
+              <input
+                type="number"
+                id="wo-step"
+                value={anime?.franchiseStepOrder || ''}
+                placeholder="1, 2, 3..."
+                min="1"
+                class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+              />
+            </div>
+          </div>
+
+          <p class="text-xs text-slate-400">
+            Need to add or edit franchise watch roadmaps? Manage full franchise sequences in the <a href="/admin/franchises" class="text-indigo-400 underline" target="_blank">Franchises Manager</a>.
+          </p>
+
+          <div class="pt-4 border-t border-slate-800 flex justify-end">
+            <button
+              type="submit"
+              class="w-full sm:w-auto px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold rounded-xl shadow-sm transition cursor-pointer"
+            >
+              Save Franchise Link
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+
+    <!-- ============================================================= -->
+    <!-- SECTION 5: FILLER & CANON BREAKDOWN -->
+    <!-- ============================================================= -->
+    <div class={`bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden transition dependent-section ${isNew ? 'opacity-50 pointer-events-none' : ''}`} id="section-filler-container">
+      <button
+        type="button"
+        class="w-full px-6 py-4 flex items-center justify-between text-left hover:bg-slate-850/50 transition cursor-pointer section-toggle"
+        data-target="section-filler-body"
+      >
+        <div class="flex items-center gap-3">
+          <span class="w-7 h-7 rounded-lg bg-indigo-600/20 text-indigo-400 font-bold text-xs flex items-center justify-center border border-indigo-500/30">
+            5
+          </span>
+          <div>
+            <h2 class="text-base font-semibold text-white font-heading">Filler & Canon Episode Breakdown</h2>
+            <p class="text-xs text-slate-400">
+              Episode ranges with automatic filler percentage calculation
+              <span id="filler-pct-display" class={`text-indigo-400 font-mono ml-1 font-semibold ${anime?.fillerPercentage !== undefined ? '' : 'hidden'}`}>
+                ({anime?.fillerPercentage || 0}% filler)
+              </span>
+            </p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <span id="filler-badge" class="hidden text-xs px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800/80 font-medium">Saved</span>
+          <svg class="w-5 h-5 text-slate-400 transform transition-transform duration-200 section-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+          </svg>
+        </div>
+      </button>
+
+      <div id="section-filler-body" class="px-6 pb-6 pt-2 border-t border-slate-800/80">
+        <div id="filler-feedback" class="hidden mb-5 p-3.5 rounded-xl text-xs sm:text-sm font-medium border"></div>
+
+        <form id="form-filler" class="space-y-4">
+          <div class="flex items-center justify-between">
+            <p class="text-xs text-slate-400">
+              Define episode ranges (e.g. "1-28" or "14"). Marking a range as "Filler" automatically recalculates the anime's total filler percentage upon saving.
+            </p>
+            <button
+              type="button"
+              id="btn-add-filler-row"
+              class="text-xs px-3 py-1.5 bg-indigo-600/20 text-indigo-300 border border-indigo-500/40 rounded-lg hover:bg-indigo-600/30 font-semibold flex items-center gap-1 shrink-0 cursor-pointer"
+            >
+              + Add Range
+            </button>
+          </div>
+
+          <div id="filler-ranges-table" class="space-y-2">
+            {(anime?.fillerRanges?.length ? anime.fillerRanges : [{ range: '1-' + (anime?.episodes || 12), type: 'Canon', arc: 'Main Story' }]).map((r, i) => (
+              <div class="grid grid-cols-12 gap-2 p-2.5 bg-slate-950 border border-slate-800 rounded-xl items-center filler-row">
+                <div class="col-span-4 sm:col-span-3">
+                  <label class="block text-[10px] uppercase font-bold text-slate-500 mb-1">Episodes</label>
+                  <input
+                    type="text"
+                    value={r.range}
+                    placeholder="1-28"
+                    class="filler-input-range w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-xs text-white font-mono"
+                    required
+                  />
+                </div>
+                <div class="col-span-4 sm:col-span-3">
+                  <label class="block text-[10px] uppercase font-bold text-slate-500 mb-1">Type</label>
+                  <select class="filler-input-type w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-xs text-white">
+                    <option value="Manga Canon" selected={r.type === 'Manga Canon' || r.type === 'Canon'}>Manga Canon</option>
+                    <option value="Anime Canon" selected={r.type === 'Anime Canon'}>Anime Canon</option>
+                    <option value="Filler" selected={r.type === 'Filler'}>Filler</option>
+                  </select>
+                </div>
+                <div class="col-span-3 sm:col-span-5">
+                  <label class="block text-[10px] uppercase font-bold text-slate-500 mb-1">Arc Name / Description</label>
+                  <input
+                    type="text"
+                    value={r.arc || ''}
+                    placeholder="Arc name"
+                    class="filler-input-arc w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-xs text-white"
+                  />
+                </div>
+                <div class="col-span-1 flex justify-end pt-3 sm:pt-4">
+                  <button
+                    type="button"
+                    class="btn-remove-filler text-slate-500 hover:text-rose-400 p-1 cursor-pointer"
+                    title="Remove range"
+                  >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div class="pt-4 border-t border-slate-800 flex justify-end">
+            <button
+              type="submit"
+              class="w-full sm:w-auto px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold rounded-xl shadow-sm transition cursor-pointer"
+            >
+              Save Filler Ranges & Recalculate
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+
+    <!-- ============================================================= -->
+    <!-- SECTION 6: KEY CHARACTERS -->
+    <!-- ============================================================= -->
+    <div class={`bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden transition dependent-section ${isNew ? 'opacity-50 pointer-events-none' : ''}`} id="section-chars-container">
+      <button
+        type="button"
+        class="w-full px-6 py-4 flex items-center justify-between text-left hover:bg-slate-850/50 transition cursor-pointer section-toggle"
+        data-target="section-chars-body"
+      >
+        <div class="flex items-center gap-3">
+          <span class="w-7 h-7 rounded-lg bg-indigo-600/20 text-indigo-400 font-bold text-xs flex items-center justify-center border border-indigo-500/30">
+            6
+          </span>
+          <div>
+            <h2 class="text-base font-semibold text-white font-heading">Key Characters</h2>
+            <p class="text-xs text-slate-400">Rank, name, category, role, and commentary</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <span id="chars-badge" class="hidden text-xs px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800/80 font-medium">Saved</span>
+          <svg class="w-5 h-5 text-slate-400 transform transition-transform duration-200 section-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+          </svg>
+        </div>
+      </button>
+
+      <div id="section-chars-body" class="px-6 pb-6 pt-2 border-t border-slate-800/80">
+        <div id="chars-feedback" class="hidden mb-5 p-3.5 rounded-xl text-xs sm:text-sm font-medium border"></div>
+
+        <form id="form-chars" class="space-y-4">
+          <div class="flex items-center justify-between">
+            <p class="text-xs text-slate-400">
+              Add primary and memorable characters in order of significance.
+            </p>
+            <button
+              type="button"
+              id="btn-add-char-row"
+              class="text-xs px-3 py-1.5 bg-indigo-600/20 text-indigo-300 border border-indigo-500/40 rounded-lg hover:bg-indigo-600/30 font-semibold flex items-center gap-1 shrink-0 cursor-pointer"
+            >
+              + Add Character
+            </button>
+          </div>
+
+          <div id="chars-container" class="space-y-3">
+            {(anime?.characters?.length ? anime.characters : []).map((c, i) => (
+              <div class="p-3 bg-slate-950 border border-slate-800 rounded-xl space-y-2.5 character-row">
+                <div class="flex items-center justify-between gap-3">
+                  <div class="flex items-center gap-2 flex-1">
+                    <span class="w-6 h-6 rounded bg-slate-800 text-slate-400 text-xs flex items-center justify-center font-bold shrink-0 char-rank-badge">
+                      {c.rank || i + 1}
+                    </span>
+                    <input
+                      type="text"
+                      value={c.name}
+                      placeholder="Character Name"
+                      class="char-input-name flex-1 px-3 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-sm text-white font-medium"
+                      required
+                    />
+                  </div>
+                  <select class="char-input-category px-2.5 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-xs text-white">
+                    <option value="Protagonist" selected={c.category === 'Protagonist'}>Protagonist</option>
+                    <option value="Main" selected={c.category === 'Main'}>Main</option>
+                    <option value="Supporting" selected={c.category === 'Supporting'}>Supporting</option>
+                    <option value="Antagonist" selected={c.category === 'Antagonist'}>Antagonist</option>
+                  </select>
+                  <button
+                    type="button"
+                    class="btn-remove-char text-slate-500 hover:text-rose-400 p-1 cursor-pointer"
+                    title="Remove character"
+                  >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </button>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <input
+                    type="text"
+                    value={c.role || ''}
+                    placeholder="Role / Title (e.g. Elven Mage)"
+                    class="char-input-role px-3 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-xs text-slate-200"
+                  />
+                  <input
+                    type="text"
+                    value={c.commentary || ''}
+                    placeholder="Short commentary or key trait"
+                    class="char-input-commentary px-3 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-xs text-slate-200"
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div class="pt-4 border-t border-slate-800 flex justify-end">
+            <button
+              type="submit"
+              class="w-full sm:w-auto px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold rounded-xl shadow-sm transition cursor-pointer"
+            >
+              Save Key Characters
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+
+    <!-- ============================================================= -->
+    <!-- SECTION 7: MANGA / SOURCE GUIDANCE -->
+    <!-- ============================================================= -->
+    <div class={`bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden transition dependent-section ${isNew ? 'opacity-50 pointer-events-none' : ''}`} id="section-source-container">
+      <button
+        type="button"
+        class="w-full px-6 py-4 flex items-center justify-between text-left hover:bg-slate-850/50 transition cursor-pointer section-toggle"
+        data-target="section-source-body"
+      >
+        <div class="flex items-center gap-3">
+          <span class="w-7 h-7 rounded-lg bg-indigo-600/20 text-indigo-400 font-bold text-xs flex items-center justify-center border border-indigo-500/30">
+            7
+          </span>
+          <div>
+            <h2 class="text-base font-semibold text-white font-heading">Source Material Guidance</h2>
+            <p class="text-xs text-slate-400">Manga / Light Novel author, status, and adaptation coverage</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <span id="source-badge" class="hidden text-xs px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800/80 font-medium">Saved</span>
+          <svg class="w-5 h-5 text-slate-400 transform transition-transform duration-200 section-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+          </svg>
+        </div>
+      </button>
+
+      <div id="section-source-body" class="px-6 pb-6 pt-2 border-t border-slate-800/80">
+        <div id="source-feedback" class="hidden mb-5 p-3.5 rounded-xl text-xs sm:text-sm font-medium border"></div>
+
+        <form id="form-source" class="space-y-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div>
+              <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5" for="source-title">
+                Source Title
+              </label>
+              <input
+                type="text"
+                id="source-title"
+                value={anime?.source?.title || ''}
+                placeholder="Manga title"
+                class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-sm text-white focus:outline-none focus:border-indigo-500"
+              />
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5" for="source-author">
+                Author / Creator
+              </label>
+              <input
+                type="text"
+                id="source-author"
+                value={anime?.source?.author || ''}
+                placeholder="Kanehito Yamada (Story), Tsukasa Abe (Art)"
+                class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-sm text-white focus:outline-none focus:border-indigo-500"
+              />
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5" for="source-type">
+                Source Type
+              </label>
+              <select
+                id="source-type"
+                class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-sm text-white focus:outline-none focus:border-indigo-500"
+              >
+                <option value="Manga" selected={anime?.source?.type === 'Manga'}>Manga</option>
+                <option value="Light Novel" selected={anime?.source?.type === 'Light Novel'}>Light Novel</option>
+                <option value="Visual Novel" selected={anime?.source?.type === 'Visual Novel'}>Visual Novel</option>
+                <option value="Original" selected={anime?.source?.type === 'Original'}>Original (Anime Original)</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5" for="source-volumes">
+                Volumes / Chapters
+              </label>
+              <input
+                type="text"
+                id="source-volumes"
+                value={anime?.source?.volumes || ''}
+                placeholder="e.g. 13+ Volumes (Ongoing)"
+                class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-sm text-white focus:outline-none focus:border-indigo-500"
+              />
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5" for="source-pub-status">
+                Publication Status
+              </label>
+              <select
+                id="source-pub-status"
+                class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-sm text-white focus:outline-none focus:border-indigo-500"
+              >
+                <option value="Ongoing" selected={anime?.source?.publicationStatus === 'Ongoing'}>Ongoing</option>
+                <option value="Completed" selected={anime?.source?.publicationStatus === 'Completed'}>Completed</option>
+                <option value="Hiatus" selected={anime?.source?.publicationStatus === 'Hiatus'}>Hiatus</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5" for="source-coverage">
+                Anime Adaptation Coverage
+              </label>
+              <input
+                type="text"
+                id="source-coverage"
+                value={anime?.source?.coverage || ''}
+                placeholder="e.g. Adapts Chapters 1–60 (Vols 1–7)"
+                class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-sm text-white focus:outline-none focus:border-indigo-500"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5" for="source-notes">
+              Reading Recommendation / Notes
+            </label>
+            <textarea
+              id="source-notes"
+              rows="2"
+              placeholder="e.g. Start reading from Chapter 61 for content past season 1..."
+              class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+            >{anime?.source?.notes || ''}</textarea>
+          </div>
+
+          <div class="pt-4 border-t border-slate-800 flex justify-end">
+            <button
+              type="submit"
+              class="w-full sm:w-auto px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold rounded-xl shadow-sm transition cursor-pointer"
+            >
+              Save Source Guidance
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+
+    <!-- ============================================================= -->
+    <!-- SECTION 8: POWER SYSTEM -->
+    <!-- ============================================================= -->
+    <div class={`bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden transition dependent-section ${isNew ? 'opacity-50 pointer-events-none' : ''}`} id="section-power-container">
+      <button
+        type="button"
+        class="w-full px-6 py-4 flex items-center justify-between text-left hover:bg-slate-850/50 transition cursor-pointer section-toggle"
+        data-target="section-power-body"
+      >
+        <div class="flex items-center gap-3">
+          <span class="w-7 h-7 rounded-lg bg-indigo-600/20 text-indigo-400 font-bold text-xs flex items-center justify-center border border-indigo-500/30">
+            8
+          </span>
+          <div>
+            <h2 class="text-base font-semibold text-white font-heading">Power System / Lore Mechanics</h2>
+            <p class="text-xs text-slate-400">Magic rules, visualization techniques, or combat hierarchy</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <span id="power-badge" class="hidden text-xs px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800/80 font-medium">Saved</span>
+          <svg class="w-5 h-5 text-slate-400 transform transition-transform duration-200 section-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+          </svg>
+        </div>
+      </button>
+
+      <div id="section-power-body" class="px-6 pb-6 pt-2 border-t border-slate-800/80">
+        <div id="power-feedback" class="hidden mb-5 p-3.5 rounded-xl text-xs sm:text-sm font-medium border"></div>
+
+        <form id="form-power" class="space-y-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5" for="power-name">
+              Power System Name
+            </label>
+            <input
+              type="text"
+              id="power-name"
+              value={anime?.powerSystem?.name || ''}
+              placeholder="e.g. Visualization Magic & Mana Suppression"
+              class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+            />
+          </div>
+
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider">
+                Explanatory Paragraphs
+              </label>
+              <button
+                type="button"
+                id="btn-add-power-p"
+                class="text-xs text-indigo-400 hover:text-indigo-300 font-medium flex items-center gap-1 cursor-pointer"
+              >
+                + Add Paragraph
+              </button>
+            </div>
+
+            <div id="power-paragraphs-container" class="space-y-3">
+              {(anime?.powerSystem?.paragraphs?.length ? anime.powerSystem.paragraphs : ['']).map((p, idx) => (
+                <div class="flex items-start gap-2 power-paragraph-row">
+                  <textarea
+                    rows="3"
+                    class="flex-1 px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 power-paragraph-input"
+                    placeholder={`Power mechanic paragraph ${idx + 1}...`}
+                  >{p}</textarea>
+                  <button
+                    type="button"
+                    class="btn-remove-power-p p-2 text-slate-500 hover:text-rose-400 rounded-lg hover:bg-slate-800 transition cursor-pointer"
+                    title="Remove paragraph"
+                  >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div class="pt-4 border-t border-slate-800 flex justify-end">
+            <button
+              type="submit"
+              class="w-full sm:w-auto px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold rounded-xl shadow-sm transition cursor-pointer"
+            >
+              Save Power System
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Client JavaScript for Interactivity, Dynamic Rows, Hydration, and Section Saves -->
+  <script is:inline define:vars={{ initialAnime: anime, isNewRecord: isNew }}>
+    let currentAnimeId = initialAnime?.id || null;
+
+    // Helper: Show localized inline banner in section
+    function setFeedback(feedbackEl, message, type = 'success') {
+      if (!feedbackEl) return;
+      feedbackEl.classList.remove('hidden', 'bg-emerald-950/80', 'border-emerald-700', 'text-emerald-300', 'bg-rose-950/80', 'border-rose-700', 'text-rose-300');
+      if (type === 'success') {
+        feedbackEl.classList.add('bg-emerald-950/80', 'border-emerald-700', 'text-emerald-300');
+      } else {
+        feedbackEl.classList.add('bg-rose-950/80', 'border-rose-700', 'text-rose-300');
+      }
+      feedbackEl.textContent = message;
+      feedbackEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    // Toggle accordion logic
+    document.querySelectorAll('.section-toggle').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const targetId = btn.getAttribute('data-target');
+        const target = document.getElementById(targetId);
+        const chevron = btn.querySelector('.section-chevron');
+        if (target) {
+          const isHidden = target.classList.contains('hidden');
+          target.classList.toggle('hidden', !isHidden);
+          if (chevron) {
+            chevron.classList.toggle('rotate-180', !isHidden);
+          }
+        }
+      });
+    });
+
+    // Auto-generate slug and ID from title if creating a new anime
+    const titleInput = document.getElementById('core-title');
+    const slugInput = document.getElementById('core-slug');
+    const idInput = document.getElementById('core-id');
+
+    if (titleInput && slugInput && idInput) {
+      titleInput.addEventListener('input', () => {
+        if (!currentAnimeId) {
+          if (!slugInput.value || slugInput.dataset.touched !== 'true') {
+            const clean = titleInput.value
+              .toLowerCase()
+              .replace(/['’]/g, '')
+              .replace(/[^a-z0-9]+/g, '-')
+              .replace(/^-+|-+$/g, '');
+            slugInput.value = clean;
+            
+            if (!idInput.value || idInput.dataset.touched !== 'true') {
+              const shortId = clean.split('-')[0] || '';
+              idInput.value = shortId;
+            }
+          }
+        }
+      });
+
+      slugInput.addEventListener('input', () => { slugInput.dataset.touched = 'true'; });
+      idInput.addEventListener('input', () => { idInput.dataset.touched = 'true'; });
+    }
+
+    // Dependent sections state: unlock if currentAnimeId is set
+    function updateDependentSectionsState() {
+      const isUnlocked = Boolean(currentAnimeId);
+      const dependents = document.querySelectorAll('.dependent-section');
+      dependents.forEach(sec => {
+        if (!isUnlocked) {
+          sec.classList.add('opacity-50', 'pointer-events-none');
+        } else {
+          sec.classList.remove('opacity-50', 'pointer-events-none');
+        }
+      });
+    }
+
+    // Helper: add a review paragraph row to Section 2
+    function addReviewParagraph(content = '', index = 1) {
+      const container = document.getElementById('review-paragraphs-container');
+      const div = document.createElement('div');
+      div.className = 'flex items-start gap-2 paragraph-row';
+      div.innerHTML = `
+        <textarea rows="3" class="flex-1 px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 review-paragraph-input" placeholder="Paragraph ${index}..."></textarea>
+        <button type="button" class="btn-remove-p p-2 text-slate-500 hover:text-rose-400 rounded-lg hover:bg-slate-800 transition cursor-pointer" title="Remove paragraph">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+        </button>
+      `;
+      const textarea = div.querySelector('textarea');
+      textarea.value = content;
+      div.querySelector('.btn-remove-p').addEventListener('click', () => div.remove());
+      container.appendChild(div);
+    }
+
+    // Helper: add a power paragraph row to Section 8
+    function addPowerParagraph(content = '', index = 1) {
+      const container = document.getElementById('power-paragraphs-container');
+      const div = document.createElement('div');
+      div.className = 'flex items-start gap-2 power-paragraph-row';
+      div.innerHTML = `
+        <textarea rows="3" class="flex-1 px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 power-paragraph-input" placeholder="Power mechanic paragraph ${index}..."></textarea>
+        <button type="button" class="btn-remove-power-p p-2 text-slate-500 hover:text-rose-400 rounded-lg hover:bg-slate-800 transition cursor-pointer" title="Remove paragraph">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+        </button>
+      `;
+      const textarea = div.querySelector('textarea');
+      textarea.value = content;
+      div.querySelector('.btn-remove-power-p').addEventListener('click', () => div.remove());
+      container.appendChild(div);
+    }
+
+    // Full Form Hydration Function: populates all fields, unlocks sections, sets Edit header
+    function hydrateAnimeData(a) {
+      if (!a) return;
+
+      currentAnimeId = a.id;
+
+      // 1. Update Heading and subtext for Edit mode
+      const headingTitle = document.getElementById('heading-title-text');
+      if (headingTitle) headingTitle.textContent = `Edit Anime: ${a.title}`;
+
+      const idBadge = document.getElementById('heading-id-badge');
+      if (idBadge) {
+        idBadge.textContent = a.id;
+        idBadge.classList.remove('hidden');
+      }
+
+      const subtext = document.getElementById('heading-subtext');
+      if (subtext) subtext.textContent = '';
+
+      const viewLink = document.getElementById('view-public-link');
+      if (viewLink && a.slug) {
+        viewLink.href = `/anime/${a.slug}`;
+        viewLink.classList.remove('hidden');
+      }
+
+      // 2. Unlock all sections immediately
+      updateDependentSectionsState();
+
+      // 3. Populate Section 1: Core details
+      const idEl = document.getElementById('core-id');
+      if (idEl) {
+        idEl.value = a.id;
+        idEl.readOnly = true;
+        idEl.classList.add('opacity-70', 'cursor-not-allowed');
+      }
+
+      const slugEl = document.getElementById('core-slug');
+      if (slugEl) slugEl.value = a.slug || '';
+
+      const titleEl = document.getElementById('core-title');
+      if (titleEl) titleEl.value = a.title || '';
+
+      const origEl = document.getElementById('core-original-title');
+      if (origEl) origEl.value = a.originalTitle || '';
+
+      const yearEl = document.getElementById('core-year');
+      if (yearEl) yearEl.value = a.year || '';
+
+      const epsEl = document.getElementById('core-episodes');
+      if (epsEl) epsEl.value = a.episodes || '';
+
+      const statusEl = document.getElementById('core-status');
+      if (statusEl && a.status) statusEl.value = a.status;
+
+      const honestyEl = document.getElementById('core-honesty');
+      if (honestyEl && a.honestyStatus) honestyEl.value = a.honestyStatus;
+
+      const ratingEl = document.getElementById('core-rating');
+      if (ratingEl) ratingEl.value = (a.personalRating !== null && a.personalRating !== undefined) ? a.personalRating : '';
+
+      const posterEl = document.getElementById('core-poster');
+      if (posterEl) posterEl.value = a.poster || '';
+
+      const backdropEl = document.getElementById('core-backdrop');
+      if (backdropEl) backdropEl.value = a.backdrop || '';
+
+      const synopsisEl = document.getElementById('core-synopsis');
+      if (synopsisEl) synopsisEl.value = a.synopsis || '';
+
+      const aliasesEl = document.getElementById('core-aliases');
+      if (aliasesEl) aliasesEl.value = (a.aliases || []).join(', ');
+
+      const trendingEl = document.getElementById('core-trending');
+      if (trendingEl) trendingEl.checked = Boolean(a.trending);
+
+      // Check genre checkboxes
+      const genreSet = new Set(a.genres || []);
+      const matchedGenres = new Set();
+      document.querySelectorAll('#core-genres-container input[name="genres"]').forEach(cb => {
+        if (genreSet.has(cb.value)) {
+          cb.checked = true;
+          matchedGenres.add(cb.value);
+        } else {
+          cb.checked = false;
+        }
+      });
+      const customGenres = (a.genres || []).filter(g => !matchedGenres.has(g));
+      const customGenreInput = document.getElementById('core-custom-genres');
+      if (customGenreInput) customGenreInput.value = customGenres.join(', ');
+
+      // Check vibe checkboxes
+      const vibeSet = new Set(a.vibes || []);
+      document.querySelectorAll('#core-vibes-container input[name="vibes"]').forEach(cb => {
+        cb.checked = vibeSet.has(cb.value);
+      });
+
+      // 4. Populate Section 2: Personal Take / Review
+      const revHeading = document.getElementById('review-heading');
+      if (revHeading) revHeading.value = a.review?.heading || '';
+
+      const revContainer = document.getElementById('review-paragraphs-container');
+      if (revContainer) {
+        revContainer.innerHTML = '';
+        const paragraphs = a.review?.paragraphs?.length ? a.review.paragraphs : [''];
+        paragraphs.forEach((p, idx) => {
+          addReviewParagraph(p, idx + 1);
+        });
+      }
+
+      // 5. Populate Section 3: Lessons
+      const lessonHeading = document.getElementById('lesson-heading');
+      if (lessonHeading) lessonHeading.value = a.lessons?.heading || '';
+
+      const lessonTakeaway = document.getElementById('lesson-takeaway');
+      if (lessonTakeaway) lessonTakeaway.value = a.lessons?.takeaway || '';
+
+      // 6. Populate Section 4: Watch Order
+      const woFranchise = document.getElementById('wo-franchise');
+      if (woFranchise && a.franchiseId) woFranchise.value = a.franchiseId;
+
+      const woStep = document.getElementById('wo-step');
+      if (woStep) woStep.value = a.franchiseStepOrder || '';
+
+      // 7. Populate Section 5: Filler Ranges
+      const fillerTable = document.getElementById('filler-ranges-table');
+      if (fillerTable) {
+        fillerTable.innerHTML = '';
+        const ranges = a.fillerRanges?.length ? a.fillerRanges : [{ range: '1-' + (a.episodes || 12), type: 'Canon', arc: 'Main Story' }];
+        ranges.forEach(r => {
+          const div = document.createElement('div');
+          div.className = 'grid grid-cols-12 gap-2 p-2.5 bg-slate-950 border border-slate-800 rounded-xl items-center filler-row';
+          div.innerHTML = `
+            <div class="col-span-4 sm:col-span-3">
+              <label class="block text-[10px] uppercase font-bold text-slate-500 mb-1">Episodes</label>
+              <input type="text" value="${r.range || ''}" placeholder="1-28" class="filler-input-range w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-xs text-white font-mono" required />
+            </div>
+            <div class="col-span-4 sm:col-span-3">
+              <label class="block text-[10px] uppercase font-bold text-slate-500 mb-1">Type</label>
+              <select class="filler-input-type w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-xs text-white">
+                <option value="Manga Canon" ${(r.type === 'Manga Canon' || r.type === 'Canon') ? 'selected' : ''}>Manga Canon</option>
+                <option value="Anime Canon" ${r.type === 'Anime Canon' ? 'selected' : ''}>Anime Canon</option>
+                <option value="Filler" ${r.type === 'Filler' ? 'selected' : ''}>Filler</option>
+              </select>
+            </div>
+            <div class="col-span-3 sm:col-span-5">
+              <label class="block text-[10px] uppercase font-bold text-slate-500 mb-1">Arc Name / Description</label>
+              <input type="text" value="${r.arc || ''}" placeholder="Arc name" class="filler-input-arc w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-xs text-white" />
+            </div>
+            <div class="col-span-1 flex justify-end pt-3 sm:pt-4">
+              <button type="button" class="btn-remove-filler text-slate-500 hover:text-rose-400 p-1 cursor-pointer" title="Remove range">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+              </button>
+            </div>
+          `;
+          div.querySelector('.btn-remove-filler').addEventListener('click', () => div.remove());
+          fillerTable.appendChild(div);
+        });
+
+        const pctDisplay = document.getElementById('filler-pct-display');
+        if (pctDisplay && a.fillerPercentage !== undefined) {
+          pctDisplay.textContent = `(${a.fillerPercentage}% filler)`;
+          pctDisplay.classList.remove('hidden');
+        }
+      }
+
+      // 8. Populate Section 6: Characters
+      const charsContainer = document.getElementById('chars-container');
+      if (charsContainer) {
+        charsContainer.innerHTML = '';
+        (a.characters || []).forEach((c, idx) => {
+          const div = document.createElement('div');
+          div.className = 'p-3 bg-slate-950 border border-slate-800 rounded-xl space-y-2.5 character-row';
+          div.innerHTML = `
+            <div class="flex items-center justify-between gap-3">
+              <div class="flex items-center gap-2 flex-1">
+                <span class="w-6 h-6 rounded bg-slate-800 text-slate-400 text-xs flex items-center justify-center font-bold shrink-0 char-rank-badge">
+                  ${c.rank || idx + 1}
+                </span>
+                <input type="text" value="${c.name || ''}" placeholder="Character Name" class="char-input-name flex-1 px-3 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-sm text-white font-medium" required />
+              </div>
+              <select class="char-input-category px-2.5 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-xs text-white">
+                <option value="Protagonist" ${c.category === 'Protagonist' ? 'selected' : ''}>Protagonist</option>
+                <option value="Main" ${c.category === 'Main' ? 'selected' : ''}>Main</option>
+                <option value="Supporting" ${c.category === 'Supporting' ? 'selected' : ''}>Supporting</option>
+                <option value="Antagonist" ${c.category === 'Antagonist' ? 'selected' : ''}>Antagonist</option>
+              </select>
+              <button type="button" class="btn-remove-char text-slate-500 hover:text-rose-400 p-1 cursor-pointer" title="Remove character">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+              </button>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <input type="text" value="${c.role || ''}" placeholder="Role / Title (e.g. Elven Mage)" class="char-input-role px-3 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-xs text-slate-200" />
+              <input type="text" value="${c.commentary || ''}" placeholder="Short commentary or key trait" class="char-input-commentary px-3 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-xs text-slate-200" />
+            </div>
+          `;
+          div.querySelector('.btn-remove-char').addEventListener('click', () => {
+            div.remove();
+            updateCharacterRanks();
+          });
+          charsContainer.appendChild(div);
+        });
+      }
+
+      // 9. Populate Section 7: Source guidance
+      const srcTitle = document.getElementById('source-title');
+      if (srcTitle) srcTitle.value = a.source?.title || '';
+
+      const srcAuthor = document.getElementById('source-author');
+      if (srcAuthor) srcAuthor.value = a.source?.author || '';
+
+      const srcType = document.getElementById('source-type');
+      if (srcType && a.source?.type) srcType.value = a.source.type;
+
+      const srcVols = document.getElementById('source-volumes');
+      if (srcVols) srcVols.value = a.source?.volumes || '';
+
+      const srcPub = document.getElementById('source-pub-status');
+      if (srcPub && a.source?.publicationStatus) srcPub.value = a.source.publicationStatus;
+
+      const srcCov = document.getElementById('source-coverage');
+      if (srcCov) srcCov.value = a.source?.coverage || '';
+
+      const srcNotes = document.getElementById('source-notes');
+      if (srcNotes) srcNotes.value = a.source?.notes || '';
+
+      // 10. Populate Section 8: Power system
+      const powerName = document.getElementById('power-name');
+      if (powerName) powerName.value = a.powerSystem?.name || '';
+
+      const powerContainer = document.getElementById('power-paragraphs-container');
+      if (powerContainer) {
+        powerContainer.innerHTML = '';
+        const powerPars = a.powerSystem?.paragraphs?.length ? a.powerSystem.paragraphs : [''];
+        powerPars.forEach((p, idx) => {
+          addPowerParagraph(p, idx + 1);
+        });
+      }
+    }
+
+    // Check if initialAnime exists from SSR, or fetch from API if client loaded with ?id= or ?slug=
+    const params = new URLSearchParams(window.location.search);
+    const lookupParam = params.get('id') || params.get('slug');
+
+    if (initialAnime) {
+      hydrateAnimeData(initialAnime);
+    } else if (lookupParam) {
+      // Dynamic fetch from API
+      fetch(`/api/admin/anime?id=${encodeURIComponent(lookupParam)}`)
+        .then(res => res.json())
+        .then(res => {
+          if (res.success && res.data) {
+            hydrateAnimeData(res.data);
+          } else {
+            console.warn('Could not find anime for lookup:', lookupParam);
+          }
+        })
+        .catch(err => {
+          console.error('Failed to fetch anime for editor hydration:', err);
+        });
+    } else {
+      updateDependentSectionsState();
+    }
+
+    // -------------------------------------------------------------
+    // 1. SAVE CORE
+    // -------------------------------------------------------------
+    const formCore = document.getElementById('form-core');
+    const coreFeedback = document.getElementById('core-feedback');
+    const coreBadge = document.getElementById('core-badge');
+
+    formCore.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      setFeedback(coreFeedback, 'Saving core information...', 'success');
+
+      // Gather genres
+      const checkedGenres = Array.from(formCore.querySelectorAll('input[name="genres"]:checked')).map(el => el.value);
+      const customGenres = (document.getElementById('core-custom-genres').value || '')
+        .split(',')
+        .map(s => s.trim())
+        .filter(Boolean);
+      const allGenres = Array.from(new Set([...checkedGenres, ...customGenres]));
+
+      // Gather vibes
+      const checkedVibes = Array.from(formCore.querySelectorAll('input[name="vibes"]:checked')).map(el => el.value);
+
+      // Aliases
+      const aliases = (document.getElementById('core-aliases').value || '')
+        .split(',')
+        .map(s => s.trim())
+        .filter(Boolean);
+
+      const payload = {
+        id: document.getElementById('core-id').value.trim(),
+        slug: document.getElementById('core-slug').value.trim(),
+        title: document.getElementById('core-title').value.trim(),
+        originalTitle: document.getElementById('core-original-title').value.trim(),
+        year: document.getElementById('core-year').value,
+        episodes: document.getElementById('core-episodes').value,
+        status: document.getElementById('core-status').value,
+        honestyStatus: document.getElementById('core-honesty').value,
+        personalRating: document.getElementById('core-rating').value,
+        poster: document.getElementById('core-poster').value.trim(),
+        backdrop: document.getElementById('core-backdrop').value.trim(),
+        synopsis: document.getElementById('core-synopsis').value.trim(),
+        trending: document.getElementById('core-trending').checked ? 1 : 0,
+        aliases,
+        genres: allGenres,
+        vibes: checkedVibes
+      };
+
+      try {
+        const res = await fetch('/api/admin/anime/core', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+        if (data.success) {
+          currentAnimeId = payload.id;
+          setFeedback(coreFeedback, '✓ Core details saved successfully! All sections are unlocked.', 'success');
+          coreBadge.classList.remove('hidden');
+          window.showAdminToast(`Saved core details for "${payload.title}"`, 'success');
+
+          // Update header and unlock
+          document.getElementById('heading-title-text').textContent = `Edit Anime: ${payload.title}`;
+          const idBadge = document.getElementById('heading-id-badge');
+          if (idBadge) {
+            idBadge.textContent = payload.id;
+            idBadge.classList.remove('hidden');
+          }
+          const subtext = document.getElementById('heading-subtext');
+          if (subtext) subtext.textContent = '';
+          const viewLink = document.getElementById('view-public-link');
+          if (viewLink && payload.slug) {
+            viewLink.href = `/anime/${payload.slug}`;
+            viewLink.classList.remove('hidden');
+          }
+
+          updateDependentSectionsState();
+
+          // Update URL without full reloading
+          const newUrl = new URL(window.location);
+          newUrl.searchParams.set('id', currentAnimeId);
+          window.history.replaceState({}, '', newUrl);
+        } else {
+          setFeedback(coreFeedback, 'Error: ' + (data.error || 'Failed to save core details'), 'error');
+          window.showAdminToast(data.error || 'Failed to save core details', 'error');
+        }
+      } catch (err) {
+        setFeedback(coreFeedback, 'Network error: ' + err.message, 'error');
+      }
+    });
+
+    // -------------------------------------------------------------
+    // 2. SAVE REVIEW (MY TAKE)
+    // -------------------------------------------------------------
+    const formReview = document.getElementById('form-review');
+    const reviewFeedback = document.getElementById('review-feedback');
+    const reviewBadge = document.getElementById('review-badge');
+
+    // Add paragraph handler
+    document.getElementById('btn-add-review-p').addEventListener('click', () => {
+      const container = document.getElementById('review-paragraphs-container');
+      const count = container.children.length + 1;
+      addReviewParagraph('', count);
+    });
+
+    // Remove paragraph delegate
+    document.getElementById('review-paragraphs-container').addEventListener('click', (e) => {
+      const btn = e.target.closest('.btn-remove-p');
+      if (btn) btn.closest('.paragraph-row').remove();
+    });
+
+    formReview.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!currentAnimeId) {
+        setFeedback(reviewFeedback, 'Please save Section 1 Core Details first.', 'error');
+        return;
+      }
+
+      const heading = document.getElementById('review-heading').value.trim();
+      const textareas = document.querySelectorAll('#review-paragraphs-container textarea');
+      const paragraphs = Array.from(textareas).map(t => t.value.trim()).filter(Boolean);
+
+      try {
+        const res = await fetch('/api/admin/anime/review', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ animeId: currentAnimeId, heading, paragraphs })
+        });
+        const data = await res.json();
+        if (data.success) {
+          setFeedback(reviewFeedback, '✓ Review / My Take saved successfully!', 'success');
+          reviewBadge.classList.remove('hidden');
+          window.showAdminToast('Review saved successfully', 'success');
+        } else {
+          setFeedback(reviewFeedback, 'Error: ' + data.error, 'error');
+        }
+      } catch (err) {
+        setFeedback(reviewFeedback, 'Network error: ' + err.message, 'error');
+      }
+    });
+
+    // -------------------------------------------------------------
+    // 3. SAVE LESSONS
+    // -------------------------------------------------------------
+    const formLessons = document.getElementById('form-lessons');
+    const lessonsFeedback = document.getElementById('lessons-feedback');
+    const lessonsBadge = document.getElementById('lessons-badge');
+
+    formLessons.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!currentAnimeId) {
+        setFeedback(lessonsFeedback, 'Please save Section 1 Core Details first.', 'error');
+        return;
+      }
+
+      const heading = document.getElementById('lesson-heading').value.trim();
+      const takeaway = document.getElementById('lesson-takeaway').value.trim();
+
+      try {
+        const res = await fetch('/api/admin/anime/lessons', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ animeId: currentAnimeId, heading, takeaway })
+        });
+        const data = await res.json();
+        if (data.success) {
+          setFeedback(lessonsFeedback, '✓ Lessons / Reflection saved successfully!', 'success');
+          lessonsBadge.classList.remove('hidden');
+          window.showAdminToast('Lessons saved successfully', 'success');
+        } else {
+          setFeedback(lessonsFeedback, 'Error: ' + data.error, 'error');
+        }
+      } catch (err) {
+        setFeedback(lessonsFeedback, 'Network error: ' + err.message, 'error');
+      }
+    });
+
+    // -------------------------------------------------------------
+    // 4. SAVE WATCH ORDER
+    // -------------------------------------------------------------
+    const formWO = document.getElementById('form-watch-order');
+    const woFeedback = document.getElementById('watch-order-feedback');
+    const woBadge = document.getElementById('watch-order-badge');
+
+    formWO.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!currentAnimeId) {
+        setFeedback(woFeedback, 'Please save Section 1 Core Details first.', 'error');
+        return;
+      }
+
+      const franchiseId = document.getElementById('wo-franchise').value || null;
+      const franchiseStepOrder = document.getElementById('wo-step').value || null;
+
+      try {
+        const res = await fetch('/api/admin/anime/watch-order', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ animeId: currentAnimeId, franchiseId, franchiseStepOrder })
+        });
+        const data = await res.json();
+        if (data.success) {
+          setFeedback(woFeedback, '✓ Franchise placement saved successfully!', 'success');
+          woBadge.classList.remove('hidden');
+          window.showAdminToast('Watch order link saved', 'success');
+        } else {
+          setFeedback(woFeedback, 'Error: ' + data.error, 'error');
+        }
+      } catch (err) {
+        setFeedback(woFeedback, 'Network error: ' + err.message, 'error');
+      }
+    });
+
+    // -------------------------------------------------------------
+    // 5. SAVE FILLER RANGES
+    // -------------------------------------------------------------
+    const formFiller = document.getElementById('form-filler');
+    const fillerFeedback = document.getElementById('filler-feedback');
+    const fillerBadge = document.getElementById('filler-badge');
+
+    document.getElementById('btn-add-filler-row').addEventListener('click', () => {
+      const table = document.getElementById('filler-ranges-table');
+      const div = document.createElement('div');
+      div.className = 'grid grid-cols-12 gap-2 p-2.5 bg-slate-950 border border-slate-800 rounded-xl items-center filler-row';
+      div.innerHTML = `
+        <div class="col-span-4 sm:col-span-3">
+          <label class="block text-[10px] uppercase font-bold text-slate-500 mb-1">Episodes</label>
+          <input type="text" placeholder="1-12" class="filler-input-range w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-xs text-white font-mono" required />
+        </div>
+        <div class="col-span-4 sm:col-span-3">
+          <label class="block text-[10px] uppercase font-bold text-slate-500 mb-1">Type</label>
+          <select class="filler-input-type w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-xs text-white">
+            <option value="Manga Canon">Manga Canon</option>
+            <option value="Anime Canon">Anime Canon</option>
+            <option value="Filler">Filler</option>
+          </select>
+        </div>
+        <div class="col-span-3 sm:col-span-5">
+          <label class="block text-[10px] uppercase font-bold text-slate-500 mb-1">Arc Name / Description</label>
+          <input type="text" placeholder="Arc name" class="filler-input-arc w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-xs text-white" />
+        </div>
+        <div class="col-span-1 flex justify-end pt-3 sm:pt-4">
+          <button type="button" class="btn-remove-filler text-slate-500 hover:text-rose-400 p-1 cursor-pointer" title="Remove range">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+          </button>
+        </div>
+      `;
+      div.querySelector('.btn-remove-filler').addEventListener('click', () => div.remove());
+      table.appendChild(div);
+    });
+
+    document.getElementById('filler-ranges-table').addEventListener('click', (e) => {
+      const btn = e.target.closest('.btn-remove-filler');
+      if (btn) btn.closest('.filler-row').remove();
+    });
+
+    formFiller.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!currentAnimeId) {
+        setFeedback(fillerFeedback, 'Please save Section 1 Core Details first.', 'error');
+        return;
+      }
+
+      const rows = document.querySelectorAll('.filler-row');
+      const ranges = [];
+      rows.forEach((row, idx) => {
+        const range = row.querySelector('.filler-input-range').value.trim();
+        const type = row.querySelector('.filler-input-type').value;
+        const arc = row.querySelector('.filler-input-arc').value.trim();
+        if (range) {
+          ranges.push({ range, type, arc, rangeOrder: idx + 1 });
+        }
+      });
+
+      try {
+        const res = await fetch('/api/admin/anime/filler-ranges', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ animeId: currentAnimeId, ranges })
+        });
+        const data = await res.json();
+        if (data.success) {
+          setFeedback(fillerFeedback, `✓ Filler ranges saved! Recalculated total filler: ${data.fillerPercentage}%`, 'success');
+          fillerBadge.classList.remove('hidden');
+          window.showAdminToast(`Filler updated (${data.fillerPercentage}% filler)`, 'success');
+          const pctDisplay = document.getElementById('filler-pct-display');
+          if (pctDisplay) {
+            pctDisplay.textContent = `(${data.fillerPercentage}% filler)`;
+            pctDisplay.classList.remove('hidden');
+          }
+        } else {
+          setFeedback(fillerFeedback, 'Error: ' + data.error, 'error');
+        }
+      } catch (err) {
+        setFeedback(fillerFeedback, 'Network error: ' + err.message, 'error');
+      }
+    });
+
+    // -------------------------------------------------------------
+    // 6. SAVE CHARACTERS
+    // -------------------------------------------------------------
+    const formChars = document.getElementById('form-chars');
+    const charsFeedback = document.getElementById('chars-feedback');
+    const charsBadge = document.getElementById('chars-badge');
+
+    document.getElementById('btn-add-char-row').addEventListener('click', () => {
+      const container = document.getElementById('chars-container');
+      const nextRank = container.querySelectorAll('.character-row').length + 1;
+      const div = document.createElement('div');
+      div.className = 'p-3 bg-slate-950 border border-slate-800 rounded-xl space-y-2.5 character-row';
+      div.innerHTML = `
+        <div class="flex items-center justify-between gap-3">
+          <div class="flex items-center gap-2 flex-1">
+            <span class="w-6 h-6 rounded bg-slate-800 text-slate-400 text-xs flex items-center justify-center font-bold shrink-0 char-rank-badge">
+              ${nextRank}
+            </span>
+            <input type="text" placeholder="Character Name" class="char-input-name flex-1 px-3 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-sm text-white font-medium" required />
+          </div>
+          <select class="char-input-category px-2.5 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-xs text-white">
+            <option value="Main">Main</option>
+            <option value="Protagonist">Protagonist</option>
+            <option value="Supporting" selected>Supporting</option>
+            <option value="Antagonist">Antagonist</option>
+          </select>
+          <button type="button" class="btn-remove-char text-slate-500 hover:text-rose-400 p-1 cursor-pointer" title="Remove character">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+          </button>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <input type="text" placeholder="Role / Title (e.g. Apprentice Mage)" class="char-input-role px-3 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-xs text-slate-200" />
+          <input type="text" placeholder="Short commentary or key trait" class="char-input-commentary px-3 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-xs text-slate-200" />
+        </div>
+      `;
+      div.querySelector('.btn-remove-char').addEventListener('click', () => {
+        div.remove();
+        updateCharacterRanks();
+      });
+      container.appendChild(div);
+    });
+
+    function updateCharacterRanks() {
+      document.querySelectorAll('#chars-container .character-row').forEach((row, i) => {
+        const badge = row.querySelector('.char-rank-badge');
+        if (badge) badge.textContent = i + 1;
+      });
+    }
+
+    document.getElementById('chars-container').addEventListener('click', (e) => {
+      const btn = e.target.closest('.btn-remove-char');
+      if (btn) {
+        btn.closest('.character-row').remove();
+        updateCharacterRanks();
+      }
+    });
+
+    formChars.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!currentAnimeId) {
+        setFeedback(charsFeedback, 'Please save Section 1 Core Details first.', 'error');
+        return;
+      }
+
+      const rows = document.querySelectorAll('#chars-container .character-row');
+      const characters = [];
+      rows.forEach((row, idx) => {
+        const name = row.querySelector('.char-input-name').value.trim();
+        const category = row.querySelector('.char-input-category').value;
+        const role = row.querySelector('.char-input-role').value.trim();
+        const commentary = row.querySelector('.char-input-commentary').value.trim();
+        if (name) {
+          characters.push({ rank: idx + 1, name, category, role, commentary });
+        }
+      });
+
+      try {
+        const res = await fetch('/api/admin/anime/characters', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ animeId: currentAnimeId, characters })
+        });
+        const data = await res.json();
+        if (data.success) {
+          setFeedback(charsFeedback, '✓ Key characters saved successfully!', 'success');
+          charsBadge.classList.remove('hidden');
+          window.showAdminToast('Characters saved successfully', 'success');
+        } else {
+          setFeedback(charsFeedback, 'Error: ' + data.error, 'error');
+        }
+      } catch (err) {
+        setFeedback(charsFeedback, 'Network error: ' + err.message, 'error');
+      }
+    });
+
+    // -------------------------------------------------------------
+    // 7. SAVE SOURCE GUIDANCE
+    // -------------------------------------------------------------
+    const formSource = document.getElementById('form-source');
+    const sourceFeedback = document.getElementById('source-feedback');
+    const sourceBadge = document.getElementById('source-badge');
+
+    formSource.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!currentAnimeId) {
+        setFeedback(sourceFeedback, 'Please save Section 1 Core Details first.', 'error');
+        return;
+      }
+
+      const source = {
+        title: document.getElementById('source-title').value.trim(),
+        author: document.getElementById('source-author').value.trim(),
+        type: document.getElementById('source-type').value,
+        volumes: document.getElementById('source-volumes').value.trim(),
+        publicationStatus: document.getElementById('source-pub-status').value,
+        coverage: document.getElementById('source-coverage').value.trim(),
+        notes: document.getElementById('source-notes').value.trim()
+      };
+
+      try {
+        const res = await fetch('/api/admin/anime/source', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ animeId: currentAnimeId, source })
+        });
+        const data = await res.json();
+        if (data.success) {
+          setFeedback(sourceFeedback, '✓ Source material guidance saved successfully!', 'success');
+          sourceBadge.classList.remove('hidden');
+          window.showAdminToast('Source guidance saved', 'success');
+        } else {
+          setFeedback(sourceFeedback, 'Error: ' + data.error, 'error');
+        }
+      } catch (err) {
+        setFeedback(sourceFeedback, 'Network error: ' + err.message, 'error');
+      }
+    });
+
+    // -------------------------------------------------------------
+    // 8. SAVE POWER SYSTEM
+    // -------------------------------------------------------------
+    const formPower = document.getElementById('form-power');
+    const powerFeedback = document.getElementById('power-feedback');
+    const powerBadge = document.getElementById('power-badge');
+
+    document.getElementById('btn-add-power-p').addEventListener('click', () => {
+      const container = document.getElementById('power-paragraphs-container');
+      const count = container.children.length + 1;
+      addPowerParagraph('', count);
+    });
+
+    document.getElementById('power-paragraphs-container').addEventListener('click', (e) => {
+      const btn = e.target.closest('.btn-remove-power-p');
+      if (btn) btn.closest('.power-paragraph-row').remove();
+    });
+
+    formPower.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!currentAnimeId) {
+        setFeedback(powerFeedback, 'Please save Section 1 Core Details first.', 'error');
+        return;
+      }
+
+      const name = document.getElementById('power-name').value.trim();
+      const textareas = document.querySelectorAll('#power-paragraphs-container textarea');
+      const paragraphs = Array.from(textareas).map(t => t.value.trim()).filter(Boolean);
+
+      try {
+        const res = await fetch('/api/admin/anime/power-system', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ animeId: currentAnimeId, name, paragraphs })
+        });
+        const data = await res.json();
+        if (data.success) {
+          setFeedback(powerFeedback, '✓ Power system details saved successfully!', 'success');
+          powerBadge.classList.remove('hidden');
+          window.showAdminToast('Power system saved successfully', 'success');
+        } else {
+          setFeedback(powerFeedback, 'Error: ' + data.error, 'error');
+        }
+      } catch (err) {
+        setFeedback(powerFeedback, 'Network error: ' + err.message, 'error');
+      }
+    });
+  </script>
+</AdminLayout>

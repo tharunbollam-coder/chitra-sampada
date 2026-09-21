@@ -1,0 +1,189 @@
+---
+// src/pages/admin/blog/index.astro
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import { getAllAdminBlogPosts } from '../../../lib/admin-db.js';
+
+const posts = getAllAdminBlogPosts();
+---
+
+<AdminLayout title="Blog Management" activeSection="blog">
+  <!-- Page Header -->
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-800">
+    <div>
+      <h1 class="text-2xl sm:text-3xl font-bold font-heading text-white tracking-tight">Blog Management</h1>
+      <p class="text-sm text-slate-400 mt-1">Manage editorial essays, analysis posts, and guides.</p>
+    </div>
+    <div class="flex items-center gap-3">
+      <a
+        href="/admin/blog/editor"
+        class="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold rounded-xl shadow-sm transition"
+      >
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+        </svg>
+        <span>Write New Post</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- Search Filter Bar -->
+  <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 my-6">
+    <div class="relative">
+      <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+      </div>
+      <input
+        type="text"
+        id="blog-search"
+        placeholder="Filter posts by title or slug..."
+        class="w-full pl-10 pr-4 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-white placeholder-slate-500 text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition"
+      />
+    </div>
+  </div>
+
+  <!-- Posts Table -->
+  <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-sm">
+    <div class="overflow-x-auto">
+      <table class="w-full text-left text-sm text-slate-300 divide-y divide-slate-800">
+        <thead class="bg-slate-950/60 text-xs font-semibold text-slate-400 uppercase tracking-wider">
+          <tr>
+            <th scope="col" class="py-3.5 px-4 sm:px-6">Title & Slug</th>
+            <th scope="col" class="py-3.5 px-4 hidden sm:table-cell">Date & Read Time</th>
+            <th scope="col" class="py-3.5 px-4">Status</th>
+            <th scope="col" class="py-3.5 px-4 hidden md:table-cell">Linked Anime</th>
+            <th scope="col" class="py-3.5 px-4 text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="blog-tbody" class="divide-y divide-slate-800/80 font-normal">
+          {posts.map(post => (
+            <tr class="hover:bg-slate-800/40 transition blog-row" data-search={`${post.title} ${post.slug}`.toLowerCase()}>
+              <td class="py-4 px-4 sm:px-6">
+                <div class="font-semibold text-white text-base leading-snug">
+                  {post.title}
+                </div>
+                <div class="text-xs text-slate-400 font-mono mt-1">
+                  /blog/{post.slug}
+                </div>
+              </td>
+              <td class="py-4 px-4 hidden sm:table-cell text-slate-300">
+                <div>{post.publishedDate}</div>
+                <div class="text-xs text-slate-400">{post.readTime}</div>
+              </td>
+              <td class="py-4 px-4">
+                <span class={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border ${
+                  post.status === 'published'
+                    ? 'bg-emerald-950/60 text-emerald-400 border-emerald-800/60'
+                    : 'bg-amber-950/60 text-amber-400 border-amber-800/60'
+                }`}>
+                  {post.status}
+                </span>
+              </td>
+              <td class="py-4 px-4 hidden md:table-cell">
+                <div class="flex flex-wrap gap-1">
+                  {post.linkedAnime.map(a => (
+                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs bg-slate-800 text-slate-300 border border-slate-700">
+                      {a.title}
+                    </span>
+                  ))}
+                  {post.linkedAnime.length === 0 && (
+                    <span class="text-xs text-slate-500">None</span>
+                  )}
+                </div>
+              </td>
+              <td class="py-4 px-4 text-right whitespace-nowrap">
+                <div class="flex items-center justify-end gap-2">
+                  <a
+                    href={`/blog/${post.slug}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title="View live blog post"
+                    class="p-2 text-slate-400 hover:text-slate-200 hover:bg-slate-800 rounded-lg transition"
+                  >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                    </svg>
+                  </a>
+                  <a
+                    href={`/admin/blog/editor?id=${post.id}`}
+                    class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-indigo-600 text-slate-200 hover:text-white text-xs font-semibold rounded-lg border border-slate-700 hover:border-indigo-500 transition"
+                  >
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                    <span>Edit</span>
+                  </a>
+                  <button
+                    type="button"
+                    data-delete-id={post.id}
+                    data-title={post.title}
+                    class="btn-delete-post p-2 text-slate-400 hover:text-rose-400 hover:bg-rose-950/30 rounded-lg transition"
+                    title="Delete post"
+                  >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          ))}
+          {posts.length === 0 && (
+            <tr>
+              <td colspan="5" class="py-12 text-center text-slate-400">
+                No blog posts found. Click "Write New Post" to start your first article!
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Client-side Search and Delete logic -->
+  <script is:inline>
+    const searchInput = document.getElementById('blog-search');
+    const rows = document.querySelectorAll('.blog-row');
+
+    if (searchInput) {
+      searchInput.addEventListener('input', (e) => {
+        const query = e.target.value.trim().toLowerCase();
+        rows.forEach((row) => {
+          const text = row.getAttribute('data-search') || '';
+          row.style.display = !query || text.includes(query) ? '' : 'none';
+        });
+      });
+    }
+
+    document.querySelectorAll('.btn-delete-post').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const id = btn.getAttribute('data-delete-id');
+        const title = btn.getAttribute('data-title') || id;
+
+        if (!confirm(`Are you sure you want to delete the blog post "${title}"?`)) {
+          return;
+        }
+
+        try {
+          const res = await fetch('/api/admin/blog', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id })
+          });
+
+          const data = await res.json();
+          if (data.success) {
+            window.showAdminToast(data.message || `Deleted "${title}"`, 'success');
+            const row = btn.closest('tr');
+            if (row) row.remove();
+          } else {
+            window.showAdminToast(data.error || 'Failed to delete blog post', 'error');
+          }
+        } catch (err) {
+          window.showAdminToast('Network error: ' + err.message, 'error');
+        }
+      });
+    });
+  </script>
+</AdminLayout>

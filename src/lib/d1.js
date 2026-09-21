@@ -4,7 +4,7 @@ import fs from 'node:fs';
 
 let cachedDb = null;
 
-function getSqliteDb() {
+export function getSqliteDb() {
   if (cachedDb) return cachedDb;
 
   const d1Dir = path.resolve(process.cwd(), '.wrangler', 'state', 'v3', 'd1');
