@@ -22,10 +22,10 @@ const linkedAnimeIds = post ? post.linkedAnime.map(a => a.id) : [];
 <AdminLayout title={isNew ? 'Write New Blog Post' : `Edit Post: ${post.title}`} activeSection="blog">
   <!-- Header / Breadcrumb -->
   <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-800">
-    <div class="flex items-center gap-3">
+    <div class="flex items-start sm:items-center gap-3">
       <a
         href="/admin/blog"
-        class="p-2 text-slate-400 hover:text-white bg-slate-900 border border-slate-800 rounded-xl hover:bg-slate-800 transition"
+        class="p-2 text-slate-400 hover:text-white bg-slate-900 border border-slate-800 rounded-xl hover:bg-slate-800 transition shrink-0"
         title="Back to Blog List"
       >
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -42,19 +42,32 @@ const linkedAnimeIds = post ? post.linkedAnime.map(a => a.id) : [];
       </div>
     </div>
 
-    {!isNew && (
-      <a
-        href={`/blog/${post.slug}`}
-        target="_blank"
-        rel="noopener noreferrer"
-        class="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-medium text-slate-300 hover:text-white bg-slate-900 border border-slate-700/80 rounded-xl transition hover:bg-slate-800"
+    <div class="flex flex-wrap items-center gap-2 sm:gap-2.5">
+      {!isNew && (
+        <a
+          href={`/blog/${post.slug}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          class="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-medium text-slate-300 hover:text-white bg-slate-900 border border-slate-700/80 rounded-xl transition hover:bg-slate-800"
+        >
+          <span>View Live Post</span>
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+          </svg>
+        </a>
+      )}
+      <button
+        type="button"
+        id="btn-save-blog-top"
+        class="inline-flex items-center gap-2 px-4 py-2 text-xs sm:text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 rounded-xl shadow-lg shadow-emerald-950/40 border border-emerald-500/40 transition cursor-pointer"
+        title="Save blog post"
       >
-        <span>View Live Post</span>
-        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
         </svg>
-      </a>
-    )}
+        <span>Save Post</span>
+      </button>
+    </div>
   </div>
 
   <!-- Editor Container -->
@@ -62,7 +75,7 @@ const linkedAnimeIds = post ? post.linkedAnime.map(a => a.id) : [];
     <div id="blog-feedback" class="hidden mb-6 p-4 rounded-xl text-sm font-medium border"></div>
 
     <form id="form-blog" class="space-y-6">
-      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-5">
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-6 space-y-5">
         <!-- Top metadata grid -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <!-- Post ID -->
@@ -149,9 +162,9 @@ const linkedAnimeIds = post ? post.linkedAnime.map(a => a.id) : [];
           </label>
           <textarea
             id="blog-excerpt"
-            rows="2"
+            rows="3"
             placeholder="Brief teaser or editorial summary shown on listing cards..."
-            class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+            class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 min-h-[100px]"
           >{post?.excerpt || ''}</textarea>
         </div>
 
@@ -193,18 +206,20 @@ const linkedAnimeIds = post ? post.linkedAnime.map(a => a.id) : [];
           </div>
           <textarea
             id="blog-content"
-            rows="18"
+            rows="16"
             placeholder="Write your article in Markdown here... Use ## for H2 headings, ### for H3, lists, blockquotes, etc."
             required
-            class="w-full px-4 py-3 bg-slate-950 border border-slate-700/80 rounded-xl text-sm font-mono text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500 leading-relaxed"
+            class="w-full px-4 py-3 bg-slate-950 border border-slate-700/80 rounded-xl text-sm font-mono text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500 leading-relaxed min-h-[280px]"
           >{post?.content || ''}</textarea>
         </div>
 
         <!-- Save Button -->
-        <div class="pt-4 border-t border-slate-800 flex justify-end">
+        <div class="pt-4 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3">
+          <p class="text-xs text-slate-400 text-center sm:text-left">Ensure title, slug, and markdown content are completed before saving.</p>
           <button
             type="submit"
-            class="w-full sm:w-auto px-8 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm rounded-xl shadow-sm transition flex items-center justify-center gap-2 cursor-pointer"
+            id="btn-save-blog-bottom"
+            class="w-full sm:w-auto px-8 py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm rounded-xl shadow-lg shadow-emerald-950/40 border border-emerald-500/40 transition flex items-center justify-center gap-2 cursor-pointer"
           >
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
@@ -226,6 +241,13 @@ const linkedAnimeIds = post ? post.linkedAnime.map(a => a.id) : [];
     const readBadge = document.getElementById('read-time-badge');
     const feedback = document.getElementById('blog-feedback');
     const form = document.getElementById('form-blog');
+    const btnSaveTop = document.getElementById('btn-save-blog-top');
+
+    if (btnSaveTop && form) {
+      btnSaveTop.addEventListener('click', () => {
+        form.requestSubmit();
+      });
+    }
 
     // Auto-generate slug from title for new posts
     if (isNewPost && titleInput && slugInput && idInput) {

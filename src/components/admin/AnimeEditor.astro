@@ -26,15 +26,25 @@ const initCanon = fillerBreakdown.canonEpisodes ?? (initCounts.mangaCanon + init
 const initMixed = initCounts.mixedCanon || 0;
 const initFiller = initCounts.filler || 0;
 const initPct = fillerBreakdown.fillerPercentage ?? (initTotal > 0 ? Math.round((initFiller / initTotal) * 100) : (anime?.fillerPercentage || 0));
+
+const sectionVisibility = anime?.sectionVisibility || {
+  review: true,
+  lessons: true,
+  watchOrder: true,
+  fillerList: true,
+  characters: true,
+  source: true,
+  powerSystem: true
+};
 ---
 
 <AdminLayout title={pageTitle} activeSection="anime">
   <!-- Top Breadcrumb & Action Bar -->
   <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-800">
-    <div class="flex items-center gap-3">
+    <div class="flex items-start sm:items-center gap-3">
       <a
         href="/admin"
-        class="p-2 text-slate-400 hover:text-white bg-slate-900 border border-slate-800 rounded-xl hover:bg-slate-800 transition"
+        class="p-2 text-slate-400 hover:text-white bg-slate-900 border border-slate-800 rounded-xl hover:bg-slate-800 transition shrink-0"
         title="Back to Anime List"
       >
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -57,7 +67,7 @@ const initPct = fillerBreakdown.fillerPercentage ?? (initTotal > 0 ? Math.round(
       </div>
     </div>
 
-    <div class="flex items-center gap-2">
+    <div class="flex flex-wrap items-center gap-2 sm:gap-2.5">
       <a
         id="view-public-link"
         href={anime ? `/anime/${anime.slug}` : '#'}
@@ -70,6 +80,19 @@ const initPct = fillerBreakdown.fillerPercentage ?? (initTotal > 0 ? Math.round(
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
         </svg>
       </a>
+
+      <!-- Universal Save All Changes Button (Top Bar) -->
+      <button
+        type="button"
+        id="btn-save-all-top"
+        class="btn-save-all inline-flex items-center gap-2 px-4 py-2 text-xs sm:text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 rounded-xl shadow-lg shadow-emerald-950/40 border border-emerald-500/40 transition cursor-pointer"
+        title="Save all sections and visibility toggles simultaneously"
+      >
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+        </svg>
+        <span>Save All Changes</span>
+      </button>
     </div>
   </div>
 
@@ -82,11 +105,11 @@ const initPct = fillerBreakdown.fillerPercentage ?? (initTotal > 0 ? Math.round(
     <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden transition" id="section-core-container">
       <button
         type="button"
-        class="w-full px-6 py-4 flex items-center justify-between text-left hover:bg-slate-850/50 transition cursor-pointer section-toggle"
+        class="w-full px-4 sm:px-6 py-3.5 sm:py-4 flex items-center justify-between text-left hover:bg-slate-850/50 transition cursor-pointer section-toggle"
         data-target="section-core-body"
       >
         <div class="flex items-center gap-3">
-          <span class="w-7 h-7 rounded-lg bg-indigo-600/20 text-indigo-400 font-bold text-xs flex items-center justify-center border border-indigo-500/30">
+          <span class="w-7 h-7 shrink-0 rounded-lg bg-indigo-600/20 text-indigo-400 font-bold text-xs flex items-center justify-center border border-indigo-500/30">
             1
           </span>
           <div>
@@ -94,7 +117,7 @@ const initPct = fillerBreakdown.fillerPercentage ?? (initTotal > 0 ? Math.round(
             <p class="text-xs text-slate-400">ID, title, slug, year, episodes, status, rating, genres & vibes</p>
           </div>
         </div>
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-2 shrink-0">
           <span id="core-badge" class="hidden text-xs px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800/80 font-medium">Saved</span>
           <svg class="w-5 h-5 text-slate-400 transform transition-transform duration-200 section-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
@@ -102,7 +125,7 @@ const initPct = fillerBreakdown.fillerPercentage ?? (initTotal > 0 ? Math.round(
         </div>
       </button>
 
-      <div id="section-core-body" class="px-6 pb-6 pt-2 border-t border-slate-800/80">
+      <div id="section-core-body" class="px-4 sm:px-6 pb-6 pt-2 border-t border-slate-800/80">
         <!-- Local Inline Feedback Banner -->
         <div id="core-feedback" class="hidden mb-5 p-3.5 rounded-xl text-xs sm:text-sm font-medium border"></div>
 
@@ -300,9 +323,9 @@ const initPct = fillerBreakdown.fillerPercentage ?? (initTotal > 0 ? Math.round(
             <textarea
               id="core-synopsis"
               name="synopsis"
-              rows="3"
+              rows="4"
               placeholder="Short premise of the series..."
-              class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+              class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 min-h-[130px]"
             >{anime?.synopsis || ''}</textarea>
           </div>
 
@@ -407,11 +430,11 @@ const initPct = fillerBreakdown.fillerPercentage ?? (initTotal > 0 ? Math.round(
     <div class={`bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden transition dependent-section ${isNew ? 'opacity-50 pointer-events-none' : ''}`} id="section-review-container">
       <button
         type="button"
-        class="w-full px-6 py-4 flex items-center justify-between text-left hover:bg-slate-850/50 transition cursor-pointer section-toggle"
+        class="w-full px-4 sm:px-6 py-3.5 sm:py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-left hover:bg-slate-850/50 transition cursor-pointer section-toggle"
         data-target="section-review-body"
       >
         <div class="flex items-center gap-3">
-          <span class="w-7 h-7 rounded-lg bg-indigo-600/20 text-indigo-400 font-bold text-xs flex items-center justify-center border border-indigo-500/30">
+          <span class="w-7 h-7 shrink-0 rounded-lg bg-indigo-600/20 text-indigo-400 font-bold text-xs flex items-center justify-center border border-indigo-500/30">
             2
           </span>
           <div>
@@ -419,7 +442,31 @@ const initPct = fillerBreakdown.fillerPercentage ?? (initTotal > 0 ? Math.round(
             <p class="text-xs text-slate-400">Editorial heading and thoughtful review paragraphs</p>
           </div>
         </div>
-        <div class="flex items-center gap-2">
+        <div class="w-full sm:w-auto flex items-center justify-between sm:justify-end gap-2.5 sm:gap-3 border-t border-slate-800/60 pt-2 sm:pt-0 sm:border-0">
+          <label
+            class="no-section-toggle relative inline-flex items-center gap-2 cursor-pointer select-none px-2.5 py-1 rounded-lg bg-slate-800/90 border border-slate-700/70 hover:border-slate-600 transition"
+            title="Toggle visibility of My Take on public anime page"
+            onclick="event.stopPropagation()"
+          >
+            <span class="text-[11px] font-medium text-slate-300 visibility-label">
+              {sectionVisibility.review ? 'Public: Show' : 'Public: Hide'}
+            </span>
+            <input
+              type="checkbox"
+              class="sr-only section-visibility-checkbox"
+              data-section="review"
+              checked={sectionVisibility.review}
+            />
+            <div class:list={[
+              'w-8 h-4.5 rounded-full transition-colors relative flex items-center p-0.5 switch-track',
+              sectionVisibility.review ? 'bg-indigo-600' : 'bg-slate-700'
+            ]}>
+              <div class:list={[
+                'w-3.5 h-3.5 rounded-full bg-white transition-transform transform shadow-sm switch-thumb',
+                sectionVisibility.review ? 'translate-x-3.5' : 'translate-x-0'
+              ]}></div>
+            </div>
+          </label>
           <span id="review-badge" class="hidden text-xs px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800/80 font-medium">Saved</span>
           <svg class="w-5 h-5 text-slate-400 transform transition-transform duration-200 section-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
@@ -427,7 +474,7 @@ const initPct = fillerBreakdown.fillerPercentage ?? (initTotal > 0 ? Math.round(
         </div>
       </button>
 
-      <div id="section-review-body" class="px-6 pb-6 pt-2 border-t border-slate-800/80">
+      <div id="section-review-body" class="px-4 sm:px-6 pb-6 pt-2 border-t border-slate-800/80">
         <div id="review-feedback" class="hidden mb-5 p-3.5 rounded-xl text-xs sm:text-sm font-medium border"></div>
 
         <form id="form-review" class="space-y-5">
@@ -462,8 +509,8 @@ const initPct = fillerBreakdown.fillerPercentage ?? (initTotal > 0 ? Math.round(
               {(anime?.review?.paragraphs?.length ? anime.review.paragraphs : ['']).map((p, idx) => (
                 <div class="flex items-start gap-2 paragraph-row">
                   <textarea
-                    rows="3"
-                    class="flex-1 px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 review-paragraph-input"
+                    rows="4"
+                    class="flex-1 px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 min-h-[130px] review-paragraph-input"
                     placeholder={`Paragraph ${idx + 1}...`}
                   >{p}</textarea>
                   <button
@@ -499,11 +546,11 @@ const initPct = fillerBreakdown.fillerPercentage ?? (initTotal > 0 ? Math.round(
     <div class={`bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden transition dependent-section ${isNew ? 'opacity-50 pointer-events-none' : ''}`} id="section-lessons-container">
       <button
         type="button"
-        class="w-full px-6 py-4 flex items-center justify-between text-left hover:bg-slate-850/50 transition cursor-pointer section-toggle"
+        class="w-full px-4 sm:px-6 py-3.5 sm:py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-left hover:bg-slate-850/50 transition cursor-pointer section-toggle"
         data-target="section-lessons-body"
       >
         <div class="flex items-center gap-3">
-          <span class="w-7 h-7 rounded-lg bg-indigo-600/20 text-indigo-400 font-bold text-xs flex items-center justify-center border border-indigo-500/30">
+          <span class="w-7 h-7 shrink-0 rounded-lg bg-indigo-600/20 text-indigo-400 font-bold text-xs flex items-center justify-center border border-indigo-500/30">
             3
           </span>
           <div>
@@ -511,7 +558,31 @@ const initPct = fillerBreakdown.fillerPercentage ?? (initTotal > 0 ? Math.round(
             <p class="text-xs text-slate-400">Heading and core life lesson or reflection from the series</p>
           </div>
         </div>
-        <div class="flex items-center gap-2">
+        <div class="w-full sm:w-auto flex items-center justify-between sm:justify-end gap-2.5 sm:gap-3 border-t border-slate-800/60 pt-2 sm:pt-0 sm:border-0">
+          <label
+            class="no-section-toggle relative inline-flex items-center gap-2 cursor-pointer select-none px-2.5 py-1 rounded-lg bg-slate-800/90 border border-slate-700/70 hover:border-slate-600 transition"
+            title="Toggle visibility of What I Learned on public anime page"
+            onclick="event.stopPropagation()"
+          >
+            <span class="text-[11px] font-medium text-slate-300 visibility-label">
+              {sectionVisibility.lessons ? 'Public: Show' : 'Public: Hide'}
+            </span>
+            <input
+              type="checkbox"
+              class="sr-only section-visibility-checkbox"
+              data-section="lessons"
+              checked={sectionVisibility.lessons}
+            />
+            <div class:list={[
+              'w-8 h-4.5 rounded-full transition-colors relative flex items-center p-0.5 switch-track',
+              sectionVisibility.lessons ? 'bg-indigo-600' : 'bg-slate-700'
+            ]}>
+              <div class:list={[
+                'w-3.5 h-3.5 rounded-full bg-white transition-transform transform shadow-sm switch-thumb',
+                sectionVisibility.lessons ? 'translate-x-3.5' : 'translate-x-0'
+              ]}></div>
+            </div>
+          </label>
           <span id="lessons-badge" class="hidden text-xs px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800/80 font-medium">Saved</span>
           <svg class="w-5 h-5 text-slate-400 transform transition-transform duration-200 section-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
@@ -519,7 +590,7 @@ const initPct = fillerBreakdown.fillerPercentage ?? (initTotal > 0 ? Math.round(
         </div>
       </button>
 
-      <div id="section-lessons-body" class="px-6 pb-6 pt-2 border-t border-slate-800/80">
+      <div id="section-lessons-body" class="px-4 sm:px-6 pb-6 pt-2 border-t border-slate-800/80">
         <div id="lessons-feedback" class="hidden mb-5 p-3.5 rounded-xl text-xs sm:text-sm font-medium border"></div>
 
         <form id="form-lessons" class="space-y-5">
@@ -544,7 +615,7 @@ const initPct = fillerBreakdown.fillerPercentage ?? (initTotal > 0 ? Math.round(
               id="lesson-takeaway"
               rows="4"
               placeholder="What this show taught about life, perspective, or empathy..."
-              class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+              class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 min-h-[130px]"
             >{anime?.lessons?.takeaway || ''}</textarea>
           </div>
 
@@ -567,11 +638,11 @@ const initPct = fillerBreakdown.fillerPercentage ?? (initTotal > 0 ? Math.round(
     <div class={`bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden transition dependent-section ${isNew ? 'opacity-50 pointer-events-none' : ''}`} id="section-watch-order-container">
       <button
         type="button"
-        class="w-full px-6 py-4 flex items-center justify-between text-left hover:bg-slate-850/50 transition cursor-pointer section-toggle"
+        class="w-full px-4 sm:px-6 py-3.5 sm:py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-left hover:bg-slate-850/50 transition cursor-pointer section-toggle"
         data-target="section-watch-order-body"
       >
         <div class="flex items-center gap-3">
-          <span class="w-7 h-7 rounded-lg bg-indigo-600/20 text-indigo-400 font-bold text-xs flex items-center justify-center border border-indigo-500/30">
+          <span class="w-7 h-7 shrink-0 rounded-lg bg-indigo-600/20 text-indigo-400 font-bold text-xs flex items-center justify-center border border-indigo-500/30">
             4
           </span>
           <div>
@@ -579,7 +650,31 @@ const initPct = fillerBreakdown.fillerPercentage ?? (initTotal > 0 ? Math.round(
             <p class="text-xs text-slate-400">Link to a franchise and assign step position</p>
           </div>
         </div>
-        <div class="flex items-center gap-2">
+        <div class="w-full sm:w-auto flex items-center justify-between sm:justify-end gap-2.5 sm:gap-3 border-t border-slate-800/60 pt-2 sm:pt-0 sm:border-0">
+          <label
+            class="no-section-toggle relative inline-flex items-center gap-2 cursor-pointer select-none px-2.5 py-1 rounded-lg bg-slate-800/90 border border-slate-700/70 hover:border-slate-600 transition"
+            title="Toggle visibility of Watch Order on public anime page"
+            onclick="event.stopPropagation()"
+          >
+            <span class="text-[11px] font-medium text-slate-300 visibility-label">
+              {sectionVisibility.watchOrder ? 'Public: Show' : 'Public: Hide'}
+            </span>
+            <input
+              type="checkbox"
+              class="sr-only section-visibility-checkbox"
+              data-section="watchOrder"
+              checked={sectionVisibility.watchOrder}
+            />
+            <div class:list={[
+              'w-8 h-4.5 rounded-full transition-colors relative flex items-center p-0.5 switch-track',
+              sectionVisibility.watchOrder ? 'bg-indigo-600' : 'bg-slate-700'
+            ]}>
+              <div class:list={[
+                'w-3.5 h-3.5 rounded-full bg-white transition-transform transform shadow-sm switch-thumb',
+                sectionVisibility.watchOrder ? 'translate-x-3.5' : 'translate-x-0'
+              ]}></div>
+            </div>
+          </label>
           <span id="watch-order-badge" class="hidden text-xs px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800/80 font-medium">Saved</span>
           <svg class="w-5 h-5 text-slate-400 transform transition-transform duration-200 section-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
@@ -587,7 +682,7 @@ const initPct = fillerBreakdown.fillerPercentage ?? (initTotal > 0 ? Math.round(
         </div>
       </button>
 
-      <div id="section-watch-order-body" class="px-6 pb-6 pt-2 border-t border-slate-800/80">
+      <div id="section-watch-order-body" class="px-4 sm:px-6 pb-6 pt-2 border-t border-slate-800/80">
         <div id="watch-order-feedback" class="hidden mb-5 p-3.5 rounded-xl text-xs sm:text-sm font-medium border"></div>
 
         <form id="form-watch-order" class="space-y-5">
@@ -650,11 +745,11 @@ const initPct = fillerBreakdown.fillerPercentage ?? (initTotal > 0 ? Math.round(
     <div class={`bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden transition dependent-section ${isNew ? 'opacity-50 pointer-events-none' : ''}`} id="section-filler-container">
       <button
         type="button"
-        class="w-full px-6 py-4 flex items-center justify-between text-left hover:bg-slate-850/50 transition cursor-pointer section-toggle"
+        class="w-full px-4 sm:px-6 py-3.5 sm:py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-left hover:bg-slate-850/50 transition cursor-pointer section-toggle"
         data-target="section-filler-body"
       >
         <div class="flex items-center gap-3">
-          <span class="w-7 h-7 rounded-lg bg-indigo-600/20 text-indigo-400 font-bold text-xs flex items-center justify-center border border-indigo-500/30">
+          <span class="w-7 h-7 shrink-0 rounded-lg bg-indigo-600/20 text-indigo-400 font-bold text-xs flex items-center justify-center border border-indigo-500/30">
             5
           </span>
           <div>
@@ -667,7 +762,31 @@ const initPct = fillerBreakdown.fillerPercentage ?? (initTotal > 0 ? Math.round(
             </p>
           </div>
         </div>
-        <div class="flex items-center gap-2">
+        <div class="w-full sm:w-auto flex items-center justify-between sm:justify-end gap-2.5 sm:gap-3 border-t border-slate-800/60 pt-2 sm:pt-0 sm:border-0">
+          <label
+            class="no-section-toggle relative inline-flex items-center gap-2 cursor-pointer select-none px-2.5 py-1 rounded-lg bg-slate-800/90 border border-slate-700/70 hover:border-slate-600 transition"
+            title="Toggle visibility of Filler List on public anime page"
+            onclick="event.stopPropagation()"
+          >
+            <span class="text-[11px] font-medium text-slate-300 visibility-label">
+              {sectionVisibility.fillerList ? 'Public: Show' : 'Public: Hide'}
+            </span>
+            <input
+              type="checkbox"
+              class="sr-only section-visibility-checkbox"
+              data-section="fillerList"
+              checked={sectionVisibility.fillerList}
+            />
+            <div class:list={[
+              'w-8 h-4.5 rounded-full transition-colors relative flex items-center p-0.5 switch-track',
+              sectionVisibility.fillerList ? 'bg-indigo-600' : 'bg-slate-700'
+            ]}>
+              <div class:list={[
+                'w-3.5 h-3.5 rounded-full bg-white transition-transform transform shadow-sm switch-thumb',
+                sectionVisibility.fillerList ? 'translate-x-3.5' : 'translate-x-0'
+              ]}></div>
+            </div>
+          </label>
           <span id="filler-badge" class="hidden text-xs px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800/80 font-medium">Saved</span>
           <svg class="w-5 h-5 text-slate-400 transform transition-transform duration-200 section-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
@@ -675,7 +794,7 @@ const initPct = fillerBreakdown.fillerPercentage ?? (initTotal > 0 ? Math.round(
         </div>
       </button>
 
-      <div id="section-filler-body" class="px-6 pb-6 pt-2 border-t border-slate-800/80">
+      <div id="section-filler-body" class="px-4 sm:px-6 pb-6 pt-2 border-t border-slate-800/80">
         <div id="filler-feedback" class="hidden mb-5 p-3.5 rounded-xl text-xs sm:text-sm font-medium border"></div>
 
         <form id="form-filler" class="space-y-4">
@@ -730,14 +849,14 @@ const initPct = fillerBreakdown.fillerPercentage ?? (initTotal > 0 ? Math.round(
                 <label class="block text-xs font-bold text-slate-200 uppercase tracking-wider" for="filler-manga-canon">
                   Manga Canon
                 </label>
-                <span class="text-[11px] text-emerald-400 font-medium">Original Source Material</span>
+                <span class="text-[11px] text-emerald-400 font-medium">Adapts Manga Story (No Additions)</span>
               </div>
               <textarea
                 id="filler-manga-canon"
                 name="mangaCanon"
                 rows="3"
                 placeholder="e.g. 1-135, 220"
-                class="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700/80 rounded-xl text-sm font-mono text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                class="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700/80 rounded-xl text-sm font-mono text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 min-h-[85px]"
               >{anime?.fillerBreakdown?.mangaCanon || ''}</textarea>
             </div>
 
@@ -747,14 +866,14 @@ const initPct = fillerBreakdown.fillerPercentage ?? (initTotal > 0 ? Math.round(
                 <label class="block text-xs font-bold text-slate-200 uppercase tracking-wider" for="filler-anime-canon">
                   Anime Canon
                 </label>
-                <span class="text-[11px] text-sky-400 font-medium">Official Anime Continuity</span>
+                <span class="text-[11px] text-sky-400 font-medium">Official Story by Creator (Not in Manga)</span>
               </div>
               <textarea
                 id="filler-anime-canon"
                 name="animeCanon"
                 rows="3"
                 placeholder="e.g. 1-66, 141-151"
-                class="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700/80 rounded-xl text-sm font-mono text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                class="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700/80 rounded-xl text-sm font-mono text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 min-h-[85px]"
               >{anime?.fillerBreakdown?.animeCanon || ''}</textarea>
             </div>
 
@@ -764,14 +883,14 @@ const initPct = fillerBreakdown.fillerPercentage ?? (initTotal > 0 ? Math.round(
                 <label class="block text-xs font-bold text-slate-200 uppercase tracking-wider" for="filler-mixed">
                   Mixed Canon/Filler
                 </label>
-                <span class="text-[11px] text-purple-400 font-medium">Blends Canon & Anime Content</span>
+                <span class="text-[11px] text-purple-400 font-medium">Single Episode Blending Story + Padding</span>
               </div>
               <textarea
                 id="filler-mixed"
                 name="mixedCanon"
                 rows="3"
                 placeholder="e.g. 9, 14-18"
-                class="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700/80 rounded-xl text-sm font-mono text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                class="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700/80 rounded-xl text-sm font-mono text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 min-h-[85px]"
               >{anime?.fillerBreakdown?.mixedCanon || ''}</textarea>
             </div>
 
@@ -781,14 +900,14 @@ const initPct = fillerBreakdown.fillerPercentage ?? (initTotal > 0 ? Math.round(
                 <label class="block text-xs font-bold text-amber-300 uppercase tracking-wider" for="filler-filler">
                   Filler (Skippable)
                 </label>
-                <span class="text-[11px] text-amber-400 font-medium">Side Content (Safe to Skip)</span>
+                <span class="text-[11px] text-amber-400 font-medium">Anime-Original Content (Fully Skippable)</span>
               </div>
               <textarea
                 id="filler-filler"
                 name="filler"
                 rows="3"
                 placeholder="e.g. 136-219"
-                class="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700/80 rounded-xl text-sm font-mono text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                class="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700/80 rounded-xl text-sm font-mono text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 min-h-[85px]"
               >{anime?.fillerBreakdown?.filler || ''}</textarea>
             </div>
           </div>
@@ -812,11 +931,11 @@ const initPct = fillerBreakdown.fillerPercentage ?? (initTotal > 0 ? Math.round(
     <div class={`bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden transition dependent-section ${isNew ? 'opacity-50 pointer-events-none' : ''}`} id="section-chars-container">
       <button
         type="button"
-        class="w-full px-6 py-4 flex items-center justify-between text-left hover:bg-slate-850/50 transition cursor-pointer section-toggle"
+        class="w-full px-4 sm:px-6 py-3.5 sm:py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-left hover:bg-slate-850/50 transition cursor-pointer section-toggle"
         data-target="section-chars-body"
       >
         <div class="flex items-center gap-3">
-          <span class="w-7 h-7 rounded-lg bg-indigo-600/20 text-indigo-400 font-bold text-xs flex items-center justify-center border border-indigo-500/30">
+          <span class="w-7 h-7 shrink-0 rounded-lg bg-indigo-600/20 text-indigo-400 font-bold text-xs flex items-center justify-center border border-indigo-500/30">
             6
           </span>
           <div>
@@ -824,7 +943,31 @@ const initPct = fillerBreakdown.fillerPercentage ?? (initTotal > 0 ? Math.round(
             <p class="text-xs text-slate-400">Rank, name, category, role, and commentary</p>
           </div>
         </div>
-        <div class="flex items-center gap-2">
+        <div class="w-full sm:w-auto flex items-center justify-between sm:justify-end gap-2.5 sm:gap-3 border-t border-slate-800/60 pt-2 sm:pt-0 sm:border-0">
+          <label
+            class="no-section-toggle relative inline-flex items-center gap-2 cursor-pointer select-none px-2.5 py-1 rounded-lg bg-slate-800/90 border border-slate-700/70 hover:border-slate-600 transition"
+            title="Toggle visibility of Characters on public anime page"
+            onclick="event.stopPropagation()"
+          >
+            <span class="text-[11px] font-medium text-slate-300 visibility-label">
+              {sectionVisibility.characters ? 'Public: Show' : 'Public: Hide'}
+            </span>
+            <input
+              type="checkbox"
+              class="sr-only section-visibility-checkbox"
+              data-section="characters"
+              checked={sectionVisibility.characters}
+            />
+            <div class:list={[
+              'w-8 h-4.5 rounded-full transition-colors relative flex items-center p-0.5 switch-track',
+              sectionVisibility.characters ? 'bg-indigo-600' : 'bg-slate-700'
+            ]}>
+              <div class:list={[
+                'w-3.5 h-3.5 rounded-full bg-white transition-transform transform shadow-sm switch-thumb',
+                sectionVisibility.characters ? 'translate-x-3.5' : 'translate-x-0'
+              ]}></div>
+            </div>
+          </label>
           <span id="chars-badge" class="hidden text-xs px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800/80 font-medium">Saved</span>
           <svg class="w-5 h-5 text-slate-400 transform transition-transform duration-200 section-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
@@ -832,7 +975,7 @@ const initPct = fillerBreakdown.fillerPercentage ?? (initTotal > 0 ? Math.round(
         </div>
       </button>
 
-      <div id="section-chars-body" class="px-6 pb-6 pt-2 border-t border-slate-800/80">
+      <div id="section-chars-body" class="px-4 sm:px-6 pb-6 pt-2 border-t border-slate-800/80">
         <div id="chars-feedback" class="hidden mb-5 p-3.5 rounded-xl text-xs sm:text-sm font-medium border"></div>
 
         <form id="form-chars" class="space-y-4">
@@ -852,8 +995,8 @@ const initPct = fillerBreakdown.fillerPercentage ?? (initTotal > 0 ? Math.round(
           <div id="chars-container" class="space-y-3">
             {(anime?.characters?.length ? anime.characters : []).map((c, i) => (
               <div class="p-3 bg-slate-950 border border-slate-800 rounded-xl space-y-2.5 character-row">
-                <div class="flex items-center justify-between gap-3">
-                  <div class="flex items-center gap-2 flex-1">
+                <div class="flex flex-wrap sm:flex-nowrap items-center justify-between gap-2.5">
+                  <div class="flex items-center gap-2 flex-1 min-w-[180px]">
                     <span class="w-6 h-6 rounded bg-slate-800 text-slate-400 text-xs flex items-center justify-center font-bold shrink-0 char-rank-badge">
                       {c.rank || i + 1}
                     </span>
@@ -865,21 +1008,23 @@ const initPct = fillerBreakdown.fillerPercentage ?? (initTotal > 0 ? Math.round(
                       required
                     />
                   </div>
-                  <select class="char-input-category px-2.5 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-xs text-white">
-                    <option value="Protagonist" selected={c.category === 'Protagonist'}>Protagonist</option>
-                    <option value="Main" selected={c.category === 'Main'}>Main</option>
-                    <option value="Supporting" selected={c.category === 'Supporting'}>Supporting</option>
-                    <option value="Antagonist" selected={c.category === 'Antagonist'}>Antagonist</option>
-                  </select>
-                  <button
-                    type="button"
-                    class="btn-remove-char text-slate-500 hover:text-rose-400 p-1 cursor-pointer"
-                    title="Remove character"
-                  >
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                  </button>
+                  <div class="flex items-center gap-2 shrink-0 ml-auto sm:ml-0">
+                    <select class="char-input-category px-2.5 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-xs text-white">
+                      <option value="Protagonist" selected={c.category === 'Protagonist'}>Protagonist</option>
+                      <option value="Main" selected={c.category === 'Main'}>Main</option>
+                      <option value="Supporting" selected={c.category === 'Supporting'}>Supporting</option>
+                      <option value="Antagonist" selected={c.category === 'Antagonist'}>Antagonist</option>
+                    </select>
+                    <button
+                      type="button"
+                      class="btn-remove-char text-slate-500 hover:text-rose-400 p-1 cursor-pointer"
+                      title="Remove character"
+                    >
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                  </div>
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -919,11 +1064,11 @@ const initPct = fillerBreakdown.fillerPercentage ?? (initTotal > 0 ? Math.round(
     <div class={`bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden transition dependent-section ${isNew ? 'opacity-50 pointer-events-none' : ''}`} id="section-source-container">
       <button
         type="button"
-        class="w-full px-6 py-4 flex items-center justify-between text-left hover:bg-slate-850/50 transition cursor-pointer section-toggle"
+        class="w-full px-4 sm:px-6 py-3.5 sm:py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-left hover:bg-slate-850/50 transition cursor-pointer section-toggle"
         data-target="section-source-body"
       >
         <div class="flex items-center gap-3">
-          <span class="w-7 h-7 rounded-lg bg-indigo-600/20 text-indigo-400 font-bold text-xs flex items-center justify-center border border-indigo-500/30">
+          <span class="w-7 h-7 shrink-0 rounded-lg bg-indigo-600/20 text-indigo-400 font-bold text-xs flex items-center justify-center border border-indigo-500/30">
             7
           </span>
           <div>
@@ -931,7 +1076,31 @@ const initPct = fillerBreakdown.fillerPercentage ?? (initTotal > 0 ? Math.round(
             <p class="text-xs text-slate-400">Manga / Light Novel author, status, and adaptation coverage</p>
           </div>
         </div>
-        <div class="flex items-center gap-2">
+        <div class="w-full sm:w-auto flex items-center justify-between sm:justify-end gap-2.5 sm:gap-3 border-t border-slate-800/60 pt-2 sm:pt-0 sm:border-0">
+          <label
+            class="no-section-toggle relative inline-flex items-center gap-2 cursor-pointer select-none px-2.5 py-1 rounded-lg bg-slate-800/90 border border-slate-700/70 hover:border-slate-600 transition"
+            title="Toggle visibility of Manga & Light Novel on public anime page"
+            onclick="event.stopPropagation()"
+          >
+            <span class="text-[11px] font-medium text-slate-300 visibility-label">
+              {sectionVisibility.source ? 'Public: Show' : 'Public: Hide'}
+            </span>
+            <input
+              type="checkbox"
+              class="sr-only section-visibility-checkbox"
+              data-section="source"
+              checked={sectionVisibility.source}
+            />
+            <div class:list={[
+              'w-8 h-4.5 rounded-full transition-colors relative flex items-center p-0.5 switch-track',
+              sectionVisibility.source ? 'bg-indigo-600' : 'bg-slate-700'
+            ]}>
+              <div class:list={[
+                'w-3.5 h-3.5 rounded-full bg-white transition-transform transform shadow-sm switch-thumb',
+                sectionVisibility.source ? 'translate-x-3.5' : 'translate-x-0'
+              ]}></div>
+            </div>
+          </label>
           <span id="source-badge" class="hidden text-xs px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800/80 font-medium">Saved</span>
           <svg class="w-5 h-5 text-slate-400 transform transition-transform duration-200 section-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
@@ -939,7 +1108,7 @@ const initPct = fillerBreakdown.fillerPercentage ?? (initTotal > 0 ? Math.round(
         </div>
       </button>
 
-      <div id="section-source-body" class="px-6 pb-6 pt-2 border-t border-slate-800/80">
+      <div id="section-source-body" class="px-4 sm:px-6 pb-6 pt-2 border-t border-slate-800/80">
         <div id="source-feedback" class="hidden mb-5 p-3.5 rounded-xl text-xs sm:text-sm font-medium border"></div>
 
         <form id="form-source" class="space-y-4">
@@ -1032,9 +1201,9 @@ const initPct = fillerBreakdown.fillerPercentage ?? (initTotal > 0 ? Math.round(
             </label>
             <textarea
               id="source-notes"
-              rows="2"
+              rows="4"
               placeholder="e.g. Start reading from Chapter 61 for content past season 1..."
-              class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+              class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 min-h-[110px]"
             >{anime?.source?.notes || ''}</textarea>
           </div>
 
@@ -1057,11 +1226,11 @@ const initPct = fillerBreakdown.fillerPercentage ?? (initTotal > 0 ? Math.round(
     <div class={`bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden transition dependent-section ${isNew ? 'opacity-50 pointer-events-none' : ''}`} id="section-power-container">
       <button
         type="button"
-        class="w-full px-6 py-4 flex items-center justify-between text-left hover:bg-slate-850/50 transition cursor-pointer section-toggle"
+        class="w-full px-4 sm:px-6 py-3.5 sm:py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-left hover:bg-slate-850/50 transition cursor-pointer section-toggle"
         data-target="section-power-body"
       >
         <div class="flex items-center gap-3">
-          <span class="w-7 h-7 rounded-lg bg-indigo-600/20 text-indigo-400 font-bold text-xs flex items-center justify-center border border-indigo-500/30">
+          <span class="w-7 h-7 shrink-0 rounded-lg bg-indigo-600/20 text-indigo-400 font-bold text-xs flex items-center justify-center border border-indigo-500/30">
             8
           </span>
           <div>
@@ -1069,7 +1238,31 @@ const initPct = fillerBreakdown.fillerPercentage ?? (initTotal > 0 ? Math.round(
             <p class="text-xs text-slate-400">Magic rules, visualization techniques, or combat hierarchy</p>
           </div>
         </div>
-        <div class="flex items-center gap-2">
+        <div class="w-full sm:w-auto flex items-center justify-between sm:justify-end gap-2.5 sm:gap-3 border-t border-slate-800/60 pt-2 sm:pt-0 sm:border-0">
+          <label
+            class="no-section-toggle relative inline-flex items-center gap-2 cursor-pointer select-none px-2.5 py-1 rounded-lg bg-slate-800/90 border border-slate-700/70 hover:border-slate-600 transition"
+            title="Toggle visibility of Power System on public anime page"
+            onclick="event.stopPropagation()"
+          >
+            <span class="text-[11px] font-medium text-slate-300 visibility-label">
+              {sectionVisibility.powerSystem ? 'Public: Show' : 'Public: Hide'}
+            </span>
+            <input
+              type="checkbox"
+              class="sr-only section-visibility-checkbox"
+              data-section="powerSystem"
+              checked={sectionVisibility.powerSystem}
+            />
+            <div class:list={[
+              'w-8 h-4.5 rounded-full transition-colors relative flex items-center p-0.5 switch-track',
+              sectionVisibility.powerSystem ? 'bg-indigo-600' : 'bg-slate-700'
+            ]}>
+              <div class:list={[
+                'w-3.5 h-3.5 rounded-full bg-white transition-transform transform shadow-sm switch-thumb',
+                sectionVisibility.powerSystem ? 'translate-x-3.5' : 'translate-x-0'
+              ]}></div>
+            </div>
+          </label>
           <span id="power-badge" class="hidden text-xs px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800/80 font-medium">Saved</span>
           <svg class="w-5 h-5 text-slate-400 transform transition-transform duration-200 section-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
@@ -1077,7 +1270,7 @@ const initPct = fillerBreakdown.fillerPercentage ?? (initTotal > 0 ? Math.round(
         </div>
       </button>
 
-      <div id="section-power-body" class="px-6 pb-6 pt-2 border-t border-slate-800/80">
+      <div id="section-power-body" class="px-4 sm:px-6 pb-6 pt-2 border-t border-slate-800/80">
         <div id="power-feedback" class="hidden mb-5 p-3.5 rounded-xl text-xs sm:text-sm font-medium border"></div>
 
         <form id="form-power" class="space-y-4">
@@ -1112,8 +1305,8 @@ const initPct = fillerBreakdown.fillerPercentage ?? (initTotal > 0 ? Math.round(
               {(anime?.powerSystem?.paragraphs?.length ? anime.powerSystem.paragraphs : ['']).map((p, idx) => (
                 <div class="flex items-start gap-2 power-paragraph-row">
                   <textarea
-                    rows="3"
-                    class="flex-1 px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 power-paragraph-input"
+                    rows="4"
+                    class="flex-1 px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 min-h-[130px] power-paragraph-input"
                     placeholder={`Power mechanic paragraph ${idx + 1}...`}
                   >{p}</textarea>
                   <button
@@ -1140,6 +1333,24 @@ const initPct = fillerBreakdown.fillerPercentage ?? (initTotal > 0 ? Math.round(
       </div>
     </div>
 
+    <!-- Bottom Static Save Bar -->
+    <div class="mt-8 pt-6 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div class="text-center sm:text-left">
+        <p class="text-sm font-semibold text-white">Done making edits?</p>
+        <p class="text-xs text-slate-400 mt-0.5">All sections, dynamic items, and visibility toggles will be saved simultaneously.</p>
+      </div>
+      <button
+        type="button"
+        id="btn-save-all-bottom"
+        class="btn-save-all w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-6 py-3.5 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 rounded-xl shadow-lg shadow-emerald-950/40 border border-emerald-500/40 transition cursor-pointer"
+        title="Save all sections and visibility toggles simultaneously"
+      >
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+        </svg>
+        <span>Save All Changes</span>
+      </button>
+    </div>
   </div>
 
   <!-- Client JavaScript for Interactivity, Dynamic Rows, Hydration, and Section Saves -->
@@ -1149,9 +1360,16 @@ const initPct = fillerBreakdown.fillerPercentage ?? (initTotal > 0 ? Math.round(
     // Helper: Show localized inline banner in section
     function setFeedback(feedbackEl, message, type = 'success') {
       if (!feedbackEl) return;
-      feedbackEl.classList.remove('hidden', 'bg-emerald-950/80', 'border-emerald-700', 'text-emerald-300', 'bg-rose-950/80', 'border-rose-700', 'text-rose-300');
+      feedbackEl.classList.remove(
+        'hidden',
+        'bg-emerald-950/80', 'border-emerald-700', 'text-emerald-300',
+        'bg-rose-950/80', 'border-rose-700', 'text-rose-300',
+        'bg-amber-950/80', 'border-amber-700', 'text-amber-300'
+      );
       if (type === 'success') {
         feedbackEl.classList.add('bg-emerald-950/80', 'border-emerald-700', 'text-emerald-300');
+      } else if (type === 'warning') {
+        feedbackEl.classList.add('bg-amber-950/80', 'border-amber-700', 'text-amber-300');
       } else {
         feedbackEl.classList.add('bg-rose-950/80', 'border-rose-700', 'text-rose-300');
       }
@@ -1161,7 +1379,8 @@ const initPct = fillerBreakdown.fillerPercentage ?? (initTotal > 0 ? Math.round(
 
     // Toggle accordion logic
     document.querySelectorAll('.section-toggle').forEach((btn) => {
-      btn.addEventListener('click', () => {
+      btn.addEventListener('click', (e) => {
+        if (e.target.closest('.no-section-toggle')) return;
         const targetId = btn.getAttribute('data-target');
         const target = document.getElementById(targetId);
         const chevron = btn.querySelector('.section-chevron');
@@ -1170,6 +1389,76 @@ const initPct = fillerBreakdown.fillerPercentage ?? (initTotal > 0 ? Math.round(
           target.classList.toggle('hidden', !isHidden);
           if (chevron) {
             chevron.classList.toggle('rotate-180', !isHidden);
+          }
+        }
+      });
+    });
+
+    // Visibility Toggles (Show/Hide on Public Page)
+    document.querySelectorAll('.section-visibility-checkbox').forEach((checkbox) => {
+      checkbox.addEventListener('change', async (e) => {
+        const input = e.target;
+        const section = input.getAttribute('data-section');
+        const labelContainer = input.closest('label');
+        const labelText = labelContainer?.querySelector('.visibility-label');
+        const track = labelContainer?.querySelector('.switch-track');
+        const thumb = labelContainer?.querySelector('.switch-thumb');
+        const isVisible = input.checked;
+
+        // Visual update immediately
+        if (labelText) labelText.textContent = isVisible ? 'Public: Show' : 'Public: Hide';
+        if (track) {
+          track.classList.toggle('bg-indigo-600', isVisible);
+          track.classList.toggle('bg-slate-700', !isVisible);
+        }
+        if (thumb) {
+          thumb.classList.toggle('translate-x-3.5', isVisible);
+          thumb.classList.toggle('translate-x-0', !isVisible);
+        }
+
+        if (!currentAnimeId) {
+          alert('Please save Section 1 (Core Details) first before updating section visibility.');
+          input.checked = !isVisible;
+          if (labelText) labelText.textContent = !isVisible ? 'Public: Show' : 'Public: Hide';
+          if (track) {
+            track.classList.toggle('bg-indigo-600', !isVisible);
+            track.classList.toggle('bg-slate-700', isVisible);
+          }
+          if (thumb) {
+            thumb.classList.toggle('translate-x-3.5', !isVisible);
+            thumb.classList.toggle('translate-x-0', isVisible);
+          }
+          return;
+        }
+
+        try {
+          const res = await fetch('/api/admin/anime/visibility', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              animeId: currentAnimeId,
+              section,
+              visible: isVisible
+            })
+          });
+
+          const data = await res.json();
+          if (!res.ok || !data.success) {
+            throw new Error(data.error || 'Failed to update section visibility');
+          }
+        } catch (err) {
+          console.error('Error updating section visibility:', err);
+          alert('Could not update visibility: ' + err.message);
+          // Revert visual and checkbox state
+          input.checked = !isVisible;
+          if (labelText) labelText.textContent = !isVisible ? 'Public: Show' : 'Public: Hide';
+          if (track) {
+            track.classList.toggle('bg-indigo-600', !isVisible);
+            track.classList.toggle('bg-slate-700', isVisible);
+          }
+          if (thumb) {
+            thumb.classList.toggle('translate-x-3.5', !isVisible);
+            thumb.classList.toggle('translate-x-0', isVisible);
           }
         }
       });
@@ -1222,7 +1511,7 @@ const initPct = fillerBreakdown.fillerPercentage ?? (initTotal > 0 ? Math.round(
       const div = document.createElement('div');
       div.className = 'flex items-start gap-2 paragraph-row';
       div.innerHTML = `
-        <textarea rows="3" class="flex-1 px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 review-paragraph-input" placeholder="Paragraph ${index}..."></textarea>
+        <textarea rows="4" class="flex-1 px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 min-h-[130px] review-paragraph-input" placeholder="Paragraph ${index}..."></textarea>
         <button type="button" class="btn-remove-p p-2 text-slate-500 hover:text-rose-400 rounded-lg hover:bg-slate-800 transition cursor-pointer" title="Remove paragraph">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
         </button>
@@ -1239,7 +1528,7 @@ const initPct = fillerBreakdown.fillerPercentage ?? (initTotal > 0 ? Math.round(
       const div = document.createElement('div');
       div.className = 'flex items-start gap-2 power-paragraph-row';
       div.innerHTML = `
-        <textarea rows="3" class="flex-1 px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 power-paragraph-input" placeholder="Power mechanic paragraph ${index}..."></textarea>
+        <textarea rows="4" class="flex-1 px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 min-h-[130px] power-paragraph-input" placeholder="Power mechanic paragraph ${index}..."></textarea>
         <button type="button" class="btn-remove-power-p p-2 text-slate-500 hover:text-rose-400 rounded-lg hover:bg-slate-800 transition cursor-pointer" title="Remove paragraph">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
         </button>
@@ -1826,9 +2115,27 @@ const initPct = fillerBreakdown.fillerPercentage ?? (initTotal > 0 ? Math.round(
         const data = await res.json();
         if (data.success) {
           updateLiveFillerStats();
-          setFeedback(fillerFeedback, `✓ Episode breakdown saved! Total: ${data.totalEpisodes} eps (${data.canonEpisodes} canon, ${data.counts.filler} filler). Filler: ${data.fillerPercentage}%`, 'success');
           fillerBadge.classList.remove('hidden');
-          window.showAdminToast(`Filler updated (${data.fillerPercentage}% filler)`, 'success');
+
+          const coreEpsInput = document.getElementById('core-episodes');
+          const coreEpisodes = coreEpsInput ? parseInt(coreEpsInput.value, 10) : null;
+          const hasMismatch = coreEpisodes !== null && !isNaN(coreEpisodes) && coreEpisodes > 0 && data.totalEpisodes !== coreEpisodes;
+
+          if (hasMismatch) {
+            setFeedback(
+              fillerFeedback,
+              `⚠ Episode breakdown saved with warning: Calculated breakdown total (${data.totalEpisodes} eps) does not match Total Episodes in Section 1 Core Info (${coreEpisodes} eps). Please check which one is correct.`,
+              'warning'
+            );
+            window.showAdminToast(`Saved with warning: Breakdown total (${data.totalEpisodes} eps) ≠ Core episodes (${coreEpisodes} eps)`, 'warning');
+          } else {
+            setFeedback(
+              fillerFeedback,
+              `✓ Episode breakdown saved! Total: ${data.totalEpisodes} eps (${data.canonEpisodes} canon, ${data.counts.filler} filler). Filler: ${data.fillerPercentage}%`,
+              'success'
+            );
+            window.showAdminToast(`Filler updated (${data.fillerPercentage}% filler)`, 'success');
+          }
         } else {
           setFeedback(fillerFeedback, 'Error: ' + data.error, 'error');
         }
@@ -1859,22 +2166,24 @@ const initPct = fillerBreakdown.fillerPercentage ?? (initTotal > 0 ? Math.round(
       const div = document.createElement('div');
       div.className = 'p-3 bg-slate-950 border border-slate-800 rounded-xl space-y-2.5 character-row';
       div.innerHTML = `
-        <div class="flex items-center justify-between gap-3">
-          <div class="flex items-center gap-2 flex-1">
+        <div class="flex flex-wrap sm:flex-nowrap items-center justify-between gap-2.5">
+          <div class="flex items-center gap-2 flex-1 min-w-[180px]">
             <span class="w-6 h-6 rounded bg-slate-800 text-slate-400 text-xs flex items-center justify-center font-bold shrink-0 char-rank-badge">
               ${nextRank}
             </span>
             <input type="text" placeholder="Character Name" class="char-input-name flex-1 px-3 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-sm text-white font-medium" required />
           </div>
-          <select class="char-input-category px-2.5 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-xs text-white">
-            <option value="Main">Main</option>
-            <option value="Protagonist">Protagonist</option>
-            <option value="Supporting" selected>Supporting</option>
-            <option value="Antagonist">Antagonist</option>
-          </select>
-          <button type="button" class="btn-remove-char text-slate-500 hover:text-rose-400 p-1 cursor-pointer" title="Remove character">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-          </button>
+          <div class="flex items-center gap-2 shrink-0 ml-auto sm:ml-0">
+            <select class="char-input-category px-2.5 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-xs text-white">
+              <option value="Main">Main</option>
+              <option value="Protagonist">Protagonist</option>
+              <option value="Supporting" selected>Supporting</option>
+              <option value="Antagonist">Antagonist</option>
+            </select>
+            <button type="button" class="btn-remove-char text-slate-500 hover:text-rose-400 p-1 cursor-pointer" title="Remove character">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+            </button>
+          </div>
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
           <input type="text" placeholder="Role / Title (e.g. Apprentice Mage)" class="char-input-role px-3 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-xs text-slate-200" />
@@ -2030,6 +2339,234 @@ const initPct = fillerBreakdown.fillerPercentage ?? (initTotal > 0 ? Math.round(
       } catch (err) {
         setFeedback(powerFeedback, 'Network error: ' + err.message, 'error');
       }
+    });
+
+    // -------------------------------------------------------------
+    // UNIVERSAL SAVE ALL (All Sections 1-8 + Visibility Toggles)
+    // -------------------------------------------------------------
+    async function executeSaveAll() {
+      const formCore = document.getElementById('form-core');
+      if (!formCore) return;
+
+      const id = document.getElementById('core-id').value.trim();
+      const slug = document.getElementById('core-slug').value.trim();
+      const title = document.getElementById('core-title').value.trim();
+      const year = document.getElementById('core-year').value;
+      const episodes = document.getElementById('core-episodes').value;
+
+      if (!id || !slug || !title || !year || !episodes) {
+        alert('Please fill in all required fields in Section 1 (ID, Title, Slug, Year, Episodes) before saving.');
+        const target = document.getElementById('section-core-body');
+        if (target && target.classList.contains('hidden')) {
+          target.classList.remove('hidden');
+        }
+        formCore.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        return;
+      }
+
+      // 1. Gather Section 1 Core
+      const checkedGenres = Array.from(formCore.querySelectorAll('input[name="genres"]:checked')).map(el => el.value);
+      const customGenres = (document.getElementById('core-custom-genres').value || '')
+        .split(',')
+        .map(s => s.trim())
+        .filter(Boolean);
+      const allGenres = Array.from(new Set([...checkedGenres, ...customGenres]));
+      const checkedVibes = Array.from(formCore.querySelectorAll('input[name="vibes"]:checked')).map(el => el.value);
+      const aliases = (document.getElementById('core-aliases').value || '')
+        .split(',')
+        .map(s => s.trim())
+        .filter(Boolean);
+
+      const corePayload = {
+        id,
+        slug,
+        title,
+        originalTitle: document.getElementById('core-original-title').value.trim(),
+        year,
+        episodes,
+        status: document.getElementById('core-status').value,
+        honestyStatus: document.getElementById('core-honesty').value,
+        personalRating: document.getElementById('core-rating').value,
+        poster: document.getElementById('core-poster').value.trim(),
+        backdrop: document.getElementById('core-backdrop').value.trim(),
+        synopsis: document.getElementById('core-synopsis').value.trim(),
+        trending: document.getElementById('core-trending').checked ? 1 : 0,
+        aliases,
+        genres: allGenres,
+        vibes: checkedVibes
+      };
+
+      // 2. Section 2 Review
+      const reviewHeading = document.getElementById('review-heading')?.value.trim() || '';
+      const reviewTextareas = document.querySelectorAll('#review-paragraphs-container textarea');
+      const reviewParagraphs = Array.from(reviewTextareas).map(t => t.value.trim()).filter(Boolean);
+      const reviewPayload = { heading: reviewHeading, paragraphs: reviewParagraphs };
+
+      // 3. Section 3 Lessons
+      const lessonHeading = document.getElementById('lesson-heading')?.value.trim() || '';
+      const lessonTakeaway = document.getElementById('lesson-takeaway')?.value.trim() || '';
+      const lessonsPayload = { heading: lessonHeading, takeaway: lessonTakeaway };
+
+      // 4. Section 4 Watch Order
+      const franchiseId = document.getElementById('wo-franchise')?.value || null;
+      const franchiseStepOrder = document.getElementById('wo-step')?.value || null;
+      const watchOrderPayload = { franchiseId, franchiseStepOrder };
+
+      // 5. Section 5 Filler & Canon Breakdown
+      const mangaCanon = document.getElementById('filler-manga-canon')?.value.trim() || '';
+      const animeCanon = document.getElementById('filler-anime-canon')?.value.trim() || '';
+      const mixedCanon = document.getElementById('filler-mixed')?.value.trim() || '';
+      const filler = document.getElementById('filler-filler')?.value.trim() || '';
+
+      const errManga = validateRangeInput('Manga Canon', mangaCanon);
+      if (errManga) { alert('Section 5 Filler error: ' + errManga); return; }
+      const errAnime = validateRangeInput('Anime Canon', animeCanon);
+      if (errAnime) { alert('Section 5 Filler error: ' + errAnime); return; }
+      const errMixed = validateRangeInput('Mixed Canon/Filler', mixedCanon);
+      if (errMixed) { alert('Section 5 Filler error: ' + errMixed); return; }
+      const errFiller = validateRangeInput('Filler', filler);
+      if (errFiller) { alert('Section 5 Filler error: ' + errFiller); return; }
+
+      const fillerPayload = { mangaCanon, animeCanon, mixedCanon, filler };
+
+      // 6. Section 6 Characters
+      const charRows = document.querySelectorAll('#chars-container .character-row');
+      const characters = [];
+      charRows.forEach((row, idx) => {
+        const name = row.querySelector('.char-input-name')?.value.trim();
+        const category = row.querySelector('.char-input-category')?.value;
+        const role = row.querySelector('.char-input-role')?.value.trim();
+        const commentary = row.querySelector('.char-input-commentary')?.value.trim();
+        if (name) {
+          characters.push({ rank: idx + 1, name, category, role, commentary });
+        }
+      });
+
+      // 7. Section 7 Source Guidance
+      const sourcePayload = {
+        title: document.getElementById('source-title')?.value.trim() || '',
+        author: document.getElementById('source-author')?.value.trim() || '',
+        type: document.getElementById('source-type')?.value || 'Manga',
+        volumes: document.getElementById('source-volumes')?.value.trim() || '',
+        publicationStatus: document.getElementById('source-pub-status')?.value || 'Ongoing',
+        coverage: document.getElementById('source-coverage')?.value.trim() || '',
+        notes: document.getElementById('source-notes')?.value.trim() || ''
+      };
+
+      // 8. Section 8 Power System
+      const powerName = document.getElementById('power-name')?.value.trim() || '';
+      const powerTextareas = document.querySelectorAll('#power-paragraphs-container textarea');
+      const powerParagraphs = Array.from(powerTextareas).map(t => t.value.trim()).filter(Boolean);
+      const powerPayload = { name: powerName, paragraphs: powerParagraphs };
+
+      // 9. Visibility Toggles
+      const visibilityPayload = {};
+      document.querySelectorAll('.section-visibility-checkbox').forEach((cb) => {
+        const sec = cb.getAttribute('data-section');
+        if (sec) visibilityPayload[sec] = cb.checked;
+      });
+
+      // Show loading UI on all save-all buttons
+      const saveButtons = document.querySelectorAll('.btn-save-all');
+      saveButtons.forEach(btn => {
+        btn.disabled = true;
+        btn.classList.add('opacity-75');
+        btn.dataset.origHtml = btn.innerHTML;
+        btn.innerHTML = `
+          <svg class="animate-spin w-4 h-4 text-white" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          <span>Saving All...</span>
+        `;
+      });
+
+      try {
+        const res = await fetch('/api/admin/anime/save-all', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            animeId: currentAnimeId || corePayload.id,
+            core: corePayload,
+            review: reviewPayload,
+            lessons: lessonsPayload,
+            watchOrder: watchOrderPayload,
+            filler: fillerPayload,
+            characters,
+            source: sourcePayload,
+            powerSystem: powerPayload,
+            visibility: visibilityPayload
+          })
+        });
+
+        const data = await res.json();
+        if (!res.ok || !data.success) {
+          throw new Error(data.error || 'Failed to save all anime sections');
+        }
+
+        currentAnimeId = data.data?.animeId || corePayload.id;
+
+        // Reveal all section badges
+        [
+          'core-badge', 'review-badge', 'lessons-badge', 'watch-order-badge',
+          'filler-badge', 'chars-badge', 'source-badge', 'power-badge'
+        ].forEach(id => {
+          const badge = document.getElementById(id);
+          if (badge) badge.classList.remove('hidden');
+        });
+
+        // Update live stats if filler was processed
+        updateLiveFillerStats();
+
+        // Update header & public view link
+        const titleText = document.getElementById('heading-title-text');
+        if (titleText) titleText.textContent = `Edit Anime: ${corePayload.title}`;
+        const idBadge = document.getElementById('heading-id-badge');
+        if (idBadge) {
+          idBadge.textContent = currentAnimeId;
+          idBadge.classList.remove('hidden');
+        }
+        const viewPublicLink = document.getElementById('view-public-link');
+        if (viewPublicLink) {
+          viewPublicLink.href = `/anime/${corePayload.slug}`;
+          viewPublicLink.classList.remove('hidden');
+        }
+
+        // Unlock dependent sections
+        document.querySelectorAll('.dependent-section').forEach((sec) => {
+          sec.classList.remove('opacity-50', 'pointer-events-none');
+        });
+
+        // Check if breakdown mismatch with core episodes
+        const fillerResult = data.data?.fillerResult;
+        const coreEps = parseInt(corePayload.episodes, 10);
+        if (fillerResult && coreEps && !isNaN(coreEps) && fillerResult.totalEpisodes !== coreEps) {
+          window.showAdminToast(`All saved with warning: Breakdown (${fillerResult.totalEpisodes} eps) ≠ Core (${coreEps} eps)`, 'warning');
+        } else {
+          window.showAdminToast('✓ All anime sections saved successfully!', 'success');
+        }
+
+        // Update browser URL if creating new record
+        const currentUrl = new URL(window.location.href);
+        if (!currentUrl.searchParams.has('id')) {
+          currentUrl.searchParams.set('id', currentAnimeId);
+          window.history.replaceState({}, '', currentUrl.toString());
+        }
+
+      } catch (err) {
+        console.error('Error in saveAllAnime:', err);
+        alert('Failed to save all changes: ' + err.message);
+      } finally {
+        saveButtons.forEach(btn => {
+          btn.disabled = false;
+          btn.classList.remove('opacity-75');
+          if (btn.dataset.origHtml) btn.innerHTML = btn.dataset.origHtml;
+        });
+      }
+    }
+
+    document.querySelectorAll('.btn-save-all').forEach((btn) => {
+      btn.addEventListener('click', executeSaveAll);
     });
   </script>
 </AdminLayout>

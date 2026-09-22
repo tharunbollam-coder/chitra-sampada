@@ -17,7 +17,7 @@ const animeList = await getAllAnime();
         Organize cinematic universes, season progressions, and chronological watch sequences.
       </p>
     </div>
-    <div class="flex items-center gap-3">
+    <div class="flex flex-wrap items-center gap-2.5">
       <button
         type="button"
         id="btn-create-franchise"
@@ -32,7 +32,7 @@ const animeList = await getAllAnime();
   </div>
 
   <!-- Franchise Creation Form (Collapsible Modal or Banner) -->
-  <div id="new-franchise-panel" class="hidden my-6 p-6 bg-slate-900 border border-indigo-500/50 rounded-2xl shadow-xl">
+  <div id="new-franchise-panel" class="hidden my-6 p-4 sm:p-6 bg-slate-900 border border-indigo-500/50 rounded-2xl shadow-xl">
     <div class="flex items-center justify-between mb-4">
       <h2 class="text-lg font-bold text-white font-heading">Create New Franchise</h2>
       <button type="button" id="btn-close-new-panel" class="text-slate-400 hover:text-white">
@@ -103,7 +103,7 @@ const animeList = await getAllAnime();
         data-franchise-id={franchise.id}
       >
         <!-- Franchise Header Bar -->
-        <div class="p-6 bg-slate-900/90 border-b border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div class="p-4 sm:p-6 bg-slate-900/90 border-b border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <div class="flex items-center gap-3">
               <h2 class="text-xl font-bold font-heading text-white">{franchise.name}</h2>
@@ -116,7 +116,7 @@ const animeList = await getAllAnime();
             )}
           </div>
 
-          <div class="flex items-center gap-2">
+          <div class="flex flex-wrap items-center gap-2">
             <button
               type="button"
               class="btn-save-franchise inline-flex items-center gap-1.5 px-3.5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-xl shadow-sm transition"
@@ -142,10 +142,10 @@ const animeList = await getAllAnime();
         </div>
 
         <!-- Inline feedback banner -->
-        <div class="franchise-feedback hidden mx-6 mt-4 p-3 rounded-xl text-xs sm:text-sm font-medium border"></div>
+        <div class="franchise-feedback hidden mx-4 sm:mx-6 mt-4 p-3 rounded-xl text-xs sm:text-sm font-medium border"></div>
 
         <!-- Watch Order Steps Section -->
-        <div class="p-6">
+        <div class="p-4 sm:p-6">
           <div class="flex items-center justify-between mb-4">
             <div>
               <h3 class="text-sm font-semibold text-slate-300 uppercase tracking-wider">Chronological Watch Roadmap</h3>
@@ -163,67 +163,69 @@ const animeList = await getAllAnime();
           <div class="space-y-2.5 steps-container" data-franchise-id={franchise.id}>
             {franchise.steps.map((step, idx) => (
               <div class="p-3 bg-slate-950 border border-slate-800 rounded-xl step-row space-y-2">
-                <div class="flex items-center gap-2">
+                <div class="flex flex-wrap sm:flex-nowrap items-center gap-2">
                   <!-- Reorder Controls: Up / Down -->
-                  <div class="flex flex-col gap-0.5 shrink-0">
-                    <button
-                      type="button"
-                      class="btn-step-up p-1 text-slate-400 hover:text-white hover:bg-slate-800 rounded transition"
-                      title="Move step up"
-                    >
-                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"/></svg>
-                    </button>
-                    <button
-                      type="button"
-                      class="btn-step-down p-1 text-slate-400 hover:text-white hover:bg-slate-800 rounded transition"
-                      title="Move step down"
-                    >
-                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
-                    </button>
-                  </div>
+                  <div class="flex items-center gap-1.5 shrink-0">
+                    <div class="flex flex-col gap-0.5 shrink-0">
+                      <button
+                        type="button"
+                        class="btn-step-up p-1 text-slate-400 hover:text-white hover:bg-slate-800 rounded transition"
+                        title="Move step up"
+                      >
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"/></svg>
+                      </button>
+                      <button
+                        type="button"
+                        class="btn-step-down p-1 text-slate-400 hover:text-white hover:bg-slate-800 rounded transition"
+                        title="Move step down"
+                      >
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                      </button>
+                    </div>
 
-                  <!-- Step index badge -->
-                  <span class="w-6 h-6 rounded bg-slate-800 text-slate-300 font-bold text-xs flex items-center justify-center shrink-0 step-number-badge">
-                    {idx + 1}
-                  </span>
+                    <!-- Step index badge -->
+                    <span class="w-6 h-6 rounded bg-slate-800 text-slate-300 font-bold text-xs flex items-center justify-center shrink-0 step-number-badge">
+                      {idx + 1}
+                    </span>
+                  </div>
 
                   <!-- Title -->
                   <input
                     type="text"
                     value={step.title}
                     placeholder="Entry Title (e.g. Season 1)"
-                    class="step-title flex-1 px-3 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-xs sm:text-sm text-white font-medium"
+                    class="step-title flex-1 min-w-[150px] px-3 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-xs sm:text-sm text-white font-medium"
                     required
                   />
 
-                  <!-- Type -->
-                  <select class="step-type px-2.5 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-xs text-white shrink-0">
-                    <option value="TV Series" selected={step.type === 'TV Series'}>TV Series</option>
-                    <option value="Movie" selected={step.type === 'Movie'}>Movie</option>
-                    <option value="OVA" selected={step.type === 'OVA'}>OVA</option>
-                    <option value="Special" selected={step.type === 'Special'}>Special</option>
-                  </select>
+                  <!-- Type, Episodes, Delete button wrapper -->
+                  <div class="flex items-center gap-1.5 shrink-0 ml-auto sm:ml-0">
+                    <select class="step-type px-2.5 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-xs text-white shrink-0">
+                      <option value="TV Series" selected={step.type === 'TV Series'}>TV Series</option>
+                      <option value="Movie" selected={step.type === 'Movie'}>Movie</option>
+                      <option value="OVA" selected={step.type === 'OVA'}>OVA</option>
+                      <option value="Special" selected={step.type === 'Special'}>Special</option>
+                    </select>
 
-                  <!-- Episodes -->
-                  <input
-                    type="text"
-                    value={step.episodes}
-                    placeholder="28 eps"
-                    class="step-episodes w-20 sm:w-24 px-2 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-xs text-white"
-                  />
+                    <input
+                      type="text"
+                      value={step.episodes}
+                      placeholder="28 eps"
+                      class="step-episodes w-16 sm:w-20 px-2 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-xs text-white"
+                    />
 
-                  <!-- Delete step button -->
-                  <button
-                    type="button"
-                    class="btn-remove-step p-1.5 text-slate-500 hover:text-rose-400 rounded-lg hover:bg-slate-800 transition shrink-0"
-                    title="Remove step"
-                  >
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                  </button>
+                    <button
+                      type="button"
+                      class="btn-remove-step p-1.5 text-slate-500 hover:text-rose-400 rounded-lg hover:bg-slate-800 transition shrink-0"
+                      title="Remove step"
+                    >
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                    </button>
+                  </div>
                 </div>
 
                 <!-- Secondary details: Linked Anime ID & Note -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pl-9">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pl-0 sm:pl-9">
                   <div>
                     <select class="step-anime-id w-full px-2.5 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs text-slate-300">
                       <option value="">Link to Catalog Anime (Optional)</option>
@@ -330,31 +332,35 @@ const animeList = await getAllAnime();
         });
 
         div.innerHTML = `
-          <div class="flex items-center gap-2">
-            <div class="flex flex-col gap-0.5 shrink-0">
-              <button type="button" class="btn-step-up p-1 text-slate-400 hover:text-white hover:bg-slate-800 rounded transition" title="Move step up">
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"/></svg>
-              </button>
-              <button type="button" class="btn-step-down p-1 text-slate-400 hover:text-white hover:bg-slate-800 rounded transition" title="Move step down">
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+          <div class="flex flex-wrap sm:flex-nowrap items-center gap-2">
+            <div class="flex items-center gap-1.5 shrink-0">
+              <div class="flex flex-col gap-0.5 shrink-0">
+                <button type="button" class="btn-step-up p-1 text-slate-400 hover:text-white hover:bg-slate-800 rounded transition" title="Move step up">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"/></svg>
+                </button>
+                <button type="button" class="btn-step-down p-1 text-slate-400 hover:text-white hover:bg-slate-800 rounded transition" title="Move step down">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                </button>
+              </div>
+              <span class="w-6 h-6 rounded bg-slate-800 text-slate-300 font-bold text-xs flex items-center justify-center shrink-0 step-number-badge">
+                ${nextNum}
+              </span>
+            </div>
+            <input type="text" placeholder="Entry Title (e.g. Season 2)" class="step-title flex-1 min-w-[150px] px-3 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-xs sm:text-sm text-white font-medium" required />
+            <div class="flex items-center gap-1.5 shrink-0 ml-auto sm:ml-0">
+              <select class="step-type px-2.5 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-xs text-white shrink-0">
+                <option value="TV Series">TV Series</option>
+                <option value="Movie">Movie</option>
+                <option value="OVA">OVA</option>
+                <option value="Special">Special</option>
+              </select>
+              <input type="text" placeholder="12 eps" class="step-episodes w-16 sm:w-20 px-2 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-xs text-white" />
+              <button type="button" class="btn-remove-step p-1.5 text-slate-500 hover:text-rose-400 rounded-lg hover:bg-slate-800 transition shrink-0" title="Remove step">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
               </button>
             </div>
-            <span class="w-6 h-6 rounded bg-slate-800 text-slate-300 font-bold text-xs flex items-center justify-center shrink-0 step-number-badge">
-              ${nextNum}
-            </span>
-            <input type="text" placeholder="Entry Title (e.g. Season 2)" class="step-title flex-1 px-3 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-xs sm:text-sm text-white font-medium" required />
-            <select class="step-type px-2.5 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-xs text-white shrink-0">
-              <option value="TV Series">TV Series</option>
-              <option value="Movie">Movie</option>
-              <option value="OVA">OVA</option>
-              <option value="Special">Special</option>
-            </select>
-            <input type="text" placeholder="12 eps" class="step-episodes w-20 sm:w-24 px-2 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-xs text-white" />
-            <button type="button" class="btn-remove-step p-1.5 text-slate-500 hover:text-rose-400 rounded-lg hover:bg-slate-800 transition shrink-0" title="Remove step">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-            </button>
           </div>
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pl-9">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pl-0 sm:pl-9">
             <div>
               <select class="step-anime-id w-full px-2.5 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs text-slate-300">
                 ${animeOptions}

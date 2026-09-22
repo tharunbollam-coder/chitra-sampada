@@ -66,6 +66,21 @@ export async function getAnimeById(idOrSlug) {
     }
   }
 
+  let sectionVisibility = {
+    review: true,
+    lessons: true,
+    watchOrder: true,
+    fillerList: true,
+    characters: true,
+    source: true,
+    powerSystem: true
+  };
+  if (animeRow.section_visibility) {
+    try {
+      sectionVisibility = { ...sectionVisibility, ...JSON.parse(animeRow.section_visibility) };
+    } catch {}
+  }
+
   return {
     id: animeRow.id,
     slug: animeRow.slug,
@@ -85,6 +100,7 @@ export async function getAnimeById(idOrSlug) {
     synopsis: animeRow.synopsis || '',
     franchiseId: animeRow.franchise_id || '',
     franchiseStepOrder: animeRow.franchise_step_order || '',
+    sectionVisibility,
     aliases,
     genres,
     vibes,
@@ -248,6 +264,106 @@ export function saveAnimeCore(data) {
 }
 
 /**
+ * Save section visibility flags (Show/Hide on public page).
+ */
+export function saveAnimeVisibility(animeId, visibility = {}) {
+  const db = getSqliteDb();
+  const existing = db.prepare('SELECT section_visibility FROM anime WHERE id = ?').get(animeId);
+  if (!existing) throw new Error('Anime not found');
+
+  let currentVis = {
+    review: true,
+    lessons: true,
+    watchOrder: true,
+    fillerList: true,
+    characters: true,
+    source: true,
+    powerSystem: true
+  };
+
+  if (existing.section_visibility) {
+    try {
+      currentVis = { ...currentVis, ...JSON.parse(existing.section_visibility) };
+    } catch {}
+  }
+
+  const merged = { ...currentVis, ...visibility };
+  db.prepare(`
+    UPDATE anime 
+    SET section_visibility = ?, last_updated = date('now') 
+    WHERE id = ?
+  `).run(JSON.stringify(merged), animeId);
+
+  return { success: true, visibility: merged };
+}
+
+/**
+ * Universal save: Persist all anime sections and visibility settings simultaneously.
+ */
+export function saveAllAnime(payload) {
+  let animeId = payload.core?.id || payload.animeId;
+  if (!animeId) {
+    throw new Error('Anime ID is required');
+  }
+
+  // 1. Core Information
+  if (payload.core) {
+    const res = saveAnimeCore(payload.core);
+    if (res?.id) animeId = res.id;
+  }
+
+  // 2. Personal Take / Review
+  if (payload.review) {
+    saveAnimeReview(animeId, payload.review);
+  }
+
+  // 3. What I Learned / Reflection
+  if (payload.lessons) {
+    saveAnimeLessons(animeId, payload.lessons);
+  }
+
+  // 4. Watch Order Placement
+  if (payload.watchOrder) {
+    saveAnimeWatchOrderLink(animeId, {
+      franchiseId: payload.watchOrder.franchiseId,
+      franchiseStepOrder: payload.watchOrder.franchiseStepOrder
+    });
+  }
+
+  // 5. Filler & Canon Episode Breakdown
+  let fillerResult = null;
+  if (payload.filler) {
+    fillerResult = saveAnimeFillerList(animeId, payload.filler);
+  }
+
+  // 6. Key Characters
+  if (payload.characters) {
+    saveAnimeCharacters(animeId, payload.characters);
+  }
+
+  // 7. Source Material Guidance
+  if (payload.source) {
+    saveAnimeSource(animeId, payload.source);
+  }
+
+  // 8. Power System / Lore Mechanics
+  if (payload.powerSystem) {
+    saveAnimePowerSystem(animeId, payload.powerSystem);
+  }
+
+  // 9. Visibility Toggles
+  if (payload.visibility) {
+    saveAnimeVisibility(animeId, payload.visibility);
+  }
+
+  return {
+    success: true,
+    animeId,
+    fillerResult
+  };
+}
+
+/**
  * Save My Take / Review section.
  */
 export function saveAnimeReview(animeId, { heading = '', paragraphs = [] } = {}) {
@@ -353,7 +469,7 @@ export function saveAnimeFillerList(animeId, breakdown = {}) {
       calculatedPercentage = Math.min(100, Math.round((valFiller.count / totalEpisodes) * 100));
     }
 
-    if (totalEpisodes > 0) {
+    if (!anime.episodes && totalEpisodes > 0) {
       db.prepare(`
         UPDATE anime 
         SET filler_percentage = ?, episodes = ?, last_updated = date('now') 

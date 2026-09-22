@@ -8,6 +8,7 @@ import TabCharacters from '../../../components/anime/TabCharacters.astro';
 import TabSource from '../../../components/anime/TabSource.astro';
 import TabPowerSystem from '../../../components/anime/TabPowerSystem.astro';
 import TabReview from '../../../components/anime/TabReview.astro';
+import TabLessons from '../../../components/anime/TabLessons.astro';
 import RelatedBlogPosts from '../../../components/RelatedBlogPosts.astro';
 import { getAllAnime, getAvailableTabs, getDefaultTabKey } from '../../../lib/d1.js';
 
@@ -50,7 +51,8 @@ const tabTitleMap = {
   'characters': 'Ranked Characters',
   'source': 'Manga & Light Novel Source Guide',
   'power-system': 'Power System & Lore',
-  'review': 'My Honest Take & Review'
+  'review': 'My Honest Take & Review',
+  'lessons': 'What I Learned (Reflections)'
 };
 
 const currentTabLabel = tabTitleMap[activeTab?.key] || 'Honest Guide';
@@ -176,6 +178,14 @@ const pageDescription = `Complete guide for ${anime.title}. ${currentTabLabel} w
                 <span class="text-[10px] text-slate-500 font-medium">(My Rating)</span>
               </span>
             )}
+
+            <!-- Originally Aired Badge -->
+            {anime.year && (
+              <span class="text-xs font-semibold px-3 py-1 rounded-full bg-slate-100 text-slate-700 border border-slate-200 flex items-center gap-1.5 shadow-2xs">
+                <span class="text-slate-400 font-normal">Aired</span>
+                <span class="font-bold text-slate-800">{anime.year}</span>
+              </span>
+            )}
           </div>
 
           <!-- Titles Block -->
@@ -202,33 +212,28 @@ const pageDescription = `Complete guide for ${anime.title}. ${currentTabLabel} w
           </div>
 
           <!-- Explicit Date Stamps (Anime Real-World Release vs Site Publishing Dates) -->
-          <div class="flex items-center gap-2.5 sm:gap-4 text-xs text-slate-500 flex-wrap pt-1 border-t border-slate-200/70">
-            <div class="flex items-center gap-1.5">
-              <span class="text-slate-400 font-medium">Originally Aired:</span>
-              <span class="font-bold text-slate-800">{anime.year}</span>
-            </div>
-            {anime.addedDate && (
-              <>
-                <span class="text-slate-300 hidden sm:inline">•</span>
+          {(anime.addedDate || anime.lastUpdated) && (
+            <div class="flex items-center gap-2.5 sm:gap-4 text-xs text-slate-500 flex-wrap pt-1 border-t border-slate-200/70">
+              {anime.addedDate && (
                 <div class="flex items-center gap-1.5">
                   <span class="text-slate-400 font-medium">Added to Site:</span>
                   <span class="font-semibold text-slate-700">{anime.addedDate}</span>
                 </div>
-              </>
-            )}
-            {anime.lastUpdated && (
-              <>
-                <span class="text-slate-300 hidden sm:inline">•</span>
-                <div class="flex items-center gap-1.5">
-                  <span class="text-slate-400 font-medium">Last Updated:</span>
-                  <span class="font-semibold text-slate-700">{anime.lastUpdated}</span>
-                </div>
-              </>
-            )}
-          </div>
+              )}
+              {anime.lastUpdated && (
+                <>
+                  {anime.addedDate && <span class="text-slate-300 hidden sm:inline">•</span>}
+                  <div class="flex items-center gap-1.5">
+                    <span class="text-slate-400 font-medium">Last Updated:</span>
+                    <span class="font-semibold text-slate-700">{anime.lastUpdated}</span>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
 
           <!-- Optional Compact "What I Learned" Highlighted Quote Callout -->
-          {lessonText && (
+          {lessonText && anime.sectionVisibility?.lessons !== false && (
             <div class="p-4 sm:p-4.5 rounded-2xl bg-[#EEF2FF]/40 border border-[#C7D2FE]/70 shadow-2xs space-y-2 mt-3">
               <div class="flex items-center gap-2 text-[#4F46E5]">
                 <svg class="w-4 h-4 shrink-0 text-[#4F46E5]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -303,6 +308,7 @@ const pageDescription = `Complete guide for ${anime.title}. ${currentTabLabel} w
             {t.key === 'source' && <TabSource anime={anime} />}
             {t.key === 'power-system' && <TabPowerSystem anime={anime} />}
             {t.key === 'review' && <TabReview anime={anime} />}
+            {t.key === 'lessons' && <TabLessons anime={anime} />}
           </div>
         ))}
       </div>

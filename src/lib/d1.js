@@ -159,6 +159,13 @@ export async function getAllAnime() {
     watchOrderMap.get(row.franchise_id).push(row);
   }
 
+  const animeSlugMap = new Map();
+  const animeTitleMap = new Map();
+  for (const a of animeRows) {
+    animeSlugMap.set(a.id, a.slug);
+    if (a.title) animeTitleMap.set(a.title.trim().toLowerCase(), a.slug);
+  }
+
   return animeRows.map((row) => {
     // Reconstruct review object if heading or paragraphs exist
     let review = null;
@@ -179,15 +186,25 @@ export async function getAllAnime() {
 
     // Reconstruct watchOrder sequence from franchise table
     const franchiseSteps = watchOrderMap.get(row.franchise_id) || [];
-    const watchOrder = franchiseSteps.map((step) => ({
-      order: step.step_order,
-      title: step.title,
-      type: step.type,
-      episodes: step.episodes,
-      // Current anime is highlighted if either step.anime_id matches or step_order matches franchise_step_order
-      isCurrent: step.anime_id === row.id || step.step_order === row.franchise_step_order,
-      note: step.note
-    }));
+    const watchOrder = franchiseSteps.map((step) => {
+      const stepTitleClean = (step.title || '').trim().toLowerCase();
+      const resolvedSlug = (step.anime_id && animeSlugMap.get(step.anime_id)) ||
+        animeTitleMap.get(stepTitleClean) ||
+        step.anime_id ||
+        null;
+
+      return {
+        order: step.step_order,
+        title: step.title,
+        type: step.type,
+        episodes: step.episodes,
+        animeId: step.anime_id,
+        slug: resolvedSlug,
+        // Current anime is highlighted if either step.anime_id matches or step_order matches franchise_step_order
+        isCurrent: step.anime_id === row.id || step.step_order === row.franchise_step_order,
+        note: step.note
+      };
+    });
 
     // Reconstruct fillerList
     const rawFillerEntries = fillerMap.get(row.id) || [];
@@ -269,6 +286,22 @@ export async function getAllAnime() {
       };
     }
 
+    // Reconstruct sectionVisibility
+    let sectionVisibility = {
+      review: true,
+      lessons: true,
+      watchOrder: true,
+      fillerList: true,
+      characters: true,
+      source: true,
+      powerSystem: true
+    };
+    if (row.section_visibility) {
+      try {
+        sectionVisibility = { ...sectionVisibility, ...JSON.parse(row.section_visibility) };
+      } catch {}
+    }
+
     return {
       id: row.id,
       slug: row.slug,
@@ -276,7 +309,7 @@ export async function getAllAnime() {
       title: row.title,
       originalTitle: row.original_title,
       year: row.year,
-      episodes: (fillerList && fillerList.totalEpisodes > 0) ? fillerList.totalEpisodes : row.episodes,
+      episodes: row.episodes || fillerList?.totalEpisodes || 0,
       status: row.status,
       personalRating: row.personal_rating !== null ? row.personal_rating : undefined,
       poster: row.poster,
@@ -295,19 +328,21 @@ export async function getAllAnime() {
       characters: charactersMap.get(row.id) || [],
       source,
       powerSystem,
-      lessons
+      lessons,
+      sectionVisibility
     };
   });
 }
 
 /**
  * Helper function to retrieve all available section tabs for an anime object.
- * Returns only tabs that have actual data.
+ * Returns only tabs that have actual data AND have their Admin visibility toggle set to "Show".
  * "My Take" ('review') is placed in the FIRST position when present.
  */
 export function getAvailableTabs(anime) {
   if (!anime) return [];
   const tabs = [];
+  const vis = anime.sectionVisibility || {};
 
   // 1. My Take (FIRST position when present or when watched with a personal rating; NEVER for reference guides or un-watched)
   const isWatched = anime.honestyStatus === 'watched';
@@ -317,32 +352,45 @@ export function getAvailableTabs(anime) {
   );
   const isWatchedWithRating = isWatched && (anime.personalRating !== undefined && anime.personalRating !== null);
 
-  if (hasReviewContent || isWatchedWithRating) {
+  if ((hasReviewContent || isWatchedWithRating) && vis.review !== false) {
     tabs.push({ key: 'review', label: 'My Take' });
   }
 
-  // 2. Watch Order
-  if (anime.watchOrder && anime.watchOrder.length > 0) {
+  // 2. What I Learned (Personal reflections / philosophical takeaways)
+  const hasLessonsContent = isWatched && Boolean(
+    anime.lessons && (
+      (typeof anime.lessons === 'string' && anime.lessons.trim().length > 0) ||
+      (anime.lessons.takeaway && anime.lessons.takeaway.trim().length > 0) ||
+      (anime.lessons.heading && anime.lessons.heading.trim().length > 0) ||
+      (Array.isArray(anime.lessons.paragraphs) && anime.lessons.paragraphs.length > 0)
+    )
+  );
+  if (hasLessonsContent && vis.lessons !== false) {
+    tabs.push({ key: 'lessons', label: 'What I Learned' });
+  }
+
+  // 3. Watch Order
+  if (anime.watchOrder && anime.watchOrder.length > 0 && vis.watchOrder !== false) {
     tabs.push({ key: 'watch-order', label: 'Watch Order', count: anime.watchOrder.length });
   }
 
   // 3. Filler List
-  if (anime.fillerList && anime.fillerList.types && anime.fillerList.types.length > 0) {
+  if (anime.fillerList && anime.fillerList.types && anime.fillerList.types.length > 0 && vis.fillerList !== false) {
     tabs.push({ key: 'filler-list', label: 'Filler List' });
   }
 
   // 4. Characters
-  if (anime.characters && anime.characters.length > 0) {
+  if (anime.characters && anime.characters.length > 0 && vis.characters !== false) {
     tabs.push({ key: 'characters', label: 'Characters', count: anime.characters.length });
   }
 
   // 5. Manga & Light Novel
-  if (anime.source && (anime.source.title || anime.source.type)) {
+  if (anime.source && (anime.source.title || anime.source.type) && vis.source !== false) {
     tabs.push({ key: 'source', label: 'Manga & Light Novel' });
   }
 
   // 6. Power System
-  if (anime.powerSystem && (anime.powerSystem.paragraphs?.length > 0 || anime.powerSystem.name)) {
+  if (anime.powerSystem && (anime.powerSystem.paragraphs?.length > 0 || anime.powerSystem.name) && vis.powerSystem !== false) {
     tabs.push({ key: 'power-system', label: 'Power System' });
   }
 

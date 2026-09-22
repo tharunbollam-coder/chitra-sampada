@@ -13,7 +13,7 @@ const posts = await getAllAdminBlogPosts();
       <h1 class="text-2xl sm:text-3xl font-bold font-heading text-white tracking-tight">Blog Management</h1>
       <p class="text-sm text-slate-400 mt-1">Manage editorial essays, analysis posts, and guides.</p>
     </div>
-    <div class="flex items-center gap-3">
+    <div class="flex flex-wrap items-center gap-2.5">
       <a
         href="/admin/blog/editor"
         class="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold rounded-xl shadow-sm transition"
@@ -46,7 +46,7 @@ const posts = await getAllAdminBlogPosts();
   <!-- Posts Table -->
   <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-sm">
     <div class="overflow-x-auto">
-      <table class="w-full text-left text-sm text-slate-300 divide-y divide-slate-800">
+      <table class="w-full min-w-[600px] text-left text-sm text-slate-300 divide-y divide-slate-800">
         <thead class="bg-slate-950/60 text-xs font-semibold text-slate-400 uppercase tracking-wider">
           <tr>
             <th scope="col" class="py-3.5 px-4 sm:px-6">Title & Slug</th>

@@ -30,28 +30,28 @@ const TYPE_CONFIG = {
     container: 'bg-slate-50/70 border-slate-200 text-slate-800',
     dot: 'bg-emerald-500',
     label: 'Manga Canon',
-    tagline: 'Directly adapts the original source storyline.'
+    tagline: 'Directly adapts the manga story, no additions.'
   },
   'Anime Canon': {
     badge: 'bg-sky-100 text-sky-900 border-sky-300',
     container: 'bg-slate-50/70 border-slate-200 text-slate-800',
     dot: 'bg-sky-500',
     label: 'Anime Canon',
-    tagline: 'Official storyline written or overseen for the anime continuity.'
+    tagline: 'Not from the manga, but still official/legitimate story content — usually written or approved by the original creator, not just filler padding.'
   },
   'Mixed Canon/Filler': {
     badge: 'bg-purple-100 text-purple-900 border-purple-300',
     container: 'bg-slate-50/70 border-slate-200 text-slate-800',
     dot: 'bg-purple-500',
     label: 'Mixed Canon / Filler',
-    tagline: 'Blends canonical story beats with anime-only additions.'
+    tagline: 'A single episode that blends real story content with anime-only padding added within that same episode.'
   },
   'Filler': {
     badge: 'bg-amber-100 text-amber-900 border-amber-300',
     container: 'bg-amber-50/40 border-amber-200/90 text-amber-950',
     dot: 'bg-amber-500',
     label: 'Filler Episodes (Skippable)',
-    tagline: 'Standalone anime-only side stories safe to skip.'
+    tagline: 'Entirely anime-original content unrelated to the manga story — fully skippable.'
   }
 };
 ---
@@ -81,7 +81,7 @@ const TYPE_CONFIG = {
           Canon & Filler Episode Guide
         </h2>
         <p class="text-xs sm:text-sm text-slate-600 font-normal mt-1.5 max-w-2xl leading-relaxed">
-          <strong class="text-slate-900 font-semibold">Manga Canon</strong> follows the original source story. <strong class="text-slate-900 font-semibold">Anime Canon</strong> is official continuity. <strong class="text-slate-900 font-semibold">Mixed</strong> blends both. <strong class="text-slate-900 font-semibold">Filler</strong> is anime-only side content that can be safely skipped.
+          <strong class="text-slate-900 font-semibold">Manga Canon</strong> directly adapts the manga story, no additions. <strong class="text-slate-900 font-semibold">Anime Canon</strong> is official story content written or approved by the creator (not in the manga). <strong class="text-slate-900 font-semibold">Mixed Canon/Filler</strong> refers to single episodes that blend real story content with anime-only padding within the same episode. <strong class="text-slate-900 font-semibold">Filler</strong> is entirely anime-original and fully skippable.
         </p>
       </div>
 

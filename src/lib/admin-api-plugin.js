@@ -11,6 +11,8 @@ import {
   saveAnimeCharacters,
   saveAnimeSource,
   saveAnimePowerSystem,
+  saveAnimeVisibility,
+  saveAllAnime,
   deleteAnime,
   getAllFranchises,
   saveFranchise,
@@ -262,6 +264,42 @@ export function adminApiPlugin() {
             }
             saveAnimePowerSystem(animeId, { name, paragraphs });
             return sendJson(res, 200, { success: true, message: 'Power system details saved successfully' });
+          }
+
+          // Section Visibility Toggles (Show/Hide on Public Page)
+          if (pathname === '/api/admin/anime/visibility' && method === 'POST') {
+            const body = await parseJsonBody(req);
+            const { animeId, section, visible, isVisible, visibility } = body;
+            if (!animeId) {
+              return sendJson(res, 400, { success: false, error: 'Anime ID is required' });
+            }
+            let payload = {};
+            const flag = typeof visible === 'boolean' ? visible : (typeof isVisible === 'boolean' ? isVisible : undefined);
+            if (section && typeof flag === 'boolean') {
+              payload[section] = flag;
+            } else if (visibility && typeof visibility === 'object') {
+              payload = visibility;
+            }
+            const result = saveAnimeVisibility(animeId, payload);
+            return sendJson(res, 200, { success: true, message: 'Visibility updated successfully', data: result });
+          }
+
+          // Universal Save All (Sections 1-8 + Visibility Toggles)
+          if (pathname === '/api/admin/anime/save-all' && method === 'POST') {
+            const body = await parseJsonBody(req);
+            if (!body || (!body.core && !body.animeId)) {
+              return sendJson(res, 400, { success: false, error: 'Valid anime payload is required' });
+            }
+            try {
+              const result = saveAllAnime(body);
+              return sendJson(res, 200, {
+                success: true,
+                message: 'All anime sections and visibility settings saved successfully!',
+                data: result
+              });
+            } catch (err) {
+              return sendJson(res, 400, { success: false, error: err.message });
+            }
           }
 
           // -------------------------------------------------------------

@@ -1,0 +1,65 @@
+---
+// src/components/anime/TabLessons.astro
+const { anime } = Astro.props;
+const lessons = anime.lessons || {};
+
+const heading = typeof lessons === 'object' ? lessons?.heading : null;
+const takeaway = typeof lessons === 'string'
+  ? lessons
+  : (lessons?.takeaway || (Array.isArray(lessons?.paragraphs) && lessons.paragraphs[0] ? lessons.paragraphs[0] : ''));
+
+let paragraphs = [];
+if (Array.isArray(lessons?.paragraphs)) {
+  paragraphs = lessons.paragraphs.filter(p => typeof p === 'string' && p.trim().length > 0);
+}
+---
+
+<div class="space-y-6">
+  <div class="bg-white rounded-2xl border border-slate-200 p-6 sm:p-7 shadow-xs space-y-6">
+    <!-- Header -->
+    <div class="pb-5 border-b border-slate-100">
+      <div class="flex items-center gap-2 mb-1.5">
+        <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#EEF2FF] text-[#4F46E5] border border-[#C7D2FE]">
+          <span class="w-1.5 h-1.5 rounded-full bg-[#6366F1]"></span>
+          Personal Reflections
+        </span>
+      </div>
+      <h2 class="font-heading text-xl sm:text-2xl font-bold text-[#0F172A]">
+        What I Learned From {anime.title}
+      </h2>
+      {heading && (
+        <p class="text-sm sm:text-base font-semibold text-slate-700 mt-2">
+          {heading}
+        </p>
+      )}
+    </div>
+
+    <!-- Core Takeaway Quote Card -->
+    {takeaway && (
+      <div class="p-5 sm:p-6 rounded-2xl bg-[#EEF2FF]/40 border border-[#C7D2FE]/70 text-slate-800 shadow-2xs space-y-2.5">
+        <div class="flex items-center gap-2 text-[#4F46E5]">
+          <svg class="w-5 h-5 shrink-0 text-[#4F46E5]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+          </svg>
+          <span class="text-xs font-extrabold uppercase tracking-wider text-[#4F46E5]">Philosophical Takeaway</span>
+        </div>
+        <p class="text-base sm:text-lg font-medium italic text-slate-800 leading-relaxed font-heading">
+          “{takeaway}”
+        </p>
+      </div>
+    )}
+
+    <!-- Additional Commentary Paragraphs if distinct from takeaway -->
+    {paragraphs.length > 0 && (
+      <div class="space-y-4 pt-1">
+        {paragraphs
+          .filter(p => p !== takeaway)
+          .map((para) => (
+            <p class="text-sm sm:text-base text-slate-700 leading-relaxed font-normal">
+              {para}
+            </p>
+          ))}
+      </div>
+    )}
+  </div>
+</div>
