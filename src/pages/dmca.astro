@@ -3,6 +3,8 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { siteConfig } from '../config/site.js';
 
+export const prerender = true;
+
 const pageTitle = `Copyright & DMCA Policy | ${siteConfig.name}`;
 const pageDescription = `Copyright and DMCA Policy for ${siteConfig.name}. Explaining third-party intellectual property, image attribution, original content, and content removal requests.`;
 ---

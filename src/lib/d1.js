@@ -1,15 +1,21 @@
 import { DatabaseSync } from 'node:sqlite';
 import path from 'node:path';
 import fs from 'node:fs';
+import { fileURLToPath } from 'node:url';
 
 let cachedDb = null;
 
 export function getSqliteDb() {
   if (cachedDb) return cachedDb;
 
-  const d1Dir = path.resolve(process.cwd(), '.wrangler', 'state', 'v3', 'd1');
-  if (!fs.existsSync(d1Dir)) {
-    throw new Error(`Local D1 state directory not found at ${d1Dir}. Run 'npx wrangler d1 migrations apply chitra-sampada-db --local' first.`);
+  const candidateDirs = [
+    path.resolve(process.cwd(), '.wrangler', 'state', 'v3', 'd1'),
+    path.resolve(fileURLToPath(new URL('../../', import.meta.url)).replace(/^[/\\](?=[a-zA-Z]:)/, ''), '.wrangler', 'state', 'v3', 'd1'),
+    'C:\\projects\\chitra-sampada\\.wrangler\\state\\v3\\d1'
+  ];
+  const d1Dir = candidateDirs.find(d => fs.existsSync(d));
+  if (!d1Dir) {
+    throw new Error(`Local D1 state directory not found at ${candidateDirs.join(', ')}. Run 'npx wrangler d1 migrations apply chitra-sampada-db --local' first.`);
   }
 
   function findSqlite(dir) {
@@ -37,24 +43,74 @@ export function getSqliteDb() {
 }
 
 /**
+ * Universal Database Accessor
+ * Uses Cloudflare D1 binding (env.chitra_sampada_db) when running in Cloudflare Workers / workerd,
+ * and falls back to Node.js DatabaseSync when running in Node.js build or CLI tools.
+ */
+export async function getDatabase() {
+  let cfEnv = null;
+  try {
+    const cf = await import('cloudflare:workers');
+    if (cf?.env?.chitra_sampada_db) cfEnv = cf.env.chitra_sampada_db;
+  } catch {}
+
+  if (cfEnv) {
+    return {
+      isD1: true,
+      async query(sql, ...params) {
+        let stmt = cfEnv.prepare(sql);
+        if (params.length > 0) stmt = stmt.bind(...params);
+        const res = await stmt.all();
+        return res.results || [];
+      },
+      async queryOne(sql, ...params) {
+        let stmt = cfEnv.prepare(sql);
+        if (params.length > 0) stmt = stmt.bind(...params);
+        const res = await stmt.all();
+        return res.results?.[0] || null;
+      },
+      async run(sql, ...params) {
+        let stmt = cfEnv.prepare(sql);
+        if (params.length > 0) stmt = stmt.bind(...params);
+        return await stmt.run();
+      }
+    };
+  }
+
+  const sqlite = getSqliteDb();
+  return {
+    isD1: false,
+    async query(sql, ...params) {
+      return sqlite.prepare(sql).all(...params);
+    },
+    async queryOne(sql, ...params) {
+      return sqlite.prepare(sql).get(...params) || null;
+    },
+    async run(sql, ...params) {
+      return sqlite.prepare(sql).run(...params);
+    }
+  };
+}
+
+/**
  * Fetch all anime from D1 (or local D1 SQLite during build/prerender)
  * Formatted with camelCase properties matching the UI expectations.
  */
-export function getAllAnime() {
-  const db = getSqliteDb();
+export async function getAllAnime() {
+  const db = await getDatabase();
 
   // 1. Fetch all anime rows
-  const animeRows = db.prepare(`
+  const animeRows = await db.query(`
     SELECT * FROM anime ORDER BY year DESC, title ASC
-  `).all();
+  `);
 
   // 2. Fetch related collections
-  const aliasesRows = db.prepare(`SELECT anime_id, alias FROM anime_aliases`).all();
-  const genresRows = db.prepare(`SELECT anime_id, genre FROM anime_genres`).all();
-  const vibesRows = db.prepare(`SELECT anime_id, vibe_id FROM anime_vibes`).all();
-  const fillerRows = db.prepare(`SELECT anime_id, type, episodes, episode_count FROM anime_filler_ranges`).all();
-  const characterRows = db.prepare(`SELECT anime_id, rank, name, category, role, commentary FROM anime_characters ORDER BY rank ASC`).all();
-  const watchOrderRows = db.prepare(`SELECT franchise_id, step_order, title, type, episodes, anime_id, note FROM franchise_watch_order ORDER BY step_order ASC`).all();
+  const aliasesRows = await db.query(`SELECT anime_id, alias FROM anime_aliases`);
+  const genresRows = await db.query(`SELECT anime_id, genre FROM anime_genres`);
+  const vibesRows = await db.query(`SELECT anime_id, vibe_id FROM anime_vibes`);
+  const fillerRows = await db.query(`SELECT anime_id, type, episodes, episode_count FROM anime_filler_ranges`);
+  const characterRows = await db.query(`SELECT anime_id, rank, name, category, role, commentary FROM anime_characters ORDER BY rank ASC`);
+  const watchOrderRows = await db.query(`SELECT franchise_id, step_order, title, type, episodes, anime_id, note FROM franchise_watch_order ORDER BY step_order ASC`);
 
   // Group helpers
   const aliasesMap = new Map();
@@ -152,13 +208,17 @@ export function getAllAnime() {
       }
 
       const totalCanonCount = mangaCanonCount + animeCanonCount;
+      const totalEpisodes = mangaCanonCount + animeCanonCount + mixedCount + fillerCount;
+      const calculatedFillerPercentage = totalEpisodes > 0 ? Math.round((fillerCount / totalEpisodes) * 100) : 0;
 
       fillerList = {
+        totalEpisodes,
         fillerEpisodes: fillerCount,
         canonEpisodes: totalCanonCount,
         mangaCanonEpisodes: mangaCanonCount,
         animeCanonEpisodes: animeCanonCount,
         mixedEpisodes: mixedCount,
+        fillerPercentage: calculatedFillerPercentage,
         types: activeFillerTypes.map(t => ({
           type: t.type,
           episodes: t.episodes,
@@ -216,7 +276,7 @@ export function getAllAnime() {
       title: row.title,
       originalTitle: row.original_title,
       year: row.year,
-      episodes: row.episodes,
+      episodes: (fillerList && fillerList.totalEpisodes > 0) ? fillerList.totalEpisodes : row.episodes,
       status: row.status,
       personalRating: row.personal_rating !== null ? row.personal_rating : undefined,
       poster: row.poster,
@@ -224,7 +284,7 @@ export function getAllAnime() {
       addedDate: row.added_date,
       lastUpdated: row.last_updated,
       honestyStatus: row.honesty_status,
-      fillerPercentage: row.filler_percentage,
+      fillerPercentage: (fillerList && fillerList.totalEpisodes > 0) ? fillerList.fillerPercentage : row.filler_percentage,
       genres: genresMap.get(row.id) || [],
       vibes: vibesMap.get(row.id) || [],
       trending: Boolean(row.trending),
@@ -292,21 +352,21 @@ export function getAvailableTabs(anime) {
 /**
  * Fetch all blog posts from D1 SQLite (optionally including drafts)
  */
-export function getAllBlogPosts({ includeDrafts = false } = {}) {
-  const db = getSqliteDb();
+export async function getAllBlogPosts({ includeDrafts = false } = {}) {
+  const db = await getDatabase();
   const query = includeDrafts
     ? `SELECT * FROM blog_posts ORDER BY published_date DESC`
     : `SELECT * FROM blog_posts WHERE status = 'published' ORDER BY published_date DESC`;
 
-  const postRows = db.prepare(query).all();
+  const postRows = await db.query(query);
 
   // Fetch linked anime
-  const linkRows = db.prepare(`
+  const linkRows = await db.query(`
     SELECT bpa.post_id, a.id, a.slug, a.title, a.year, a.honesty_status
     FROM blog_post_anime bpa
     JOIN anime a ON bpa.anime_id = a.id
     ORDER BY a.title ASC
-  `).all();
+  `);
 
   const linksMap = new Map();
   for (const row of linkRows) {
@@ -342,24 +402,24 @@ export function getAllBlogPosts({ includeDrafts = false } = {}) {
 /**
  * Fetch a single blog post by slug
  */
-export function getBlogPostBySlug(slug, { includeDrafts = false } = {}) {
-  const posts = getAllBlogPosts({ includeDrafts });
+export async function getBlogPostBySlug(slug, { includeDrafts = false } = {}) {
+  const posts = await getAllBlogPosts({ includeDrafts });
   return posts.find((p) => p.slug === slug) || null;
 }
 
 /**
  * Fetch all published blog posts linked to a specific anime ID
  */
-export function getBlogPostsForAnime(animeId) {
+export async function getBlogPostsForAnime(animeId) {
   if (!animeId) return [];
-  const db = getSqliteDb();
-  const rows = db.prepare(`
+  const db = await getDatabase();
+  const rows = await db.query(`
     SELECT bp.*
     FROM blog_posts bp
     JOIN blog_post_anime bpa ON bp.id = bpa.post_id
     WHERE bpa.anime_id = ? AND bp.status = 'published'
     ORDER BY bp.published_date DESC
-  `).all(animeId);
+  `, animeId);
 
   return rows.map((row) => {
     const wordCount = row.content ? row.content.trim().split(/\s+/).length : 0;
@@ -377,6 +437,15 @@ export function getBlogPostsForAnime(animeId) {
       readTime: `${readTimeMinutes} min read`
     };
   });
+}
+
+/**
+ * Fetch single anime by slug, ID, or alias
+ */
+export async function getAnimeBySlugOrId(slugOrId) {
+  if (!slugOrId) return null;
+  const list = await getAllAnime();
+  return list.find(a => a.slug === slugOrId || a.id === slugOrId || (a.aliases && a.aliases.includes(slugOrId))) || null;
 }
 
 /**

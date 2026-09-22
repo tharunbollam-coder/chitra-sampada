@@ -1,40 +1,52 @@
 // src/lib/admin-db.js
 // Server-side SQLite / D1 data mutations using parameterized queries.
 
-import { getSqliteDb } from './d1.js';
+import { getSqliteDb, getDatabase } from './d1.js';
 import { validateEpisodeString } from './filler-utils.js';
 
 /**
  * Fetch an anime entry by ID along with all its related normalized records.
  */
-export function getAnimeById(idOrSlug) {
+export async function getAnimeById(idOrSlug) {
   if (!idOrSlug) return null;
-  const db = getSqliteDb();
+  const db = await getDatabase();
 
-  const animeRow = db.prepare(`SELECT * FROM anime WHERE id = ? OR slug = ?`).get(idOrSlug, idOrSlug);
+  const animeRow = await db.queryOne(`SELECT * FROM anime WHERE id = ? OR slug = ?`, idOrSlug, idOrSlug);
   if (!animeRow) return null;
 
   const actualId = animeRow.id;
-  const aliases = db.prepare(`SELECT alias FROM anime_aliases WHERE anime_id = ?`).all(actualId).map(r => r.alias);
-  const genres = db.prepare(`SELECT genre FROM anime_genres WHERE anime_id = ?`).all(actualId).map(r => r.genre);
-  const vibes = db.prepare(`SELECT vibe_id FROM anime_vibes WHERE anime_id = ?`).all(actualId).map(r => r.vibe_id);
-  const fillerRows = db.prepare(`
+  const aliases = (await db.query(`SELECT alias FROM anime_aliases WHERE anime_id = ?`, actualId)).map(r => r.alias);
+  const genres = (await db.query(`SELECT genre FROM anime_genres WHERE anime_id = ?`, actualId)).map(r => r.genre);
+  const vibes = (await db.query(`SELECT vibe_id FROM anime_vibes WHERE anime_id = ?`, actualId)).map(r => r.vibe_id);
+  const fillerRows = await db.query(`
     SELECT type, episodes, episode_count as episodeCount 
     FROM anime_filler_ranges 
     WHERE anime_id = ?
-  `).all(actualId);
+  `, actualId);
   const fillerBreakdown = {
     mangaCanon: fillerRows.find(r => r.type === 'Manga Canon')?.episodes || '',
     animeCanon: fillerRows.find(r => r.type === 'Anime Canon')?.episodes || '',
     mixedCanon: fillerRows.find(r => r.type === 'Mixed Canon/Filler')?.episodes || '',
     filler: fillerRows.find(r => r.type === 'Filler')?.episodes || ''
   };
-  const characters = db.prepare(`
+
+  const countManga = fillerRows.find(r => r.type === 'Manga Canon')?.episodeCount || 0;
+  const countAnime = fillerRows.find(r => r.type === 'Anime Canon')?.episodeCount || 0;
+  const countMixed = fillerRows.find(r => r.type === 'Mixed Canon/Filler')?.episodeCount || 0;
+  const countFiller = fillerRows.find(r => r.type === 'Filler')?.episodeCount || 0;
+  const totalBreakdownEpisodes = countManga + countAnime + countMixed + countFiller;
+  const canonBreakdownEpisodes = countManga + countAnime;
+  const calculatedFillerPercentage = totalBreakdownEpisodes > 0
+    ? Math.round((countFiller / totalBreakdownEpisodes) * 100)
+    : (animeRow.filler_percentage || 0);
+  const effectiveEpisodes = totalBreakdownEpisodes > 0 ? totalBreakdownEpisodes : animeRow.episodes;
+
+  const characters = await db.query(`
     SELECT id, rank, name, category, role, commentary 
     FROM anime_characters 
     WHERE anime_id = ? 
     ORDER BY rank ASC
-  `).all(actualId);
+  `, actualId);
 
   let reviewParagraphs = [];
   if (animeRow.review_paragraphs) {
@@ -60,7 +72,7 @@ export function getAnimeById(idOrSlug) {
     title: animeRow.title,
     originalTitle: animeRow.original_title || '',
     year: animeRow.year,
-    episodes: animeRow.episodes,
+    episodes: effectiveEpisodes,
     status: animeRow.status,
     personalRating: animeRow.personal_rating !== null ? animeRow.personal_rating : '',
     poster: animeRow.poster || '',
@@ -68,7 +80,7 @@ export function getAnimeById(idOrSlug) {
     addedDate: animeRow.added_date || '',
     lastUpdated: animeRow.last_updated || '',
     honestyStatus: animeRow.honesty_status,
-    fillerPercentage: animeRow.filler_percentage,
+    fillerPercentage: calculatedFillerPercentage,
     trending: Boolean(animeRow.trending),
     synopsis: animeRow.synopsis || '',
     franchiseId: animeRow.franchise_id || '',
@@ -99,7 +111,18 @@ export function getAnimeById(idOrSlug) {
       name: animeRow.power_system_name || '',
       paragraphs: powerParagraphs
     },
-    fillerBreakdown,
+    fillerBreakdown: {
+      ...fillerBreakdown,
+      totalEpisodes: totalBreakdownEpisodes,
+      canonEpisodes: canonBreakdownEpisodes,
+      fillerPercentage: calculatedFillerPercentage,
+      counts: {
+        mangaCanon: countManga,
+        animeCanon: countAnime,
+        mixedCanon: countMixed,
+        filler: countFiller
+      }
+    },
     fillerRows,
     characters
   };
@@ -136,15 +159,30 @@ export function saveAnimeCore(data) {
     throw new Error('ID, Slug, and Title are required.');
   }
 
-  const existing = db.prepare(`SELECT id FROM anime WHERE id = ?`).get(id);
+  const existing = db.prepare(`SELECT * FROM anime WHERE id = ?`).get(id);
 
   db.exec('BEGIN IMMEDIATE TRANSACTION;');
   try {
-    const parsedRating = personalRating !== '' && personalRating !== null ? Number(personalRating) : null;
-    const parsedYear = Number(year) || 0;
-    const parsedEpisodes = Number(episodes) || 0;
-    const parsedTrending = trending ? 1 : 0;
-    const parsedFiller = Number(fillerPercentage) || 0;
+    const parsedRating = personalRating !== '' && personalRating !== null && personalRating !== undefined
+      ? Number(personalRating)
+      : (existing?.personal_rating ?? null);
+    const parsedYear = Number(year) || (existing?.year ?? 0);
+    const parsedEpisodes = (episodes !== undefined && episodes !== null && episodes !== '')
+      ? Number(episodes)
+      : (Number(existing?.episodes) || 0);
+    const parsedTrending = trending ? 1 : (existing?.trending ? 1 : 0);
+    const parsedFiller = (fillerPercentage !== undefined && fillerPercentage !== null && fillerPercentage !== '')
+      ? (Number(fillerPercentage) || 0)
+      : (Number(existing?.filler_percentage) || 0);
+
+    const finalOriginalTitle = originalTitle !== undefined ? String(originalTitle) : (existing?.original_title ?? '');
+    const finalStatus = status || existing?.status || 'Finished';
+    const finalPoster = poster !== undefined ? String(poster) : (existing?.poster ?? '');
+    const finalBackdrop = backdrop !== undefined ? String(backdrop) : (existing?.backdrop ?? '');
+    const finalAddedDate = addedDate || existing?.added_date || new Date().toISOString().split('T')[0];
+    const finalLastUpdated = lastUpdated || new Date().toISOString().split('T')[0];
+    const finalHonestyStatus = honestyStatus || existing?.honesty_status || 'watched';
+    const finalSynopsis = synopsis !== undefined ? String(synopsis) : (existing?.synopsis ?? '');
 
     if (existing) {
       db.prepare(`
@@ -155,10 +193,10 @@ export function saveAnimeCore(data) {
           filler_percentage = ?, trending = ?, synopsis = ?
         WHERE id = ?
       `).run(
-        slug, title, originalTitle, parsedYear, parsedEpisodes,
-        status, parsedRating, poster, backdrop,
-        addedDate, lastUpdated, honestyStatus,
-        parsedFiller, parsedTrending, synopsis,
+        slug, title, finalOriginalTitle, parsedYear, parsedEpisodes,
+        finalStatus, parsedRating, finalPoster, finalBackdrop,
+        finalAddedDate, finalLastUpdated, finalHonestyStatus,
+        parsedFiller, parsedTrending, finalSynopsis,
         id
       );
     } else {
@@ -170,10 +208,10 @@ export function saveAnimeCore(data) {
           filler_percentage, trending, synopsis
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).run(
-        id, slug, title, originalTitle, parsedYear, parsedEpisodes,
-        status, parsedRating, poster, backdrop,
-        addedDate, lastUpdated, honestyStatus,
-        parsedFiller, parsedTrending, synopsis
+        id, slug, title, finalOriginalTitle, parsedYear, parsedEpisodes,
+        finalStatus, parsedRating, finalPoster, finalBackdrop,
+        finalAddedDate, finalLastUpdated, finalHonestyStatus,
+        parsedFiller, parsedTrending, finalSynopsis
       );
     }
 
@@ -307,21 +345,33 @@ export function saveAnimeFillerList(animeId, breakdown = {}) {
       insertType.run(animeId, 'Filler', valFiller.normalized, valFiller.count);
     }
 
-    // Auto-calculate filler percentage
+    // Auto-calculate filler percentage from sum of all 4 categories
+    const totalEpisodes = valManga.count + valAnime.count + valMixed.count + valFiller.count;
+    const canonEpisodes = valManga.count + valAnime.count;
     let calculatedPercentage = 0;
-    if (anime.episodes > 0 && valFiller.count > 0) {
-      calculatedPercentage = Math.min(100, Math.round((valFiller.count / anime.episodes) * 100));
+    if (totalEpisodes > 0 && valFiller.count > 0) {
+      calculatedPercentage = Math.min(100, Math.round((valFiller.count / totalEpisodes) * 100));
     }
 
-    db.prepare(`
-      UPDATE anime 
-      SET filler_percentage = ?, last_updated = date('now') 
-      WHERE id = ?
-    `).run(calculatedPercentage, animeId);
+    if (totalEpisodes > 0) {
+      db.prepare(`
+        UPDATE anime 
+        SET filler_percentage = ?, episodes = ?, last_updated = date('now') 
+        WHERE id = ?
+      `).run(calculatedPercentage, totalEpisodes, animeId);
+    } else {
+      db.prepare(`
+        UPDATE anime 
+        SET filler_percentage = ?, last_updated = date('now') 
+        WHERE id = ?
+      `).run(calculatedPercentage, animeId);
+    }
 
     db.exec('COMMIT;');
     return {
       success: true,
+      totalEpisodes,
+      canonEpisodes,
       fillerPercentage: calculatedPercentage,
       counts: {
         mangaCanon: valManga.count,
@@ -443,10 +493,10 @@ export function deleteAnime(animeId) {
 // Franchise & Watch Order Operations
 // -------------------------------------------------------------
 
-export function getAllFranchises() {
-  const db = getSqliteDb();
-  const franchises = db.prepare(`SELECT * FROM franchises ORDER BY name ASC`).all();
-  const allSteps = db.prepare(`SELECT * FROM franchise_watch_order ORDER BY step_order ASC`).all();
+export async function getAllFranchises() {
+  const db = await getDatabase();
+  const franchises = await db.query(`SELECT * FROM franchises ORDER BY name ASC`);
+  const allSteps = await db.query(`SELECT * FROM franchise_watch_order ORDER BY step_order ASC`);
 
   const stepsMap = new Map();
   for (const step of allSteps) {
@@ -526,14 +576,14 @@ export function deleteFranchise(franchiseId) {
 // Blog Management Operations
 // -------------------------------------------------------------
 
-export function getAllAdminBlogPosts() {
-  const db = getSqliteDb();
-  const posts = db.prepare(`SELECT * FROM blog_posts ORDER BY published_date DESC`).all();
-  const links = db.prepare(`
+export async function getAllAdminBlogPosts() {
+  const db = await getDatabase();
+  const posts = await db.query(`SELECT * FROM blog_posts ORDER BY published_date DESC`);
+  const links = await db.query(`
     SELECT bpa.post_id, a.id, a.title, a.slug, a.year 
     FROM blog_post_anime bpa 
     JOIN anime a ON bpa.anime_id = a.id
-  `).all();
+  `);
 
   const linksMap = new Map();
   for (const row of links) {
@@ -560,8 +610,8 @@ export function getAllAdminBlogPosts() {
   });
 }
 
-export function getAdminBlogPostById(id) {
-  const posts = getAllAdminBlogPosts();
+export async function getAdminBlogPostById(id) {
+  const posts = await getAllAdminBlogPosts();
   return posts.find(p => p.id === id || p.slug === id) || null;
 }
 

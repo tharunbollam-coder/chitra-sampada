@@ -93,7 +93,7 @@ export function adminApiPlugin() {
             if (method === 'GET') {
               const id = url.searchParams.get('id') || url.searchParams.get('slug');
               if (id) {
-                const anime = getAnimeById(id);
+                const anime = await getAnimeById(id);
                 if (!anime) {
                   return sendJson(res, 404, { success: false, error: 'Anime not found' });
                 }
@@ -217,7 +217,9 @@ export function adminApiPlugin() {
               });
               return sendJson(res, 200, {
                 success: true,
-                message: `Episode breakdown saved. Recalculated filler: ${result.fillerPercentage}%`,
+                message: `Episode breakdown saved. Total: ${result.totalEpisodes} eps (Canon: ${result.canonEpisodes}, Mixed: ${result.counts.mixedCanon}, Filler: ${result.counts.filler}). Filler: ${result.fillerPercentage}%`,
+                totalEpisodes: result.totalEpisodes,
+                canonEpisodes: result.canonEpisodes,
                 fillerPercentage: result.fillerPercentage,
                 counts: result.counts
               });
@@ -267,7 +269,7 @@ export function adminApiPlugin() {
           // -------------------------------------------------------------
           if (pathname === '/api/admin/franchises') {
             if (method === 'GET') {
-              const list = getAllFranchises();
+              const list = await getAllFranchises();
               return sendJson(res, 200, { success: true, data: list });
             }
 
@@ -299,13 +301,13 @@ export function adminApiPlugin() {
             if (method === 'GET') {
               const id = url.searchParams.get('id');
               if (id) {
-                const post = getAdminBlogPostById(id);
+                const post = await getAdminBlogPostById(id);
                 if (!post) {
                   return sendJson(res, 404, { success: false, error: 'Post not found' });
                 }
                 return sendJson(res, 200, { success: true, data: post });
               }
-              const posts = getAllAdminBlogPosts();
+              const posts = await getAllAdminBlogPosts();
               return sendJson(res, 200, { success: true, data: posts });
             }
 

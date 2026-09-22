@@ -11,38 +11,27 @@ import TabReview from '../../../components/anime/TabReview.astro';
 import RelatedBlogPosts from '../../../components/RelatedBlogPosts.astro';
 import { getAllAnime, getAvailableTabs, getDefaultTabKey } from '../../../lib/d1.js';
 
-export function getStaticPaths() {
-  const animeList = getAllAnime();
-  const paths = [];
+const { slug, tab } = Astro.params;
 
-  for (const anime of animeList) {
-    const availableTabs = getAvailableTabs(anime);
-    const defaultTabKey = getDefaultTabKey(anime, availableTabs) || 'watch-order';
+// Query D1 directly on each request so newly added anime entries appear immediately
+const animeList = await getAllAnime();
+const anime = animeList.find(
+  (a) => a.slug === slug || a.id === slug || (a.aliases && a.aliases.includes(slug))
+);
 
-    // Generate routes for canonical slug, id, and any defined aliases
-    const allSlugs = Array.from(new Set([anime.slug, anime.id, ...(anime.aliases || [])].filter(Boolean)));
-
-    for (const slug of allSlugs) {
-      // 1. Root route: /anime/${slug} (renders the preferred default tab — 'review' if available, otherwise first tab)
-      paths.push({
-        params: { slug, tab: undefined },
-        props: { anime, activeTabKey: defaultTabKey, availableTabs }
-      });
-
-      // 2. Tab-specific routes: /anime/${slug}/${tab.key}
-      for (const tab of availableTabs) {
-        paths.push({
-          params: { slug, tab: tab.key },
-          props: { anime, activeTabKey: tab.key, availableTabs }
-        });
-      }
-    }
-  }
-
-  return paths;
+if (!anime) {
+  return new Response('Anime Not Found', { status: 404 });
 }
 
-const { anime, activeTabKey, availableTabs } = Astro.props;
+const availableTabs = getAvailableTabs(anime);
+const defaultTabKey = getDefaultTabKey(anime, availableTabs) || 'watch-order';
+
+// If a specific tab is requested in the URL path, ensure it exists in availableTabs
+if (tab && !availableTabs.some((t) => t.key === tab)) {
+  return new Response('Tab Not Found', { status: 404 });
+}
+
+const activeTabKey = tab || defaultTabKey;
 
 const isZeroFiller = anime.fillerPercentage === 0;
 const activeTab = availableTabs.find((t) => t.key === activeTabKey) || availableTabs[0];

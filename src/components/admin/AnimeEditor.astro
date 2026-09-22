@@ -2,7 +2,7 @@
 // src/components/admin/AnimeEditor.astro
 import AdminLayout from '../../layouts/AdminLayout.astro';
 import { getAllFranchises } from '../../lib/admin-db.js';
-import { getSqliteDb } from '../../lib/d1.js';
+import { getDatabase } from '../../lib/d1.js';
 import { vibes } from '../../data/vibes.js';
 
 interface Props {
@@ -14,10 +14,18 @@ const anime = initialAnime;
 const isNew = !anime;
 const pageTitle = isNew ? 'Add New Anime' : `Edit Anime: ${anime.title}`;
 
-const franchises = getAllFranchises();
-const db = getSqliteDb();
-const existingGenreRows = db.prepare('SELECT DISTINCT genre FROM anime_genres ORDER BY genre ASC').all();
+const franchises = await getAllFranchises();
+const db = await getDatabase();
+const existingGenreRows = await db.query('SELECT DISTINCT genre FROM anime_genres ORDER BY genre ASC');
 const existingGenres = existingGenreRows.map(r => r.genre);
+
+const fillerBreakdown = anime?.fillerBreakdown || {};
+const initCounts = fillerBreakdown.counts || { mangaCanon: 0, animeCanon: 0, mixedCanon: 0, filler: 0 };
+const initTotal = fillerBreakdown.totalEpisodes ?? (initCounts.mangaCanon + initCounts.animeCanon + initCounts.mixedCanon + initCounts.filler);
+const initCanon = fillerBreakdown.canonEpisodes ?? (initCounts.mangaCanon + initCounts.animeCanon);
+const initMixed = initCounts.mixedCanon || 0;
+const initFiller = initCounts.filler || 0;
+const initPct = fillerBreakdown.fillerPercentage ?? (initTotal > 0 ? Math.round((initFiller / initTotal) * 100) : (anime?.fillerPercentage || 0));
 ---
 
 <AdminLayout title={pageTitle} activeSection="anime">
@@ -653,8 +661,8 @@ const existingGenres = existingGenreRows.map(r => r.genre);
             <h2 class="text-base font-semibold text-white font-heading">Filler & Canon Episode Breakdown</h2>
             <p class="text-xs text-slate-400">
               Comma-separated lists of episodes and ranges with automatic filler percentage calculation
-              <span id="filler-pct-display" class={`text-indigo-400 font-mono ml-1 font-semibold ${anime?.fillerPercentage !== undefined ? '' : 'hidden'}`}>
-                ({anime?.fillerPercentage || 0}% filler)
+              <span id="filler-pct-display" class={`text-indigo-400 font-mono ml-1 font-semibold ${initTotal > 0 ? '' : 'hidden'}`}>
+                ({initPct}% filler)
               </span>
             </p>
           </div>
@@ -671,6 +679,46 @@ const existingGenres = existingGenreRows.map(r => r.genre);
         <div id="filler-feedback" class="hidden mb-5 p-3.5 rounded-xl text-xs sm:text-sm font-medium border"></div>
 
         <form id="form-filler" class="space-y-4">
+          <!-- Summary Header Stats Bar (Derived directly from 4 category counts) -->
+          <div class="p-4 bg-slate-950 border border-slate-800 rounded-xl flex flex-wrap items-center justify-between gap-4">
+            <div class="flex items-center gap-3 sm:gap-4 flex-wrap">
+              <!-- Total Episodes -->
+              <div class="px-3.5 py-2 rounded-lg bg-slate-900 border border-slate-800 text-center min-w-[85px]">
+                <span class="block text-[10px] font-bold uppercase tracking-wider text-slate-400">Total</span>
+                <span id="admin-filler-total" class="text-sm font-extrabold text-white">{initTotal} eps</span>
+              </div>
+
+              <!-- Canon Episodes -->
+              <div class="px-3.5 py-2 rounded-lg bg-emerald-950/40 border border-emerald-800/60 text-center min-w-[85px]">
+                <span class="block text-[10px] font-bold uppercase tracking-wider text-emerald-400">Canon</span>
+                <span id="admin-filler-canon" class="text-sm font-extrabold text-emerald-300">{initCanon} eps</span>
+              </div>
+
+              <!-- Mixed Episodes -->
+              <div class="px-3.5 py-2 rounded-lg bg-purple-950/40 border border-purple-800/60 text-center min-w-[85px]">
+                <span class="block text-[10px] font-bold uppercase tracking-wider text-purple-400">Mixed</span>
+                <span id="admin-filler-mixed" class="text-sm font-extrabold text-purple-300">{initMixed} eps</span>
+              </div>
+
+              <!-- Filler Episodes -->
+              <div class="px-3.5 py-2 rounded-lg bg-amber-950/40 border border-amber-800/60 text-center min-w-[85px]">
+                <span class="block text-[10px] font-bold uppercase tracking-wider text-amber-400">Filler</span>
+                <span id="admin-filler-count" class="text-sm font-extrabold text-amber-300">{initFiller} eps</span>
+              </div>
+            </div>
+
+            <!-- Filler Percentage Badge -->
+            <div class="flex items-center gap-2">
+              <span class="text-xs text-slate-400 font-medium">Calculated Filler:</span>
+              <span
+                id="admin-filler-pct-badge"
+                class="text-xs font-bold font-mono px-3 py-1.5 rounded-lg border bg-amber-500/10 text-amber-400 border-amber-500/30"
+              >
+                {initPct}% Filler
+              </span>
+            </div>
+          </div>
+
           <p class="text-xs text-slate-400">
             Type or paste a comma-separated list of ranges and single episode numbers directly into each category below (e.g. <code class="text-indigo-300 font-mono">1-44, 48-49, 52-53, 100, 103-130</code>). All four types are always available.
           </p>
@@ -1202,6 +1250,67 @@ const existingGenres = existingGenreRows.map(r => r.genre);
       container.appendChild(div);
     }
 
+    // Helper: count episodes from comma-separated ranges and numbers
+    function countEpisodesFromRangeString(str) {
+      if (!str || !str.trim()) return 0;
+      const parts = str.split(',').map(s => s.trim()).filter(Boolean);
+      let count = 0;
+      for (const p of parts) {
+        const rm = p.match(/^(\d+)\s*[-–—]\s*(\d+)$/);
+        if (rm) {
+          const start = parseInt(rm[1], 10);
+          const end = parseInt(rm[2], 10);
+          if (start <= end) {
+            count += (end - start + 1);
+          }
+          continue;
+        }
+        const sm = p.match(/^(\d+)$/);
+        if (sm) {
+          count += 1;
+        }
+      }
+      return count;
+    }
+
+    // Dynamic Live Stats Calculation for Section 5 Header
+    function updateLiveFillerStats() {
+      const mangaStr = document.getElementById('filler-manga-canon')?.value || '';
+      const animeStr = document.getElementById('filler-anime-canon')?.value || '';
+      const mixedStr = document.getElementById('filler-mixed')?.value || '';
+      const fillerStr = document.getElementById('filler-filler')?.value || '';
+
+      const countManga = countEpisodesFromRangeString(mangaStr);
+      const countAnime = countEpisodesFromRangeString(animeStr);
+      const countMixed = countEpisodesFromRangeString(mixedStr);
+      const countFiller = countEpisodesFromRangeString(fillerStr);
+
+      const total = countManga + countAnime + countMixed + countFiller;
+      const canon = countManga + countAnime;
+      const pct = total > 0 ? Math.round((countFiller / total) * 100) : 0;
+
+      const totalEl = document.getElementById('admin-filler-total');
+      const canonEl = document.getElementById('admin-filler-canon');
+      const mixedEl = document.getElementById('admin-filler-mixed');
+      const fillerEl = document.getElementById('admin-filler-count');
+      const pctBadge = document.getElementById('admin-filler-pct-badge');
+      const pctDisplay = document.getElementById('filler-pct-display');
+
+      if (totalEl) totalEl.textContent = `${total} eps`;
+      if (canonEl) canonEl.textContent = `${canon} eps`;
+      if (mixedEl) mixedEl.textContent = `${countMixed} eps`;
+      if (fillerEl) fillerEl.textContent = `${countFiller} eps`;
+      if (pctBadge) pctBadge.textContent = `${pct}% Filler`;
+      if (pctDisplay) {
+        if (total > 0) {
+          pctDisplay.textContent = `(${pct}% filler)`;
+          pctDisplay.classList.remove('hidden');
+        } else {
+          pctDisplay.classList.add('hidden');
+        }
+      }
+    }
+
     // Full Form Hydration Function: populates all fields, unlocks sections, sets Edit header
     function hydrateAnimeData(a) {
       if (!a) return;
@@ -1338,11 +1447,7 @@ const existingGenres = existingGenreRows.map(r => r.genre);
       const fFiller = document.getElementById('filler-filler');
       if (fFiller) fFiller.value = a.fillerBreakdown?.filler || '';
 
-      const pctDisplay = document.getElementById('filler-pct-display');
-      if (pctDisplay && a.fillerPercentage !== undefined) {
-        pctDisplay.textContent = `(${a.fillerPercentage}% filler)`;
-        pctDisplay.classList.remove('hidden');
-      }
+      updateLiveFillerStats();
 
       // 8. Populate Section 6: Characters
       const charsContainer = document.getElementById('chars-container');
@@ -1720,19 +1825,24 @@ const existingGenres = existingGenreRows.map(r => r.genre);
         });
         const data = await res.json();
         if (data.success) {
-          setFeedback(fillerFeedback, `✓ Episode breakdown saved! Recalculated total filler: ${data.fillerPercentage}%`, 'success');
+          updateLiveFillerStats();
+          setFeedback(fillerFeedback, `✓ Episode breakdown saved! Total: ${data.totalEpisodes} eps (${data.canonEpisodes} canon, ${data.counts.filler} filler). Filler: ${data.fillerPercentage}%`, 'success');
           fillerBadge.classList.remove('hidden');
           window.showAdminToast(`Filler updated (${data.fillerPercentage}% filler)`, 'success');
-          const pctDisplay = document.getElementById('filler-pct-display');
-          if (pctDisplay) {
-            pctDisplay.textContent = `(${data.fillerPercentage}% filler)`;
-            pctDisplay.classList.remove('hidden');
-          }
         } else {
           setFeedback(fillerFeedback, 'Error: ' + data.error, 'error');
         }
       } catch (err) {
         setFeedback(fillerFeedback, 'Network error: ' + err.message, 'error');
+      }
+    });
+
+    // Wire live input & change listeners to recalculate header stats in real-time
+    ['filler-manga-canon', 'filler-anime-canon', 'filler-mixed', 'filler-filler'].forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.addEventListener('input', updateLiveFillerStats);
+        el.addEventListener('change', updateLiveFillerStats);
       }
     });
 

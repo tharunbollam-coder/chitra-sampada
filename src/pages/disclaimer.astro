@@ -3,6 +3,8 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { siteConfig } from '../config/site.js';
 
+export const prerender = true;
+
 const pageTitle = `Content & Ratings Disclaimer | ${siteConfig.name}`;
 const pageDescription = `Content and Ratings Disclaimer for ${siteConfig.name}. Explaining age rating guidance tiers, regional variations, and filler/watch order accuracy.`;
 ---

@@ -7,7 +7,7 @@ import { getAllAnime } from '../../lib/d1.js';
 import { vibes } from '../../data/vibes.js';
 import { siteConfig } from '../../config/site.js';
 
-const animeList = getAllAnime();
+const animeList = await getAllAnime();
 
 // Featured selection for the static grid (top 4 titles to reduce mobile scroll fatigue)
 const featuredAnime = animeList.filter((a) => a.trending).slice(0, 4);

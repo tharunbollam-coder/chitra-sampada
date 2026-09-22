@@ -5,16 +5,14 @@ import AnimeCard from '../../../components/AnimeCard.astro';
 import { getAllAnime } from '../../../lib/d1.js';
 import { vibes } from '../../../data/vibes.js';
 
-export function getStaticPaths() {
-  return vibes.map((vibe) => ({
-    params: { slug: vibe.slug },
-    props: { vibe }
-  }));
+const { slug } = Astro.params;
+const vibe = vibes.find((v) => v.slug === slug);
+
+if (!vibe) {
+  return new Response('Vibe not found', { status: 404 });
 }
 
-const { vibe } = Astro.props;
-
-const animeList = getAllAnime();
+const animeList = await getAllAnime();
 
 // Filter matching anime for this vibe
 const matchingAnime = animeList.filter((a) => a.vibes && a.vibes.includes(vibe.id));

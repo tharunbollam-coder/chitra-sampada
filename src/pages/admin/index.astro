@@ -1,18 +1,10 @@
 ---
 // src/pages/admin/index.astro
 import AdminLayout from '../../layouts/AdminLayout.astro';
-import { getSqliteDb } from '../../lib/d1.js';
+import { getAllAnime } from '../../lib/d1.js';
 
-const db = getSqliteDb();
-
-// Load anime list directly for initial server-rendered fast load
-const animeList = db.prepare(`
-  SELECT a.id, a.slug, a.title, a.original_title as originalTitle, a.year, a.episodes,
-         a.status, a.honesty_status as honestyStatus, a.personal_rating as personalRating,
-         a.last_updated as lastUpdated, a.filler_percentage as fillerPercentage, a.trending
-  FROM anime a
-  ORDER BY a.year DESC, a.title ASC
-`).all();
+// Load anime list dynamically
+const animeList = await getAllAnime();
 
 const totalAnime = animeList.length;
 const totalWatched = animeList.filter(a => a.honestyStatus === 'watched').length;

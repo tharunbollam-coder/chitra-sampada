@@ -2,18 +2,17 @@
 // src/pages/admin/blog/editor.astro
 import AdminLayout from '../../../layouts/AdminLayout.astro';
 import { getAdminBlogPostById } from '../../../lib/admin-db.js';
-import { getSqliteDb } from '../../../lib/d1.js';
+import { getAllAnime } from '../../../lib/d1.js';
 
 const url = new URL(Astro.request.url);
 const postId = url.searchParams.get('id');
 
 let post = null;
 if (postId) {
-  post = getAdminBlogPostById(postId);
+  post = await getAdminBlogPostById(postId);
 }
 
-const db = getSqliteDb();
-const animeList = db.prepare('SELECT id, title, year FROM anime ORDER BY title ASC').all();
+const animeList = await getAllAnime();
 
 const isNew = !post;
 const todayStr = new Date().toISOString().split('T')[0];

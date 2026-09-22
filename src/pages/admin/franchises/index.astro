@@ -2,11 +2,10 @@
 // src/pages/admin/franchises/index.astro
 import AdminLayout from '../../../layouts/AdminLayout.astro';
 import { getAllFranchises } from '../../../lib/admin-db.js';
-import { getSqliteDb } from '../../../lib/d1.js';
+import { getAllAnime } from '../../../lib/d1.js';
 
-const franchises = getAllFranchises();
-const db = getSqliteDb();
-const animeList = db.prepare('SELECT id, title, year FROM anime ORDER BY title ASC').all();
+const franchises = await getAllFranchises();
+const animeList = await getAllAnime();
 ---
 
 <AdminLayout title="Franchises & Watch Orders" activeSection="franchises">

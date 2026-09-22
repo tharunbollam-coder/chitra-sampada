@@ -3,7 +3,25 @@
 const { anime } = Astro.props;
 const fillerData = anime.fillerList || {};
 const types = fillerData.types || [];
-const isZeroFiller = anime.fillerPercentage === 0;
+
+const mangaCanonCount = types.find((t) => t.type === 'Manga Canon')?.count || 0;
+const animeCanonCount = types.find((t) => t.type === 'Anime Canon')?.count || 0;
+const mixedCount = types.find((t) => t.type === 'Mixed Canon/Filler')?.count || 0;
+const fillerCount = types.find((t) => t.type === 'Filler')?.count || 0;
+
+const totalEpisodes = types.length > 0
+  ? (mangaCanonCount + animeCanonCount + mixedCount + fillerCount)
+  : (fillerData.totalEpisodes || anime.episodes || 0);
+
+const canonEpisodes = types.length > 0
+  ? (mangaCanonCount + animeCanonCount)
+  : (fillerData.canonEpisodes || 0);
+
+const fillerPercentage = totalEpisodes > 0
+  ? Math.min(100, Math.round((fillerCount / totalEpisodes) * 100))
+  : (fillerData.fillerPercentage ?? anime.fillerPercentage ?? 0);
+
+const isZeroFiller = fillerPercentage === 0;
 
 // Type configurations for headers, styling, and badges
 const TYPE_CONFIG = {
@@ -56,7 +74,7 @@ const TYPE_CONFIG = {
               ? 'bg-[#EEF2FF] text-[#4F46E5] border-[#C7D2FE]'
               : 'bg-slate-100 text-slate-800 border-slate-300'
           ]}>
-            {isZeroFiller ? '0% Filler' : `${anime.fillerPercentage}% Filler Content`}
+            {isZeroFiller ? '0% Filler' : `${fillerPercentage}% Filler Content`}
           </span>
         </div>
         <h2 class="font-heading text-xl sm:text-2xl font-bold text-[#0F172A]">
@@ -71,22 +89,22 @@ const TYPE_CONFIG = {
       <div class="flex items-center gap-3 shrink-0 flex-wrap sm:flex-nowrap">
         <div class="px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-center min-w-[90px]">
           <span class="block text-[10px] font-bold uppercase tracking-wider text-slate-500">Total</span>
-          <span class="text-base font-extrabold text-[#0F172A]">{anime.episodes} eps</span>
+          <span class="text-base font-extrabold text-[#0F172A]">{totalEpisodes} eps</span>
         </div>
         <div class="px-4 py-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-center min-w-[90px]">
           <span class="block text-[10px] font-bold uppercase tracking-wider text-emerald-700">Canon</span>
-          <span class="text-base font-extrabold text-emerald-950">{fillerData.canonEpisodes || (anime.episodes - (fillerData.fillerEpisodes || 0))} eps</span>
+          <span class="text-base font-extrabold text-emerald-950">{canonEpisodes} eps</span>
         </div>
-        {fillerData.mixedEpisodes > 0 && (
+        {mixedCount > 0 && (
           <div class="px-4 py-2.5 rounded-xl bg-purple-50 border border-purple-200 text-center min-w-[90px]">
             <span class="block text-[10px] font-bold uppercase tracking-wider text-purple-700">Mixed</span>
-            <span class="text-base font-extrabold text-purple-950">{fillerData.mixedEpisodes} eps</span>
+            <span class="text-base font-extrabold text-purple-950">{mixedCount} eps</span>
           </div>
         )}
         {!isZeroFiller && (
           <div class="px-4 py-2.5 rounded-xl bg-amber-50 border border-amber-200 text-center min-w-[90px]">
             <span class="block text-[10px] font-bold uppercase tracking-wider text-amber-700">Filler</span>
-            <span class="text-base font-extrabold text-amber-950">{fillerData.fillerEpisodes || 0} eps</span>
+            <span class="text-base font-extrabold text-amber-950">{fillerCount} eps</span>
           </div>
         )}
       </div>

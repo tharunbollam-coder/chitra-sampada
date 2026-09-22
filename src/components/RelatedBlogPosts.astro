@@ -9,7 +9,7 @@ interface Props {
 }
 
 const { animeId, animeTitle } = Astro.props;
-const relatedPosts = getBlogPostsForAnime(animeId);
+const relatedPosts = await getBlogPostsForAnime(animeId);
 ---
 
 {relatedPosts && relatedPosts.length > 0 && (

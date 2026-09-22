@@ -5,7 +5,7 @@ import AnimeCard from '../../components/AnimeCard.astro';
 import { getAllAnime } from '../../lib/d1.js';
 import { vibes } from '../../data/vibes.js';
 
-const animeList = getAllAnime();
+const animeList = await getAllAnime();
 
 // Metrics
 const watchedCount = animeList.filter((a) => a.honestyStatus === 'watched').length;

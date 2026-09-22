@@ -3,6 +3,8 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { siteConfig } from '../config/site.js';
 
+export const prerender = true;
+
 const pageTitle = `Terms of Use | ${siteConfig.name}`;
 const pageDescription = `Terms of Use for ${siteConfig.name}. An independently-run entertainment reference site currently featuring an in-depth Anime section.`;
 ---
