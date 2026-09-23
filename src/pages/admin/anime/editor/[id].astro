@@ -4,7 +4,7 @@ import AnimeEditor from '../../../../components/admin/AnimeEditor.astro';
 import { getAnimeById } from '../../../../lib/admin-db.js';
 
 const { id } = Astro.params;
-const anime = await getAnimeById(id);
+const anime = await getAnimeById(id, Astro.locals);
 ---
 
 <AnimeEditor initialAnime={anime} />

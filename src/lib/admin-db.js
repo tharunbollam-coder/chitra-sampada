@@ -7,9 +7,9 @@ import { validateEpisodeString } from './filler-utils.js';
 /**
  * Fetch an anime entry by ID along with all its related normalized records.
  */
-export async function getAnimeById(idOrSlug) {
+export async function getAnimeById(idOrSlug, contextOrLocals = null) {
   if (!idOrSlug) return null;
-  const db = await getDatabase();
+  const db = await getDatabase(contextOrLocals);
 
   const animeRow = await db.queryOne(`SELECT * FROM anime WHERE id = ? OR slug = ?`, idOrSlug, idOrSlug);
   if (!animeRow) return null;
@@ -609,8 +609,8 @@ export function deleteAnime(animeId) {
 // Franchise & Watch Order Operations
 // -------------------------------------------------------------
 
-export async function getAllFranchises() {
-  const db = await getDatabase();
+export async function getAllFranchises(contextOrLocals = null) {
+  const db = await getDatabase(contextOrLocals);
   const franchises = await db.query(`SELECT * FROM franchises ORDER BY name ASC`);
   const allSteps = await db.query(`SELECT * FROM franchise_watch_order ORDER BY step_order ASC`);
 
@@ -692,8 +692,8 @@ export function deleteFranchise(franchiseId) {
 // Blog Management Operations
 // -------------------------------------------------------------
 
-export async function getAllAdminBlogPosts() {
-  const db = await getDatabase();
+export async function getAllAdminBlogPosts(contextOrLocals = null) {
+  const db = await getDatabase(contextOrLocals);
   const posts = await db.query(`SELECT * FROM blog_posts ORDER BY published_date DESC`);
   const links = await db.query(`
     SELECT bpa.post_id, a.id, a.title, a.slug, a.year 
@@ -726,8 +726,8 @@ export async function getAllAdminBlogPosts() {
   });
 }
 
-export async function getAdminBlogPostById(id) {
-  const posts = await getAllAdminBlogPosts();
+export async function getAdminBlogPostById(id, contextOrLocals = null) {
+  const posts = await getAllAdminBlogPosts(contextOrLocals);
   return posts.find(p => p.id === id || p.slug === id) || null;
 }
 

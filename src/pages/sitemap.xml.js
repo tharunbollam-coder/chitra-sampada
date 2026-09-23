@@ -2,13 +2,13 @@ import { getAllAnime, getAvailableTabs, getAllBlogPosts } from '../lib/d1.js';
 import { vibes } from '../data/vibes.js';
 import { siteConfig } from '../config/site.js';
 
-export async function GET() {
+export async function GET(context) {
   const siteUrl = (siteConfig.siteUrl || 'https://chitrasampada.com').replace(/\/+$/, '');
 
   // Fetch live records from D1
   const [animeList, blogPosts] = await Promise.all([
-    getAllAnime().catch(() => []),
-    getAllBlogPosts({ includeDrafts: false }).catch(() => [])
+    getAllAnime(context?.locals).catch(() => []),
+    getAllBlogPosts({ includeDrafts: false }, context?.locals).catch(() => [])
   ]);
 
   const urls = [];

@@ -9,10 +9,10 @@ const postId = url.searchParams.get('id');
 
 let post = null;
 if (postId) {
-  post = await getAdminBlogPostById(postId);
+  post = await getAdminBlogPostById(postId, Astro.locals);
 }
 
-const animeList = await getAllAnime();
+const animeList = await getAllAnime(Astro.locals);
 
 const isNew = !post;
 const todayStr = new Date().toISOString().split('T')[0];

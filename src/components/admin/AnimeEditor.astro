@@ -14,8 +14,8 @@ const anime = initialAnime;
 const isNew = !anime;
 const pageTitle = isNew ? 'Add New Anime' : `Edit Anime: ${anime.title}`;
 
-const franchises = await getAllFranchises();
-const db = await getDatabase();
+const franchises = await getAllFranchises(Astro.locals);
+const db = await getDatabase(Astro.locals);
 const existingGenreRows = await db.query('SELECT DISTINCT genre FROM anime_genres ORDER BY genre ASC');
 const existingGenres = existingGenreRows.map(r => r.genre);
 

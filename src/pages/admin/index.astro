@@ -4,7 +4,7 @@ import AdminLayout from '../../layouts/AdminLayout.astro';
 import { getAllAnime } from '../../lib/d1.js';
 
 // Load anime list dynamically
-const animeList = await getAllAnime();
+const animeList = await getAllAnime(Astro.locals);
 
 const totalAnime = animeList.length;
 const totalWatched = animeList.filter(a => a.honestyStatus === 'watched').length;

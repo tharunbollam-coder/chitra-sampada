@@ -8,9 +8,16 @@ let cachedDb = null;
 export function getSqliteDb() {
   if (cachedDb) return cachedDb;
 
+  let metaDir = null;
+  try {
+    if (typeof import.meta?.url === 'string' && import.meta.url.startsWith('file:')) {
+      metaDir = path.resolve(fileURLToPath(new URL('../../', import.meta.url)).replace(/^[/\\](?=[a-zA-Z]:)/, ''), '.wrangler', 'state', 'v3', 'd1');
+    }
+  } catch {}
+
   const candidateDirs = [
     path.resolve(process.cwd(), '.wrangler', 'state', 'v3', 'd1'),
-    path.resolve(fileURLToPath(new URL('../../', import.meta.url)).replace(/^[/\\](?=[a-zA-Z]:)/, ''), '.wrangler', 'state', 'v3', 'd1'),
+    ...(metaDir ? [metaDir] : []),
     'C:\\projects\\chitra-sampada\\.wrangler\\state\\v3\\d1'
   ];
   const d1Dir = candidateDirs.find(d => fs.existsSync(d));
@@ -42,41 +49,91 @@ export function getSqliteDb() {
   return cachedDb;
 }
 
+function wrapD1(cfDb) {
+  return {
+    isD1: true,
+    async query(sql, ...params) {
+      let stmt = cfDb.prepare(sql);
+      if (params.length > 0) stmt = stmt.bind(...params);
+      const res = await stmt.all();
+      return res.results || [];
+    },
+    async queryOne(sql, ...params) {
+      let stmt = cfDb.prepare(sql);
+      if (params.length > 0) stmt = stmt.bind(...params);
+      const res = await stmt.all();
+      return res.results?.[0] || null;
+    },
+    async run(sql, ...params) {
+      let stmt = cfDb.prepare(sql);
+      if (params.length > 0) stmt = stmt.bind(...params);
+      return await stmt.run();
+    }
+  };
+}
+
 /**
  * Universal Database Accessor
- * Uses Cloudflare D1 binding (env.chitra_sampada_db) when running in Cloudflare Workers / workerd,
+ * Uses Cloudflare D1 binding (DB or chitra_sampada_db) when running in Cloudflare Workers / workerd,
  * and falls back to Node.js DatabaseSync when running in Node.js build or CLI tools.
  */
-export async function getDatabase() {
-  let cfEnv = null;
-  try {
-    const cf = await import('cloudflare:workers');
-    if (cf?.env?.chitra_sampada_db) cfEnv = cf.env.chitra_sampada_db;
-  } catch {}
+export async function getDatabase(contextOrLocals) {
+  let cfDb = null;
 
-  if (cfEnv) {
-    return {
-      isD1: true,
-      async query(sql, ...params) {
-        let stmt = cfEnv.prepare(sql);
-        if (params.length > 0) stmt = stmt.bind(...params);
-        const res = await stmt.all();
-        return res.results || [];
-      },
-      async queryOne(sql, ...params) {
-        let stmt = cfEnv.prepare(sql);
-        if (params.length > 0) stmt = stmt.bind(...params);
-        const res = await stmt.all();
-        return res.results?.[0] || null;
-      },
-      async run(sql, ...params) {
-        let stmt = cfEnv.prepare(sql);
-        if (params.length > 0) stmt = stmt.bind(...params);
-        return await stmt.run();
-      }
-    };
+  // 1. Direct binding or context object passed
+  if (contextOrLocals) {
+    if (typeof contextOrLocals.prepare === 'function') {
+      cfDb = contextOrLocals;
+    } else if (contextOrLocals.DB && typeof contextOrLocals.DB.prepare === 'function') {
+      cfDb = contextOrLocals.DB;
+    } else if (contextOrLocals.chitra_sampada_db && typeof contextOrLocals.chitra_sampada_db.prepare === 'function') {
+      cfDb = contextOrLocals.chitra_sampada_db;
+    } else if (contextOrLocals.env?.DB && typeof contextOrLocals.env.DB.prepare === 'function') {
+      cfDb = contextOrLocals.env.DB;
+    } else if (contextOrLocals.env?.chitra_sampada_db && typeof contextOrLocals.env.chitra_sampada_db.prepare === 'function') {
+      cfDb = contextOrLocals.env.chitra_sampada_db;
+    }
   }
 
+  // 2. Official Cloudflare Workers module import (Astro v6+ / @astrojs/cloudflare recommendation)
+  if (!cfDb) {
+    try {
+      const cf = await import('cloudflare:workers');
+      if (cf?.env?.DB && typeof cf.env.DB.prepare === 'function') {
+        cfDb = cf.env.DB;
+      } else if (cf?.env?.chitra_sampada_db && typeof cf.env.chitra_sampada_db.prepare === 'function') {
+        cfDb = cf.env.chitra_sampada_db;
+      }
+    } catch {}
+  }
+
+  // 3. Global scope fallback
+  if (!cfDb && typeof globalThis !== 'undefined') {
+    if (globalThis.DB && typeof globalThis.DB.prepare === 'function') {
+      cfDb = globalThis.DB;
+    } else if (globalThis.env?.DB && typeof globalThis.env.DB.prepare === 'function') {
+      cfDb = globalThis.env.DB;
+    } else if (globalThis.env?.chitra_sampada_db && typeof globalThis.env.chitra_sampada_db.prepare === 'function') {
+      cfDb = globalThis.env.chitra_sampada_db;
+    }
+  }
+
+  if (cfDb && typeof cfDb.prepare === 'function') {
+    return wrapD1(cfDb);
+  }
+
+  // 4. Check if running in Cloudflare Workers runtime where Node SQLite is completely unavailable
+  const isCloudflare = 
+    (typeof navigator !== 'undefined' && navigator.userAgent === 'Cloudflare-Workers') ||
+    (typeof WebSocketPair !== 'undefined') ||
+    (typeof process === 'undefined') ||
+    (!process.versions?.node);
+
+  if (isCloudflare) {
+    throw new Error("Cloudflare D1 database binding 'DB' was not found in Astro.locals.runtime.env or cloudflare:workers.");
+  }
+
+  // 5. Local Node.js / CLI / Build environment fallback
   const sqlite = getSqliteDb();
   return {
     isD1: false,
@@ -96,8 +153,8 @@ export async function getDatabase() {
  * Fetch all anime from D1 (or local D1 SQLite during build/prerender)
  * Formatted with camelCase properties matching the UI expectations.
  */
-export async function getAllAnime() {
-  const db = await getDatabase();
+export async function getAllAnime(contextOrLocals) {
+  const db = await getDatabase(contextOrLocals);
 
   // 1. Fetch all anime rows
   const animeRows = await db.query(`
@@ -400,8 +457,24 @@ export function getAvailableTabs(anime) {
 /**
  * Fetch all blog posts from D1 SQLite (optionally including drafts)
  */
-export async function getAllBlogPosts({ includeDrafts = false } = {}) {
-  const db = await getDatabase();
+export async function getAllBlogPosts(optionsOrContext = {}, contextOrLocals = null) {
+  let includeDrafts = false;
+  let ctx = contextOrLocals;
+
+  if (optionsOrContext) {
+    if (optionsOrContext.runtime || optionsOrContext.locals || optionsOrContext.env || optionsOrContext.DB || optionsOrContext.prepare) {
+      ctx = optionsOrContext;
+    } else {
+      if (typeof optionsOrContext.includeDrafts === 'boolean') {
+        includeDrafts = optionsOrContext.includeDrafts;
+      }
+      if (optionsOrContext.contextOrLocals || optionsOrContext.locals) {
+        ctx = optionsOrContext.contextOrLocals || optionsOrContext.locals;
+      }
+    }
+  }
+
+  const db = await getDatabase(ctx);
   const query = includeDrafts
     ? `SELECT * FROM blog_posts ORDER BY published_date DESC`
     : `SELECT * FROM blog_posts WHERE status = 'published' ORDER BY published_date DESC`;
@@ -450,17 +523,17 @@ export async function getAllBlogPosts({ includeDrafts = false } = {}) {
 /**
  * Fetch a single blog post by slug
  */
-export async function getBlogPostBySlug(slug, { includeDrafts = false } = {}) {
-  const posts = await getAllBlogPosts({ includeDrafts });
+export async function getBlogPostBySlug(slug, optionsOrContext = {}, contextOrLocals = null) {
+  const posts = await getAllBlogPosts(optionsOrContext, contextOrLocals);
   return posts.find((p) => p.slug === slug) || null;
 }
 
 /**
  * Fetch all published blog posts linked to a specific anime ID
  */
-export async function getBlogPostsForAnime(animeId) {
+export async function getBlogPostsForAnime(animeId, contextOrLocals = null) {
   if (!animeId) return [];
-  const db = await getDatabase();
+  const db = await getDatabase(contextOrLocals);
   const rows = await db.query(`
     SELECT bp.*
     FROM blog_posts bp
@@ -490,9 +563,9 @@ export async function getBlogPostsForAnime(animeId) {
 /**
  * Fetch single anime by slug, ID, or alias
  */
-export async function getAnimeBySlugOrId(slugOrId) {
+export async function getAnimeBySlugOrId(slugOrId, contextOrLocals = null) {
   if (!slugOrId) return null;
-  const list = await getAllAnime();
+  const list = await getAllAnime(contextOrLocals);
   return list.find(a => a.slug === slugOrId || a.id === slugOrId || (a.aliases && a.aliases.includes(slugOrId))) || null;
 }
 

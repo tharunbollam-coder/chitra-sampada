@@ -3,7 +3,7 @@
 import AdminLayout from '../../../layouts/AdminLayout.astro';
 import { getAllAdminBlogPosts } from '../../../lib/admin-db.js';
 
-const posts = await getAllAdminBlogPosts();
+const posts = await getAllAdminBlogPosts(Astro.locals);
 ---
 
 <AdminLayout title="Blog Management" activeSection="blog">

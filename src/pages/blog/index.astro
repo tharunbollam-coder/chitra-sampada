@@ -5,7 +5,7 @@ import BlogPostCard from '../../components/BlogPostCard.astro';
 import { getAllBlogPosts } from '../../lib/d1.js';
 import { siteConfig } from '../../config/site.js';
 
-const posts = await getAllBlogPosts();
+const posts = await getAllBlogPosts(Astro.locals);
 
 const pageTitle = 'Articles & Insights';
 const pageDescription = `Honest anime commentary, filler breakdowns, and in-depth companion essays for real viewers from ${siteConfig.name}.`;

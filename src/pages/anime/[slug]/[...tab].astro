@@ -16,7 +16,7 @@ import { siteConfig } from '../../../config/site.js';
 const { slug, tab } = Astro.params;
 
 // Query D1 directly on each request so newly added anime entries appear immediately
-const animeList = await getAllAnime();
+const animeList = await getAllAnime(Astro.locals);
 const anime = animeList.find(
   (a) => a.slug === slug || a.id === slug || (a.aliases && a.aliases.includes(slug))
 );

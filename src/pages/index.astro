@@ -8,7 +8,7 @@ import PositivityNote from '../components/PositivityNote.astro';
 import { getAllAnime } from '../lib/d1.js';
 import { siteConfig } from '../config/site.js';
 
-const animeList = await getAllAnime();
+const animeList = await getAllAnime(Astro.locals);
 
 // Top titles for the homepage spotlight
 const spotlightAnime = animeList.filter((a) => a.trending).slice(0, 4);

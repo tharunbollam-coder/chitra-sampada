@@ -13,7 +13,7 @@ if (!vibe) {
   return new Response('Vibe not found', { status: 404 });
 }
 
-const animeList = await getAllAnime();
+const animeList = await getAllAnime(Astro.locals);
 
 // Filter matching anime for this vibe
 const matchingAnime = animeList.filter((a) => a.vibes && a.vibes.includes(vibe.id));

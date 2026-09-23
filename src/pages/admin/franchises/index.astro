@@ -4,8 +4,8 @@ import AdminLayout from '../../../layouts/AdminLayout.astro';
 import { getAllFranchises } from '../../../lib/admin-db.js';
 import { getAllAnime } from '../../../lib/d1.js';
 
-const franchises = await getAllFranchises();
-const animeList = await getAllAnime();
+const franchises = await getAllFranchises(Astro.locals);
+const animeList = await getAllAnime(Astro.locals);
 ---
 
 <AdminLayout title="Franchises & Watch Orders" activeSection="franchises">

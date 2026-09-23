@@ -6,7 +6,7 @@ import { getAllAnime } from '../../lib/d1.js';
 import { vibes } from '../../data/vibes.js';
 import { siteConfig } from '../../config/site.js';
 
-const animeList = await getAllAnime();
+const animeList = await getAllAnime(Astro.locals);
 
 // Metrics
 const watchedCount = animeList.filter((a) => a.honestyStatus === 'watched').length;
