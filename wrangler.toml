@@ -3,6 +3,6 @@ compatibility_date = "2026-09-18"
 
 # Cloudflare D1 Database Binding
 [[d1_databases]]
-binding = "chitra_sampada_db"
+binding = "DB"
 database_name = "chitra-sampada-db"
 database_id = "841c7352-3807-4634-bfb2-f6842fe96506"
