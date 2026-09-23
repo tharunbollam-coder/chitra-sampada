@@ -18,22 +18,41 @@ export async function getAnimeById(idOrSlug, contextOrLocals = null) {
   const aliases = (await db.query(`SELECT alias FROM anime_aliases WHERE anime_id = ?`, actualId)).map(r => r.alias);
   const genres = (await db.query(`SELECT genre FROM anime_genres WHERE anime_id = ?`, actualId)).map(r => r.genre);
   const vibes = (await db.query(`SELECT vibe_id FROM anime_vibes WHERE anime_id = ?`, actualId)).map(r => r.vibe_id);
-  const fillerRows = await db.query(`
-    SELECT type, episodes, episode_count as episodeCount 
-    FROM anime_filler_ranges 
-    WHERE anime_id = ?
-  `, actualId);
-  const fillerBreakdown = {
-    mangaCanon: fillerRows.find(r => r.type === 'Manga Canon')?.episodes || '',
-    animeCanon: fillerRows.find(r => r.type === 'Anime Canon')?.episodes || '',
-    mixedCanon: fillerRows.find(r => r.type === 'Mixed Canon/Filler')?.episodes || '',
-    filler: fillerRows.find(r => r.type === 'Filler')?.episodes || ''
+  let fillerRows = [];
+  try {
+    fillerRows = await db.query(`
+      SELECT * 
+      FROM anime_filler_ranges 
+      WHERE anime_id = ?
+    `, actualId);
+  } catch (err) {
+    console.warn("Failed to query anime_filler_ranges in getAnimeById:", err?.message || err);
+  }
+
+  const getEp = (t) => {
+    const row = fillerRows.find(r => r.type === t);
+    return row?.episodes || row?.range || '';
+  };
+  const getCount = (t) => {
+    const row = fillerRows.find(r => r.type === t);
+    if (!row) return 0;
+    if (typeof row.episode_count === 'number') return row.episode_count;
+    if (typeof row.episodeCount === 'number') return row.episodeCount;
+    const epStr = row.episodes || row.range || '';
+    return epStr ? epStr.split(',').length : 0;
   };
 
-  const countManga = fillerRows.find(r => r.type === 'Manga Canon')?.episodeCount || 0;
-  const countAnime = fillerRows.find(r => r.type === 'Anime Canon')?.episodeCount || 0;
-  const countMixed = fillerRows.find(r => r.type === 'Mixed Canon/Filler')?.episodeCount || 0;
-  const countFiller = fillerRows.find(r => r.type === 'Filler')?.episodeCount || 0;
+  const fillerBreakdown = {
+    mangaCanon: getEp('Manga Canon'),
+    animeCanon: getEp('Anime Canon'),
+    mixedCanon: getEp('Mixed Canon/Filler'),
+    filler: getEp('Filler')
+  };
+
+  const countManga = getCount('Manga Canon');
+  const countAnime = getCount('Anime Canon');
+  const countMixed = getCount('Mixed Canon/Filler');
+  const countFiller = getCount('Filler');
   const totalBreakdownEpisodes = countManga + countAnime + countMixed + countFiller;
   const canonBreakdownEpisodes = countManga + countAnime;
   const calculatedFillerPercentage = totalBreakdownEpisodes > 0

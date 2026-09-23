@@ -77,6 +77,49 @@ function wrapD1(cfDb) {
  * Uses Cloudflare D1 binding (DB or chitra_sampada_db) when running in Cloudflare Workers / workerd,
  * and falls back to Node.js DatabaseSync when running in Node.js build or CLI tools.
  */
+let schemaEnsuredPromise = null;
+
+/**
+ * Non-destructive schema compatibility check:
+ * Ensures missing columns (such as 'episodes' / 'episode_count' on anime_filler_ranges
+ * or 'section_visibility' on anime) are safely created if earlier migrations were not run
+ * on remote D1. Preserves 100% of all existing table data without dropping or clearing.
+ */
+async function ensureSchemaCompatibility(db) {
+  if (!schemaEnsuredPromise) {
+    schemaEnsuredPromise = (async () => {
+      try {
+        const fillerInfo = await db.query(`PRAGMA table_info(anime_filler_ranges)`);
+        const fillerCols = new Set(fillerInfo.map(c => c.name));
+        if (fillerCols.size > 0) {
+          if (!fillerCols.has('episodes')) {
+            await db.run(`ALTER TABLE anime_filler_ranges ADD COLUMN episodes TEXT`);
+          }
+          if (!fillerCols.has('episode_count')) {
+            await db.run(`ALTER TABLE anime_filler_ranges ADD COLUMN episode_count INTEGER DEFAULT 0`);
+          }
+          if (fillerCols.has('range')) {
+            await db.run(`UPDATE anime_filler_ranges SET episodes = range WHERE (episodes IS NULL OR episodes = '') AND range IS NOT NULL`);
+          }
+        }
+      } catch (err) {
+        console.warn('[Schema Compatibility] anime_filler_ranges note:', err?.message || err);
+      }
+
+      try {
+        const animeInfo = await db.query(`PRAGMA table_info(anime)`);
+        const animeCols = new Set(animeInfo.map(c => c.name));
+        if (animeCols.size > 0 && !animeCols.has('section_visibility')) {
+          await db.run(`ALTER TABLE anime ADD COLUMN section_visibility TEXT`);
+        }
+      } catch (err) {
+        console.warn('[Schema Compatibility] anime section_visibility note:', err?.message || err);
+      }
+    })();
+  }
+  await schemaEnsuredPromise;
+}
+
 export async function getDatabase(contextOrLocals) {
   let cfDb = null;
 
@@ -119,7 +162,9 @@ export async function getDatabase(contextOrLocals) {
   }
 
   if (cfDb && typeof cfDb.prepare === 'function') {
-    return wrapD1(cfDb);
+    const wrapped = wrapD1(cfDb);
+    await ensureSchemaCompatibility(wrapped);
+    return wrapped;
   }
 
   // 4. Check if running in Cloudflare Workers runtime where Node SQLite is completely unavailable
@@ -135,7 +180,7 @@ export async function getDatabase(contextOrLocals) {
 
   // 5. Local Node.js / CLI / Build environment fallback
   const sqlite = getSqliteDb();
-  return {
+  const wrapped = {
     isD1: false,
     async query(sql, ...params) {
       return sqlite.prepare(sql).all(...params);
@@ -147,6 +192,8 @@ export async function getDatabase(contextOrLocals) {
       return sqlite.prepare(sql).run(...params);
     }
   };
+  await ensureSchemaCompatibility(wrapped);
+  return wrapped;
 }
 
 /**
@@ -157,17 +204,57 @@ export async function getAllAnime(contextOrLocals) {
   const db = await getDatabase(contextOrLocals);
 
   // 1. Fetch all anime rows
-  const animeRows = await db.query(`
-    SELECT * FROM anime ORDER BY year DESC, title ASC
-  `);
+  let animeRows = [];
+  try {
+    animeRows = await db.query(`SELECT * FROM anime ORDER BY year DESC, title ASC`);
+  } catch (err) {
+    console.error("Failed to query anime table:", err);
+    return [];
+  }
 
-  // 2. Fetch related collections
-  const aliasesRows = await db.query(`SELECT anime_id, alias FROM anime_aliases`);
-  const genresRows = await db.query(`SELECT anime_id, genre FROM anime_genres`);
-  const vibesRows = await db.query(`SELECT anime_id, vibe_id FROM anime_vibes`);
-  const fillerRows = await db.query(`SELECT anime_id, type, episodes, episode_count FROM anime_filler_ranges`);
-  const characterRows = await db.query(`SELECT anime_id, rank, name, category, role, commentary FROM anime_characters ORDER BY rank ASC`);
-  const watchOrderRows = await db.query(`SELECT franchise_id, step_order, title, type, episodes, anime_id, note FROM franchise_watch_order ORDER BY step_order ASC`);
+  // 2. Fetch related collections safely with fallbacks
+  let aliasesRows = [];
+  try {
+    aliasesRows = await db.query(`SELECT anime_id, alias FROM anime_aliases`);
+  } catch (e) {
+    console.warn("Failed to load anime_aliases:", e?.message || e);
+  }
+
+  let genresRows = [];
+  try {
+    genresRows = await db.query(`SELECT anime_id, genre FROM anime_genres`);
+  } catch (e) {
+    console.warn("Failed to load anime_genres:", e?.message || e);
+  }
+
+  let vibesRows = [];
+  try {
+    vibesRows = await db.query(`SELECT anime_id, vibe_id FROM anime_vibes`);
+  } catch (e) {
+    console.warn("Failed to load anime_vibes:", e?.message || e);
+  }
+
+  // Tolerant query: selecting * works on both legacy schema (range) and simplified schema (episodes)
+  let fillerRows = [];
+  try {
+    fillerRows = await db.query(`SELECT * FROM anime_filler_ranges`);
+  } catch (e) {
+    console.warn("Failed to load anime_filler_ranges:", e?.message || e);
+  }
+
+  let characterRows = [];
+  try {
+    characterRows = await db.query(`SELECT anime_id, rank, name, category, role, commentary FROM anime_characters ORDER BY rank ASC`);
+  } catch (e) {
+    console.warn("Failed to load anime_characters:", e?.message || e);
+  }
+
+  let watchOrderRows = [];
+  try {
+    watchOrderRows = await db.query(`SELECT franchise_id, step_order, title, type, episodes, anime_id, note FROM franchise_watch_order ORDER BY step_order ASC`);
+  } catch (e) {
+    console.warn("Failed to load franchise_watch_order:", e?.message || e);
+  }
 
   // Group helpers
   const aliasesMap = new Map();
@@ -191,10 +278,14 @@ export async function getAllAnime(contextOrLocals) {
   const fillerMap = new Map();
   for (const row of fillerRows) {
     if (!fillerMap.has(row.anime_id)) fillerMap.set(row.anime_id, []);
+    const epVal = row.episodes || row.range || '';
+    const epCount = typeof row.episode_count === 'number'
+      ? row.episode_count
+      : (epVal ? epVal.split(',').length : 0);
     fillerMap.get(row.anime_id).push({
       type: row.type,
-      episodes: row.episodes,
-      count: row.episode_count || 0
+      episodes: epVal,
+      count: epCount
     });
   }
 
@@ -479,15 +570,26 @@ export async function getAllBlogPosts(optionsOrContext = {}, contextOrLocals = n
     ? `SELECT * FROM blog_posts ORDER BY published_date DESC`
     : `SELECT * FROM blog_posts WHERE status = 'published' ORDER BY published_date DESC`;
 
-  const postRows = await db.query(query);
+  let postRows = [];
+  try {
+    postRows = await db.query(query);
+  } catch (err) {
+    console.warn("Could not query blog_posts:", err?.message || err);
+    return [];
+  }
 
   // Fetch linked anime
-  const linkRows = await db.query(`
-    SELECT bpa.post_id, a.id, a.slug, a.title, a.year, a.honesty_status
-    FROM blog_post_anime bpa
-    JOIN anime a ON bpa.anime_id = a.id
-    ORDER BY a.title ASC
-  `);
+  let linkRows = [];
+  try {
+    linkRows = await db.query(`
+      SELECT bpa.post_id, a.id, a.slug, a.title, a.year, a.honesty_status
+      FROM blog_post_anime bpa
+      JOIN anime a ON bpa.anime_id = a.id
+      ORDER BY a.title ASC
+    `);
+  } catch (err) {
+    console.warn("Could not query blog_post_anime:", err?.message || err);
+  }
 
   const linksMap = new Map();
   for (const row of linkRows) {
