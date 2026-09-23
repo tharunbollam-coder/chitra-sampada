@@ -5,11 +5,34 @@ import { siteConfig } from '../config/site.js';
 
 export const prerender = true;
 
-const pageTitle = `Contact | ${siteConfig.name}`;
+const pageTitle = 'Contact';
 const pageDescription = `Contact ${siteConfig.name}. Have a correction, a suggestion for an anime to add, a copyright concern, or just feedback? We'd genuinely like to hear from you.`;
+
+const siteOrigin = (siteConfig.siteUrl || 'https://chitrasampada.com').replace(/\/+$/, '');
+const breadcrumbSchema = {
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "name": "Home",
+      "item": `${siteOrigin}/`
+    },
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "name": "Contact",
+      "item": `${siteOrigin}/contact`
+    }
+  ]
+};
 ---
 
 <BaseLayout title={pageTitle} description={pageDescription}>
+  <Fragment slot="structured-data">
+    <script type="application/ld+json" set:html={JSON.stringify(breadcrumbSchema)} />
+  </Fragment>
   <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-20 space-y-12">
     
     <!-- Breadcrumb & Header -->

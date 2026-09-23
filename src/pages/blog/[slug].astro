@@ -21,11 +21,70 @@ const formattedPubDate = !isNaN(pubDateObj.getTime())
   ? pubDateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
   : post.publishedDate;
 
-const pageTitle = `${post.title} | ${siteConfig.name}`;
+const pageTitle = post.title;
 const pageDescription = post.excerpt;
+
+const siteOrigin = (siteConfig.siteUrl || (Astro.site ? Astro.site.origin : 'https://chitrasampada.com')).replace(/\/+$/, '');
+const canonicalUrl = `${siteOrigin}/blog/${post.slug}`;
+
+const breadcrumbSchema = {
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "name": "Home",
+      "item": `${siteOrigin}/`
+    },
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "name": "Blog",
+      "item": `${siteOrigin}/blog`
+    },
+    {
+      "@type": "ListItem",
+      "position": 3,
+      "name": post.title,
+      "item": canonicalUrl
+    }
+  ]
+};
+
+const articleSchema = {
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline": post.title,
+  "description": post.excerpt,
+  "datePublished": post.publishedDate,
+  "dateModified": post.lastUpdated || post.publishedDate,
+  "author": {
+    "@type": "Person",
+    "name": "Chitra Sampada Editorial",
+    "url": `${siteOrigin}/about`
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "Chitra Sampada",
+    "url": siteOrigin,
+    "logo": {
+      "@type": "ImageObject",
+      "url": `${siteOrigin}/favicon.svg`
+    }
+  },
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": canonicalUrl
+  }
+};
 ---
 
-<BaseLayout title={pageTitle} description={pageDescription}>
+<BaseLayout title={pageTitle} description={pageDescription} canonicalUrl={canonicalUrl}>
+  <Fragment slot="structured-data">
+    <script type="application/ld+json" set:html={JSON.stringify(breadcrumbSchema)} />
+    <script type="application/ld+json" set:html={JSON.stringify(articleSchema)} />
+  </Fragment>
   <main class="min-h-screen py-16 sm:py-24 lg:py-28">
     <div class="max-w-[680px] mx-auto px-5 sm:px-6">
       

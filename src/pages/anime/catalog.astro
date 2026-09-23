@@ -4,6 +4,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 import AnimeCard from '../../components/AnimeCard.astro';
 import { getAllAnime } from '../../lib/d1.js';
 import { vibes } from '../../data/vibes.js';
+import { siteConfig } from '../../config/site.js';
 
 const animeList = await getAllAnime();
 
@@ -12,12 +13,44 @@ const watchedCount = animeList.filter((a) => a.honestyStatus === 'watched').leng
 const watchlistCount = animeList.filter((a) => a.honestyStatus === 'watchlist').length;
 const referenceCount = animeList.filter((a) => a.honestyStatus === 'reference').length;
 const zeroFillerCount = animeList.filter((a) => a.fillerPercentage === 0).length;
+
+const siteOrigin = (siteConfig.siteUrl || (Astro.site ? Astro.site.origin : 'https://chitrasampada.com')).replace(/\/+$/, '');
+const canonicalUrl = `${siteOrigin}/anime/catalog`;
+
+const breadcrumbSchema = {
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "name": "Home",
+      "item": `${siteOrigin}/`
+    },
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "name": "Anime Section",
+      "item": `${siteOrigin}/anime`
+    },
+    {
+      "@type": "ListItem",
+      "position": 3,
+      "name": "Full Catalog",
+      "item": canonicalUrl
+    }
+  ]
+};
 ---
 
 <BaseLayout
   title="Full Anime Catalog — Filler-Free Watch Orders & Honest Lists"
   description="Search and filter through all anime titles on Chitra Sampada. Clear watch orders, filler percentages, and honest personal viewing status."
+  canonicalUrl={canonicalUrl}
 >
+  <Fragment slot="structured-data">
+    <script type="application/ld+json" set:html={JSON.stringify(breadcrumbSchema)} />
+  </Fragment>
   <!-- BROWSE HEADER -->
   <section class="relative pt-8 pb-10 sm:pt-12 sm:pb-12 border-b border-slate-200 bg-gradient-to-b from-slate-100/80 to-transparent">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">

@@ -3,6 +3,7 @@
  * You can customize the site name and branding here.
  */
 export const siteConfig = {
+  siteUrl: 'https://chitrasampada.com',
   // Change this to your preferred brand name:
   name: 'Chitra Sampada',
   shortName: 'Chitra',

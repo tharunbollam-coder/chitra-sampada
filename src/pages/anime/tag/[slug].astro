@@ -4,6 +4,7 @@ import BaseLayout from '../../../layouts/BaseLayout.astro';
 import AnimeCard from '../../../components/AnimeCard.astro';
 import { getAllAnime } from '../../../lib/d1.js';
 import { vibes } from '../../../data/vibes.js';
+import { siteConfig } from '../../../config/site.js';
 
 const { slug } = Astro.params;
 const vibe = vibes.find((v) => v.slug === slug);
@@ -25,12 +26,44 @@ const zeroFillerCount = matchingAnime.filter((a) => a.fillerPercentage === 0).le
 
 // Other vibes for quick browsing
 const otherVibes = vibes.filter((v) => v.slug !== vibe.slug);
+
+const siteOrigin = (siteConfig.siteUrl || (Astro.site ? Astro.site.origin : 'https://chitrasampada.com')).replace(/\/+$/, '');
+const canonicalUrl = `${siteOrigin}/anime/tag/${vibe.slug}`;
+
+const breadcrumbSchema = {
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "name": "Home",
+      "item": `${siteOrigin}/`
+    },
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "name": "Anime Section",
+      "item": `${siteOrigin}/anime`
+    },
+    {
+      "@type": "ListItem",
+      "position": 3,
+      "name": vibe.title,
+      "item": canonicalUrl
+    }
+  ]
+};
 ---
 
 <BaseLayout
   title={vibe.pageTitle}
   description={vibe.metaDescription}
+  canonicalUrl={canonicalUrl}
 >
+  <Fragment slot="structured-data">
+    <script type="application/ld+json" set:html={JSON.stringify(breadcrumbSchema)} />
+  </Fragment>
   <!-- 1. HERO & VIBE INTRO HEADER -->
   <section class="relative pt-8 pb-10 sm:pt-12 sm:pb-12 border-b border-slate-200 bg-gradient-to-b from-slate-100/80 to-transparent">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">

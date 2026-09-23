@@ -10,10 +10,24 @@ import '../styles/global.css';
 const {
   title = siteConfig.name,
   description = siteConfig.description,
-  ogImage = '/favicon.svg'
+  ogImage = '/favicon.svg',
+  canonicalUrl: propCanonicalUrl
 } = Astro.props;
 
-const pageTitle = title === siteConfig.name ? `${title} — ${siteConfig.subTagline}` : `${title} | ${siteConfig.name}`;
+// Determine clean page title without redundant site name suffix
+let pageTitle;
+if (title === siteConfig.name) {
+  pageTitle = `${title} — ${siteConfig.subTagline}`;
+} else if (title.includes(siteConfig.name)) {
+  pageTitle = title;
+} else {
+  pageTitle = `${title} | ${siteConfig.name}`;
+}
+
+const siteOrigin = siteConfig.siteUrl || (Astro.site ? Astro.site.origin : 'https://chitrasampada.com');
+const cleanPathname = Astro.url.pathname === '/' ? '/' : Astro.url.pathname.replace(/\/+$/, '');
+const canonicalUrl = propCanonicalUrl || new URL(cleanPathname, siteOrigin).href;
+const resolvedOgImage = ogImage.startsWith('http') ? ogImage : new URL(ogImage, siteOrigin).href;
 ---
 
 <!DOCTYPE html>
@@ -30,6 +44,7 @@ const pageTitle = title === siteConfig.name ? `${title} — ${siteConfig.subTagl
     <meta name="title" content={pageTitle} />
     <meta name="description" content={description} />
     <meta name="theme-color" content="#ffffff" />
+    <link rel="canonical" href={canonicalUrl} />
 
     <!-- Google Fonts: Plus Jakarta Sans (Headings) & Inter (Body & UI) -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -38,15 +53,20 @@ const pageTitle = title === siteConfig.name ? `${title} — ${siteConfig.subTagl
 
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />
-    <meta property="og:url" content={Astro.url} />
+    <meta property="og:url" content={canonicalUrl} />
     <meta property="og:title" content={pageTitle} />
     <meta property="og:description" content={description} />
+    <meta property="og:image" content={resolvedOgImage} />
 
     <!-- Twitter -->
     <meta property="twitter:card" content="summary_large_image" />
-    <meta property="twitter:url" content={Astro.url} />
+    <meta property="twitter:url" content={canonicalUrl} />
     <meta property="twitter:title" content={pageTitle} />
     <meta property="twitter:description" content={description} />
+    <meta property="twitter:image" content={resolvedOgImage} />
+
+    <!-- Structured Data Slot (JSON-LD) -->
+    <slot name="structured-data" />
 
     <!-- Astro View Transitions for smooth page switching without clunky reloads -->
     <ClientRouter />

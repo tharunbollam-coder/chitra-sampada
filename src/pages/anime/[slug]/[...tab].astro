@@ -11,6 +11,7 @@ import TabReview from '../../../components/anime/TabReview.astro';
 import TabLessons from '../../../components/anime/TabLessons.astro';
 import RelatedBlogPosts from '../../../components/RelatedBlogPosts.astro';
 import { getAllAnime, getAvailableTabs, getDefaultTabKey } from '../../../lib/d1.js';
+import { siteConfig } from '../../../config/site.js';
 
 const { slug, tab } = Astro.params;
 
@@ -55,46 +56,116 @@ const tabTitleMap = {
   'lessons': 'What I Learned (Reflections)'
 };
 
+const tabDescMap = {
+  'watch-order': `Chronological watch order and movie timeline for ${anime.title}. Streamlined sequence without confusion or unnecessary spin-offs.`,
+  'filler-list': `Complete filler episode list and canon breakdown for ${anime.title}. Accurate percentage and curated episodes to skip.`,
+  'characters': `Key characters and ranked character commentary for ${anime.title}. Detailed roles and personality dynamics.`,
+  'source': `Manga and light novel source material guide for ${anime.title}. Chapter adaptation coverage and where to start reading.`,
+  'power-system': `In-depth power system breakdown, combat mechanics, and worldbuilding lore for ${anime.title}.`,
+  'review': `Honest, spoiler-free personal review and rating for ${anime.title}. Real viewer perspective without promotional hype.`,
+  'lessons': `Key takeaways and philosophical reflections learned from watching ${anime.title}.`
+};
+
 const currentTabLabel = tabTitleMap[activeTab?.key] || 'Honest Guide';
 const pageTitle = `${anime.title} — ${currentTabLabel}`;
-const pageDescription = `Complete guide for ${anime.title}. ${currentTabLabel} with honest, no-fluff viewer insights.`;
+const pageDescription = tabDescMap[activeTab?.key] || `Complete guide for ${anime.title}. ${currentTabLabel} with honest, no-fluff viewer insights.`;
+
+const siteOrigin = (siteConfig.siteUrl || (Astro.site ? Astro.site.origin : 'https://chitrasampada.com')).replace(/\/+$/, '');
+const canonicalPath = tab ? `/anime/${anime.slug}/${tab}` : `/anime/${anime.slug}`;
+const canonicalUrl = `${siteOrigin}${canonicalPath}`;
+
+// Structured Data Schemas
+const breadcrumbItems = [
+  {
+    "@type": "ListItem",
+    "position": 1,
+    "name": "Home",
+    "item": `${siteOrigin}/`
+  },
+  {
+    "@type": "ListItem",
+    "position": 2,
+    "name": "Anime Section",
+    "item": `${siteOrigin}/anime`
+  },
+  {
+    "@type": "ListItem",
+    "position": 3,
+    "name": anime.title,
+    "item": `${siteOrigin}/anime/${anime.slug}`
+  }
+];
+
+if (tab && activeTab) {
+  breadcrumbItems.push({
+    "@type": "ListItem",
+    "position": 4,
+    "name": activeTab.label,
+    "item": `${siteOrigin}/anime/${anime.slug}/${activeTab.key}`
+  });
+}
+
+const breadcrumbSchema = {
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": breadcrumbItems
+};
+
+const reviewBodyText = anime.review?.paragraphs?.join('\n\n') || anime.review?.heading || (anime.synopsis ? `${anime.title}: ${anime.synopsis}` : `${anime.title} guide`);
+
+let entitySchema;
+if (anime.honestyStatus === 'watched' && anime.personalRating !== undefined && anime.personalRating !== null) {
+  entitySchema = {
+    "@context": "https://schema.org",
+    "@type": "Review",
+    "itemReviewed": {
+      "@type": "TVSeries",
+      "name": anime.title,
+      ...(anime.originalTitle ? { "alternateName": anime.originalTitle } : {}),
+      ...(anime.poster ? { "image": anime.poster } : {}),
+      ...(anime.synopsis ? { "description": anime.synopsis } : {}),
+      ...(anime.year ? { "startDate": String(anime.year) } : {}),
+      ...(anime.episodes ? { "numberOfEpisodes": anime.episodes } : {})
+    },
+    "reviewRating": {
+      "@type": "Rating",
+      "ratingValue": anime.personalRating,
+      "bestRating": "10",
+      "worstRating": "1"
+    },
+    "author": {
+      "@type": "Person",
+      "name": "Chitra Sampada Editorial",
+      "url": `${siteOrigin}/about`
+    },
+    "publisher": {
+      "@type": "Organization",
+      "name": "Chitra Sampada",
+      "url": siteOrigin
+    },
+    "reviewBody": reviewBodyText
+  };
+} else {
+  entitySchema = {
+    "@context": "https://schema.org",
+    "@type": "TVSeries",
+    "name": anime.title,
+    ...(anime.originalTitle ? { "alternateName": anime.originalTitle } : {}),
+    ...(anime.poster ? { "image": anime.poster } : {}),
+    ...(anime.synopsis ? { "description": anime.synopsis } : {}),
+    ...(anime.year ? { "startDate": String(anime.year) } : {}),
+    ...(anime.episodes ? { "numberOfEpisodes": anime.episodes } : {})
+  };
+}
 ---
 
-<BaseLayout title={pageTitle} description={pageDescription}>
+<BaseLayout title={pageTitle} description={pageDescription} canonicalUrl={canonicalUrl}>
+  <Fragment slot="structured-data">
+    <script type="application/ld+json" set:html={JSON.stringify(breadcrumbSchema)} />
+    <script type="application/ld+json" set:html={JSON.stringify(entitySchema)} />
+  </Fragment>
+
   <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-10">
-    
-    <!-- 1. BREADCRUMB NAVIGATION & STRUCTURED DATA -->
-    <!-- Breadcrumb Schema Markup (JSON-LD preserved for SEO across mobile & desktop) -->
-    <script type="application/ld+json" set:html={JSON.stringify({
-      "@context": "https://schema.org",
-      "@type": "BreadcrumbList",
-      "itemListElement": [
-        {
-          "@type": "ListItem",
-          "position": 1,
-          "name": "Home",
-          "item": Astro.site ? new URL('/', Astro.site).href : '/'
-        },
-        {
-          "@type": "ListItem",
-          "position": 2,
-          "name": "Anime Section",
-          "item": Astro.site ? new URL('/anime', Astro.site).href : '/anime'
-        },
-        {
-          "@type": "ListItem",
-          "position": 3,
-          "name": anime.title,
-          "item": Astro.site ? new URL(`/anime/${anime.slug}`, Astro.site).href : `/anime/${anime.slug}`
-        },
-        ...(activeTab ? [{
-          "@type": "ListItem",
-          "position": 4,
-          "name": activeTab.label,
-          "item": Astro.site ? new URL(`/anime/${anime.slug}/${activeTab.key}`, Astro.site).href : `/anime/${anime.slug}/${activeTab.key}`
-        }] : [])
-      ]
-    })} />
 
     <nav class="flex items-center justify-between gap-3 border-b border-slate-200 pb-4 min-w-0" aria-label="Breadcrumb">
       <!-- Full breadcrumbs on desktop/tablet (sm+); condensed on mobile -->

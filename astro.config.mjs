@@ -5,6 +5,7 @@ import { adminApiPlugin } from './src/lib/admin-api-plugin.js';
 
 // https://astro.build/config
 export default defineConfig({
+  site: 'https://chitrasampada.com',
   output: 'server',
   adapter: cloudflare(),
   vite: {

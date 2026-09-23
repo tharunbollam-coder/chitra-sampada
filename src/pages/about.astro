@@ -5,12 +5,35 @@ import HonestyBadge from '../components/HonestyBadge.astro';
 import { siteConfig } from '../config/site.js';
 
 export const prerender = true;
+
+const siteOrigin = (siteConfig.siteUrl || 'https://chitrasampada.com').replace(/\/+$/, '');
+const breadcrumbSchema = {
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "name": "Home",
+      "item": `${siteOrigin}/`
+    },
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "name": "About",
+      "item": `${siteOrigin}/about`
+    }
+  ]
+};
 ---
 
 <BaseLayout
   title="About — Why I Built This"
   description="The honest story behind Chitra Sampada: why I built this watch companion, how the three categories work, and our pledge on community suggestions."
 >
+  <Fragment slot="structured-data">
+    <script type="application/ld+json" set:html={JSON.stringify(breadcrumbSchema)} />
+  </Fragment>
   <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-20 space-y-16">
     
     <!-- Header / Intro -->
