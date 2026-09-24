@@ -1,6 +1,10 @@
 ---
 // src/pages/admin/anime/editor.astro
 import AnimeEditor from '../../../components/admin/AnimeEditor.astro';
+import { getAnimeById } from '../../../lib/admin-db.js';
+
+const id = Astro.url.searchParams.get('id') || Astro.url.searchParams.get('slug');
+const anime = id ? await getAnimeById(id, Astro.locals) : null;
 ---
 
-<AnimeEditor />
+<AnimeEditor initialAnime={anime} />

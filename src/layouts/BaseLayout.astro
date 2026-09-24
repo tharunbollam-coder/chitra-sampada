@@ -28,6 +28,14 @@ const siteOrigin = siteConfig.siteUrl || (Astro.site ? Astro.site.origin : 'http
 const cleanPathname = Astro.url.pathname === '/' ? '/' : Astro.url.pathname.replace(/\/+$/, '');
 const canonicalUrl = propCanonicalUrl || new URL(cleanPathname, siteOrigin).href;
 const resolvedOgImage = ogImage.startsWith('http') ? ogImage : new URL(ogImage, siteOrigin).href;
+
+// Cache public SSR pages at Cloudflare Edge for 5 minutes (s-maxage=300), browser for 1 minute (max-age=60), stale-while-revalidate for background refreshes
+if (!Astro.url.pathname.startsWith('/admin') && !Astro.url.pathname.startsWith('/api')) {
+  Astro.response.headers.set(
+    'Cache-Control',
+    'public, max-age=60, s-maxage=300, stale-while-revalidate=86400'
+  );
+}
 ---
 
 <!DOCTYPE html>

@@ -1,7 +1,7 @@
 // src/lib/admin-db.js
 // Server-side SQLite / D1 data mutations using parameterized queries.
 
-import { getSqliteDb, getDatabase } from './d1.js';
+import { getDatabase, invalidateAnimeCache, invalidateBlogCache } from './d1.js';
 import { validateEpisodeString } from './filler-utils.js';
 
 /**
@@ -18,6 +18,7 @@ export async function getAnimeById(idOrSlug, contextOrLocals = null) {
   const aliases = (await db.query(`SELECT alias FROM anime_aliases WHERE anime_id = ?`, actualId)).map(r => r.alias);
   const genres = (await db.query(`SELECT genre FROM anime_genres WHERE anime_id = ?`, actualId)).map(r => r.genre);
   const vibes = (await db.query(`SELECT vibe_id FROM anime_vibes WHERE anime_id = ?`, actualId)).map(r => r.vibe_id);
+  
   let fillerRows = [];
   try {
     fillerRows = await db.query(`
@@ -164,10 +165,10 @@ export async function getAnimeById(idOrSlug, contextOrLocals = null) {
 }
 
 /**
- * Save core anime fields + aliases, genres, vibes (Transaction).
+ * Save core anime fields + aliases, genres, vibes.
  */
-export function saveAnimeCore(data) {
-  const db = getSqliteDb();
+export async function saveAnimeCore(data, contextOrLocals = null) {
+  const db = await getDatabase(contextOrLocals);
   const {
     id,
     slug,
@@ -194,100 +195,91 @@ export function saveAnimeCore(data) {
     throw new Error('ID, Slug, and Title are required.');
   }
 
-  const existing = db.prepare(`SELECT * FROM anime WHERE id = ?`).get(id);
+  const existing = await db.queryOne(`SELECT * FROM anime WHERE id = ?`, id);
 
-  db.exec('BEGIN IMMEDIATE TRANSACTION;');
-  try {
-    const parsedRating = personalRating !== '' && personalRating !== null && personalRating !== undefined
-      ? Number(personalRating)
-      : (existing?.personal_rating ?? null);
-    const parsedYear = Number(year) || (existing?.year ?? 0);
-    const parsedEpisodes = (episodes !== undefined && episodes !== null && episodes !== '')
-      ? Number(episodes)
-      : (Number(existing?.episodes) || 0);
-    const parsedTrending = trending ? 1 : (existing?.trending ? 1 : 0);
-    const parsedFiller = (fillerPercentage !== undefined && fillerPercentage !== null && fillerPercentage !== '')
-      ? (Number(fillerPercentage) || 0)
-      : (Number(existing?.filler_percentage) || 0);
+  const parsedRating = personalRating !== '' && personalRating !== null && personalRating !== undefined
+    ? Number(personalRating)
+    : (existing?.personal_rating ?? null);
+  const parsedYear = Number(year) || (existing?.year ?? 0);
+  const parsedEpisodes = (episodes !== undefined && episodes !== null && episodes !== '')
+    ? Number(episodes)
+    : (Number(existing?.episodes) || 0);
+  const parsedTrending = trending ? 1 : (existing?.trending ? 1 : 0);
+  const parsedFiller = (fillerPercentage !== undefined && fillerPercentage !== null && fillerPercentage !== '')
+    ? (Number(fillerPercentage) || 0)
+    : (Number(existing?.filler_percentage) || 0);
 
-    const finalOriginalTitle = originalTitle !== undefined ? String(originalTitle) : (existing?.original_title ?? '');
-    const finalStatus = status || existing?.status || 'Finished';
-    const finalPoster = poster !== undefined ? String(poster) : (existing?.poster ?? '');
-    const finalBackdrop = backdrop !== undefined ? String(backdrop) : (existing?.backdrop ?? '');
-    const finalAddedDate = addedDate || existing?.added_date || new Date().toISOString().split('T')[0];
-    const finalLastUpdated = lastUpdated || new Date().toISOString().split('T')[0];
-    const finalHonestyStatus = honestyStatus || existing?.honesty_status || 'watched';
-    const finalSynopsis = synopsis !== undefined ? String(synopsis) : (existing?.synopsis ?? '');
+  const finalOriginalTitle = originalTitle !== undefined ? String(originalTitle) : (existing?.original_title ?? '');
+  const finalStatus = status || existing?.status || 'Finished';
+  const finalPoster = poster !== undefined ? String(poster) : (existing?.poster ?? '');
+  const finalBackdrop = backdrop !== undefined ? String(backdrop) : (existing?.backdrop ?? '');
+  const finalAddedDate = addedDate || existing?.added_date || new Date().toISOString().split('T')[0];
+  const finalLastUpdated = lastUpdated || new Date().toISOString().split('T')[0];
+  const finalHonestyStatus = honestyStatus || existing?.honesty_status || 'watched';
+  const finalSynopsis = synopsis !== undefined ? String(synopsis) : (existing?.synopsis ?? '');
 
-    if (existing) {
-      db.prepare(`
-        UPDATE anime SET
-          slug = ?, title = ?, original_title = ?, year = ?, episodes = ?,
-          status = ?, personal_rating = ?, poster = ?, backdrop = ?,
-          added_date = ?, last_updated = ?, honesty_status = ?,
-          filler_percentage = ?, trending = ?, synopsis = ?
-        WHERE id = ?
-      `).run(
-        slug, title, finalOriginalTitle, parsedYear, parsedEpisodes,
-        finalStatus, parsedRating, finalPoster, finalBackdrop,
-        finalAddedDate, finalLastUpdated, finalHonestyStatus,
-        parsedFiller, parsedTrending, finalSynopsis,
-        id
-      );
-    } else {
-      db.prepare(`
-        INSERT INTO anime (
-          id, slug, title, original_title, year, episodes,
-          status, personal_rating, poster, backdrop,
-          added_date, last_updated, honesty_status,
-          filler_percentage, trending, synopsis
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `).run(
-        id, slug, title, finalOriginalTitle, parsedYear, parsedEpisodes,
-        finalStatus, parsedRating, finalPoster, finalBackdrop,
-        finalAddedDate, finalLastUpdated, finalHonestyStatus,
-        parsedFiller, parsedTrending, finalSynopsis
-      );
-    }
-
-    // Sync aliases
-    db.prepare(`DELETE FROM anime_aliases WHERE anime_id = ?`).run(id);
-    const insertAlias = db.prepare(`INSERT INTO anime_aliases (anime_id, alias) VALUES (?, ?)`);
-    for (const a of aliases) {
-      const trimmed = String(a).trim();
-      if (trimmed) insertAlias.run(id, trimmed);
-    }
-
-    // Sync genres
-    db.prepare(`DELETE FROM anime_genres WHERE anime_id = ?`).run(id);
-    const insertGenre = db.prepare(`INSERT INTO anime_genres (anime_id, genre) VALUES (?, ?)`);
-    for (const g of genres) {
-      const trimmed = String(g).trim();
-      if (trimmed) insertGenre.run(id, trimmed);
-    }
-
-    // Sync vibes
-    db.prepare(`DELETE FROM anime_vibes WHERE anime_id = ?`).run(id);
-    const insertVibe = db.prepare(`INSERT INTO anime_vibes (anime_id, vibe_id) VALUES (?, ?)`);
-    for (const v of vibes) {
-      const trimmed = String(v).trim();
-      if (trimmed) insertVibe.run(id, trimmed);
-    }
-
-    db.exec('COMMIT;');
-    return { success: true, id };
-  } catch (err) {
-    db.exec('ROLLBACK;');
-    throw err;
+  if (existing) {
+    await db.run(`
+      UPDATE anime SET
+        slug = ?, title = ?, original_title = ?, year = ?, episodes = ?,
+        status = ?, personal_rating = ?, poster = ?, backdrop = ?,
+        added_date = ?, last_updated = ?, honesty_status = ?,
+        filler_percentage = ?, trending = ?, synopsis = ?
+      WHERE id = ?
+    `,
+      slug, title, finalOriginalTitle, parsedYear, parsedEpisodes,
+      finalStatus, parsedRating, finalPoster, finalBackdrop,
+      finalAddedDate, finalLastUpdated, finalHonestyStatus,
+      parsedFiller, parsedTrending, finalSynopsis,
+      id
+    );
+  } else {
+    await db.run(`
+      INSERT INTO anime (
+        id, slug, title, original_title, year, episodes,
+        status, personal_rating, poster, backdrop,
+        added_date, last_updated, honesty_status,
+        filler_percentage, trending, synopsis
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `,
+      id, slug, title, finalOriginalTitle, parsedYear, parsedEpisodes,
+      finalStatus, parsedRating, finalPoster, finalBackdrop,
+      finalAddedDate, finalLastUpdated, finalHonestyStatus,
+      parsedFiller, parsedTrending, finalSynopsis
+    );
   }
+
+  // Sync aliases
+  await db.run(`DELETE FROM anime_aliases WHERE anime_id = ?`, id);
+  for (const a of aliases) {
+    const trimmed = String(a).trim();
+    if (trimmed) await db.run(`INSERT INTO anime_aliases (anime_id, alias) VALUES (?, ?)`, id, trimmed);
+  }
+
+  // Sync genres
+  await db.run(`DELETE FROM anime_genres WHERE anime_id = ?`, id);
+  for (const g of genres) {
+    const trimmed = String(g).trim();
+    if (trimmed) await db.run(`INSERT INTO anime_genres (anime_id, genre) VALUES (?, ?)`, id, trimmed);
+  }
+
+  // Sync vibes
+  await db.run(`DELETE FROM anime_vibes WHERE anime_id = ?`, id);
+  for (const v of vibes) {
+    const trimmed = String(v).trim();
+    if (trimmed) await db.run(`INSERT INTO anime_vibes (anime_id, vibe_id) VALUES (?, ?)`, id, trimmed);
+  }
+
+  invalidateAnimeCache();
+  return { success: true, id };
 }
 
 /**
  * Save section visibility flags (Show/Hide on public page).
  */
-export function saveAnimeVisibility(animeId, visibility = {}) {
-  const db = getSqliteDb();
-  const existing = db.prepare('SELECT section_visibility FROM anime WHERE id = ?').get(animeId);
+export async function saveAnimeVisibility(animeId, visibility = {}, contextOrLocals = null) {
+  const db = await getDatabase(contextOrLocals);
+  const existing = await db.queryOne('SELECT section_visibility FROM anime WHERE id = ?', animeId);
   if (!existing) throw new Error('Anime not found');
 
   let currentVis = {
@@ -307,19 +299,20 @@ export function saveAnimeVisibility(animeId, visibility = {}) {
   }
 
   const merged = { ...currentVis, ...visibility };
-  db.prepare(`
+  await db.run(`
     UPDATE anime 
     SET section_visibility = ?, last_updated = date('now') 
     WHERE id = ?
-  `).run(JSON.stringify(merged), animeId);
+  `, JSON.stringify(merged), animeId);
 
+  invalidateAnimeCache();
   return { success: true, visibility: merged };
 }
 
 /**
  * Universal save: Persist all anime sections and visibility settings simultaneously.
  */
-export function saveAllAnime(payload) {
+export async function saveAllAnime(payload, contextOrLocals = null) {
   let animeId = payload.core?.id || payload.animeId;
   if (!animeId) {
     throw new Error('Anime ID is required');
@@ -327,54 +320,55 @@ export function saveAllAnime(payload) {
 
   // 1. Core Information
   if (payload.core) {
-    const res = saveAnimeCore(payload.core);
+    const res = await saveAnimeCore(payload.core, contextOrLocals);
     if (res?.id) animeId = res.id;
   }
 
   // 2. Personal Take / Review
   if (payload.review) {
-    saveAnimeReview(animeId, payload.review);
+    await saveAnimeReview(animeId, payload.review, contextOrLocals);
   }
 
   // 3. What I Learned / Reflection
   if (payload.lessons) {
-    saveAnimeLessons(animeId, payload.lessons);
+    await saveAnimeLessons(animeId, payload.lessons, contextOrLocals);
   }
 
   // 4. Watch Order Placement
   if (payload.watchOrder) {
-    saveAnimeWatchOrderLink(animeId, {
+    await saveAnimeWatchOrderLink(animeId, {
       franchiseId: payload.watchOrder.franchiseId,
       franchiseStepOrder: payload.watchOrder.franchiseStepOrder
-    });
+    }, contextOrLocals);
   }
 
   // 5. Filler & Canon Episode Breakdown
   let fillerResult = null;
   if (payload.filler) {
-    fillerResult = saveAnimeFillerList(animeId, payload.filler);
+    fillerResult = await saveAnimeFillerList(animeId, payload.filler, contextOrLocals);
   }
 
   // 6. Key Characters
   if (payload.characters) {
-    saveAnimeCharacters(animeId, payload.characters);
+    await saveAnimeCharacters(animeId, payload.characters, contextOrLocals);
   }
 
   // 7. Source Material Guidance
   if (payload.source) {
-    saveAnimeSource(animeId, payload.source);
+    await saveAnimeSource(animeId, payload.source, contextOrLocals);
   }
 
   // 8. Power System / Lore Mechanics
   if (payload.powerSystem) {
-    saveAnimePowerSystem(animeId, payload.powerSystem);
+    await saveAnimePowerSystem(animeId, payload.powerSystem, contextOrLocals);
   }
 
   // 9. Visibility Toggles
   if (payload.visibility) {
-    saveAnimeVisibility(animeId, payload.visibility);
+    await saveAnimeVisibility(animeId, payload.visibility, contextOrLocals);
   }
 
+  invalidateAnimeCache();
   return {
     success: true,
     animeId,
@@ -385,48 +379,51 @@ export function saveAllAnime(payload) {
 /**
  * Save My Take / Review section.
  */
-export function saveAnimeReview(animeId, { heading = '', paragraphs = [] } = {}) {
-  const db = getSqliteDb();
+export async function saveAnimeReview(animeId, { heading = '', paragraphs = [] } = {}, contextOrLocals = null) {
+  const db = await getDatabase(contextOrLocals);
   const cleanParagraphs = Array.isArray(paragraphs) ? paragraphs.map(p => String(p).trim()).filter(Boolean) : [];
   const jsonParagraphs = cleanParagraphs.length > 0 ? JSON.stringify(cleanParagraphs) : null;
 
-  db.prepare(`
+  await db.run(`
     UPDATE anime 
     SET review_heading = ?, review_paragraphs = ?, last_updated = date('now') 
     WHERE id = ?
-  `).run(heading.trim() || null, jsonParagraphs, animeId);
+  `, heading.trim() || null, jsonParagraphs, animeId);
 
+  invalidateAnimeCache();
   return { success: true };
 }
 
 /**
  * Save What I Learned / Reflection section.
  */
-export function saveAnimeLessons(animeId, { heading = '', takeaway = '' } = {}) {
-  const db = getSqliteDb();
-  db.prepare(`
+export async function saveAnimeLessons(animeId, { heading = '', takeaway = '' } = {}, contextOrLocals = null) {
+  const db = await getDatabase(contextOrLocals);
+  await db.run(`
     UPDATE anime 
     SET lesson_heading = ?, lesson_takeaway = ?, last_updated = date('now') 
     WHERE id = ?
-  `).run(heading.trim() || null, takeaway.trim() || null, animeId);
+  `, heading.trim() || null, takeaway.trim() || null, animeId);
 
+  invalidateAnimeCache();
   return { success: true };
 }
 
 /**
  * Save Watch Order & Franchise Placement for anime.
  */
-export function saveAnimeWatchOrderLink(animeId, { franchiseId = null, franchiseStepOrder = null } = {}) {
-  const db = getSqliteDb();
+export async function saveAnimeWatchOrderLink(animeId, { franchiseId = null, franchiseStepOrder = null } = {}, contextOrLocals = null) {
+  const db = await getDatabase(contextOrLocals);
   const cleanFranchiseId = franchiseId ? String(franchiseId).trim() : null;
   const cleanStep = franchiseStepOrder ? Number(franchiseStepOrder) : null;
 
-  db.prepare(`
+  await db.run(`
     UPDATE anime 
     SET franchise_id = ?, franchise_step_order = ?, last_updated = date('now') 
     WHERE id = ?
-  `).run(cleanFranchiseId, cleanStep, animeId);
+  `, cleanFranchiseId, cleanStep, animeId);
 
+  invalidateAnimeCache();
   return { success: true };
 }
 
@@ -434,9 +431,9 @@ export function saveAnimeWatchOrderLink(animeId, { franchiseId = null, franchise
  * Save Filler & Canon Breakdown and recalculate filler_percentage.
  * Accepts { mangaCanon, animeCanon, mixedCanon, filler }.
  */
-export function saveAnimeFillerList(animeId, breakdown = {}) {
-  const db = getSqliteDb();
-  const anime = db.prepare(`SELECT episodes FROM anime WHERE id = ?`).get(animeId);
+export async function saveAnimeFillerList(animeId, breakdown = {}, contextOrLocals = null) {
+  const db = await getDatabase(contextOrLocals);
+  const anime = await db.queryOne(`SELECT episodes FROM anime WHERE id = ?`, animeId);
   if (!anime) throw new Error('Anime not found.');
 
   const {
@@ -458,111 +455,104 @@ export function saveAnimeFillerList(animeId, breakdown = {}) {
   const valFiller = validateEpisodeString(filler);
   if (!valFiller.valid) throw new Error(`[Filler] ${valFiller.error}`);
 
-  db.exec('BEGIN IMMEDIATE TRANSACTION;');
-  try {
-    db.prepare(`DELETE FROM anime_filler_ranges WHERE anime_id = ?`).run(animeId);
+  await db.run(`DELETE FROM anime_filler_ranges WHERE anime_id = ?`, animeId);
 
-    const insertType = db.prepare(`
+  if (valManga.normalized) {
+    await db.run(`
       INSERT INTO anime_filler_ranges (anime_id, type, episodes, episode_count) 
       VALUES (?, ?, ?, ?)
-    `);
-
-    if (valManga.normalized) {
-      insertType.run(animeId, 'Manga Canon', valManga.normalized, valManga.count);
-    }
-    if (valAnime.normalized) {
-      insertType.run(animeId, 'Anime Canon', valAnime.normalized, valAnime.count);
-    }
-    if (valMixed.normalized) {
-      insertType.run(animeId, 'Mixed Canon/Filler', valMixed.normalized, valMixed.count);
-    }
-    if (valFiller.normalized) {
-      insertType.run(animeId, 'Filler', valFiller.normalized, valFiller.count);
-    }
-
-    // Auto-calculate filler percentage from sum of all 4 categories
-    const totalEpisodes = valManga.count + valAnime.count + valMixed.count + valFiller.count;
-    const canonEpisodes = valManga.count + valAnime.count;
-    let calculatedPercentage = 0;
-    if (totalEpisodes > 0 && valFiller.count > 0) {
-      calculatedPercentage = Math.min(100, Math.round((valFiller.count / totalEpisodes) * 100));
-    }
-
-    if (!anime.episodes && totalEpisodes > 0) {
-      db.prepare(`
-        UPDATE anime 
-        SET filler_percentage = ?, episodes = ?, last_updated = date('now') 
-        WHERE id = ?
-      `).run(calculatedPercentage, totalEpisodes, animeId);
-    } else {
-      db.prepare(`
-        UPDATE anime 
-        SET filler_percentage = ?, last_updated = date('now') 
-        WHERE id = ?
-      `).run(calculatedPercentage, animeId);
-    }
-
-    db.exec('COMMIT;');
-    return {
-      success: true,
-      totalEpisodes,
-      canonEpisodes,
-      fillerPercentage: calculatedPercentage,
-      counts: {
-        mangaCanon: valManga.count,
-        animeCanon: valAnime.count,
-        mixedCanon: valMixed.count,
-        filler: valFiller.count
-      }
-    };
-  } catch (err) {
-    db.exec('ROLLBACK;');
-    throw err;
+    `, animeId, 'Manga Canon', valManga.normalized, valManga.count);
   }
+  if (valAnime.normalized) {
+    await db.run(`
+      INSERT INTO anime_filler_ranges (anime_id, type, episodes, episode_count) 
+      VALUES (?, ?, ?, ?)
+    `, animeId, 'Anime Canon', valAnime.normalized, valAnime.count);
+  }
+  if (valMixed.normalized) {
+    await db.run(`
+      INSERT INTO anime_filler_ranges (anime_id, type, episodes, episode_count) 
+      VALUES (?, ?, ?, ?)
+    `, animeId, 'Mixed Canon/Filler', valMixed.normalized, valMixed.count);
+  }
+  if (valFiller.normalized) {
+    await db.run(`
+      INSERT INTO anime_filler_ranges (anime_id, type, episodes, episode_count) 
+      VALUES (?, ?, ?, ?)
+    `, animeId, 'Filler', valFiller.normalized, valFiller.count);
+  }
+
+  // Auto-calculate filler percentage from sum of all 4 categories
+  const totalEpisodes = valManga.count + valAnime.count + valMixed.count + valFiller.count;
+  const canonEpisodes = valManga.count + valAnime.count;
+  let calculatedPercentage = 0;
+  if (totalEpisodes > 0 && valFiller.count > 0) {
+    calculatedPercentage = Math.min(100, Math.round((valFiller.count / totalEpisodes) * 100));
+  }
+
+  if (!anime.episodes && totalEpisodes > 0) {
+    await db.run(`
+      UPDATE anime 
+      SET filler_percentage = ?, episodes = ?, last_updated = date('now') 
+      WHERE id = ?
+    `, calculatedPercentage, totalEpisodes, animeId);
+  } else {
+    await db.run(`
+      UPDATE anime 
+      SET filler_percentage = ?, last_updated = date('now') 
+      WHERE id = ?
+    `, calculatedPercentage, animeId);
+  }
+
+  invalidateAnimeCache();
+  return {
+    success: true,
+    totalEpisodes,
+    canonEpisodes,
+    fillerPercentage: calculatedPercentage,
+    counts: {
+      mangaCanon: valManga.count,
+      animeCanon: valAnime.count,
+      mixedCanon: valMixed.count,
+      filler: valFiller.count
+    }
+  };
 }
 
 /**
  * Save Key Characters.
  */
-export function saveAnimeCharacters(animeId, characters = []) {
-  const db = getSqliteDb();
+export async function saveAnimeCharacters(animeId, characters = [], contextOrLocals = null) {
+  const db = await getDatabase(contextOrLocals);
+  await db.run(`DELETE FROM anime_characters WHERE anime_id = ?`, animeId);
 
-  db.exec('BEGIN IMMEDIATE TRANSACTION;');
-  try {
-    db.prepare(`DELETE FROM anime_characters WHERE anime_id = ?`).run(animeId);
+  for (let index = 0; index < characters.length; index++) {
+    const char = characters[index];
+    const rank = Number(char.rank || index + 1);
+    const name = String(char.name || '').trim();
+    const category = String(char.category || 'Supporting').trim();
+    const role = char.role ? String(char.role).trim() : null;
+    const commentary = char.commentary ? String(char.commentary).trim() : null;
 
-    const insertChar = db.prepare(`
-      INSERT INTO anime_characters (anime_id, rank, name, category, role, commentary) 
-      VALUES (?, ?, ?, ?, ?, ?)
-    `);
-
-    characters.forEach((char, index) => {
-      const rank = Number(char.rank || index + 1);
-      const name = String(char.name || '').trim();
-      const category = String(char.category || 'Supporting').trim();
-      const role = char.role ? String(char.role).trim() : null;
-      const commentary = char.commentary ? String(char.commentary).trim() : null;
-
-      if (name) {
-        insertChar.run(animeId, rank, name, category, role, commentary);
-      }
-    });
-
-    db.prepare(`UPDATE anime SET last_updated = date('now') WHERE id = ?`).run(animeId);
-    db.exec('COMMIT;');
-    return { success: true };
-  } catch (err) {
-    db.exec('ROLLBACK;');
-    throw err;
+    if (name) {
+      await db.run(`
+        INSERT INTO anime_characters (anime_id, rank, name, category, role, commentary) 
+        VALUES (?, ?, ?, ?, ?, ?)
+      `, animeId, rank, name, category, role, commentary);
+    }
   }
+
+  await db.run(`UPDATE anime SET last_updated = date('now') WHERE id = ?`, animeId);
+  invalidateAnimeCache();
+  return { success: true };
 }
 
 /**
  * Save Manga & Light Novel Source Guidance.
  */
-export function saveAnimeSource(animeId, source = {}) {
-  const db = getSqliteDb();
-  db.prepare(`
+export async function saveAnimeSource(animeId, source = {}, contextOrLocals = null) {
+  const db = await getDatabase(contextOrLocals);
+  await db.run(`
     UPDATE anime SET
       source_title = ?,
       source_original_title = ?,
@@ -575,7 +565,7 @@ export function saveAnimeSource(animeId, source = {}) {
       source_notes = ?,
       last_updated = date('now')
     WHERE id = ?
-  `).run(
+  `,
     source.title?.trim() || null,
     source.originalTitle?.trim() || null,
     source.author?.trim() || null,
@@ -588,40 +578,36 @@ export function saveAnimeSource(animeId, source = {}) {
     animeId
   );
 
+  invalidateAnimeCache();
   return { success: true };
 }
 
 /**
  * Save Power System.
  */
-export function saveAnimePowerSystem(animeId, { name = '', paragraphs = [] } = {}) {
-  const db = getSqliteDb();
+export async function saveAnimePowerSystem(animeId, { name = '', paragraphs = [] } = {}, contextOrLocals = null) {
+  const db = await getDatabase(contextOrLocals);
   const cleanParagraphs = Array.isArray(paragraphs) ? paragraphs.map(p => String(p).trim()).filter(Boolean) : [];
   const jsonParagraphs = cleanParagraphs.length > 0 ? JSON.stringify(cleanParagraphs) : null;
 
-  db.prepare(`
+  await db.run(`
     UPDATE anime 
     SET power_system_name = ?, power_system_paragraphs = ?, last_updated = date('now') 
     WHERE id = ?
-  `).run(name.trim() || null, jsonParagraphs, animeId);
+  `, name.trim() || null, jsonParagraphs, animeId);
 
+  invalidateAnimeCache();
   return { success: true };
 }
 
 /**
  * Delete an anime and all cascading related records.
  */
-export function deleteAnime(animeId) {
-  const db = getSqliteDb();
-  db.exec('BEGIN IMMEDIATE TRANSACTION;');
-  try {
-    db.prepare(`DELETE FROM anime WHERE id = ?`).run(animeId);
-    db.exec('COMMIT;');
-    return { success: true };
-  } catch (err) {
-    db.exec('ROLLBACK;');
-    throw err;
-  }
+export async function deleteAnime(animeId, contextOrLocals = null) {
+  const db = await getDatabase(contextOrLocals);
+  await db.run(`DELETE FROM anime WHERE id = ?`, animeId);
+  invalidateAnimeCache();
+  return { success: true };
 }
 
 // -------------------------------------------------------------
@@ -655,56 +641,43 @@ export async function getAllFranchises(contextOrLocals = null) {
   }));
 }
 
-export function saveFranchise({ id, name, description = '', steps = [] }) {
-  const db = getSqliteDb();
+export async function saveFranchise({ id, name, description = '', steps = [] }, contextOrLocals = null) {
+  const db = await getDatabase(contextOrLocals);
   if (!id || !name) throw new Error('Franchise ID and Name are required.');
 
-  db.exec('BEGIN IMMEDIATE TRANSACTION;');
-  try {
-    db.prepare(`
-      INSERT INTO franchises (id, name, description) VALUES (?, ?, ?)
-      ON CONFLICT(id) DO UPDATE SET name = excluded.name, description = excluded.description
-    `).run(id.trim(), name.trim(), description.trim());
+  await db.run(`
+    INSERT INTO franchises (id, name, description) VALUES (?, ?, ?)
+    ON CONFLICT(id) DO UPDATE SET name = excluded.name, description = excluded.description
+  `, id.trim(), name.trim(), description.trim());
 
-    if (Array.isArray(steps)) {
-      db.prepare(`DELETE FROM franchise_watch_order WHERE franchise_id = ?`).run(id);
-      const insertStep = db.prepare(`
+  if (Array.isArray(steps)) {
+    await db.run(`DELETE FROM franchise_watch_order WHERE franchise_id = ?`, id);
+    for (let idx = 0; idx < steps.length; idx++) {
+      const step = steps[idx];
+      await db.run(`
         INSERT INTO franchise_watch_order (franchise_id, step_order, title, type, episodes, anime_id, note)
         VALUES (?, ?, ?, ?, ?, ?, ?)
-      `);
-
-      steps.forEach((step, idx) => {
-        insertStep.run(
-          id,
-          idx + 1,
-          String(step.title || '').trim(),
-          String(step.type || 'TV Series').trim(),
-          String(step.episodes || '').trim(),
-          step.animeId?.trim() || null,
-          step.note?.trim() || null
-        );
-      });
+      `,
+        id,
+        idx + 1,
+        String(step.title || '').trim(),
+        String(step.type || 'TV Series').trim(),
+        String(step.episodes || '').trim(),
+        step.animeId?.trim() || null,
+        step.note?.trim() || null
+      );
     }
-
-    db.exec('COMMIT;');
-    return { success: true, id };
-  } catch (err) {
-    db.exec('ROLLBACK;');
-    throw err;
   }
+
+  invalidateAnimeCache();
+  return { success: true, id };
 }
 
-export function deleteFranchise(franchiseId) {
-  const db = getSqliteDb();
-  db.exec('BEGIN IMMEDIATE TRANSACTION;');
-  try {
-    db.prepare(`DELETE FROM franchises WHERE id = ?`).run(franchiseId);
-    db.exec('COMMIT;');
-    return { success: true };
-  } catch (err) {
-    db.exec('ROLLBACK;');
-    throw err;
-  }
+export async function deleteFranchise(franchiseId, contextOrLocals = null) {
+  const db = await getDatabase(contextOrLocals);
+  await db.run(`DELETE FROM franchises WHERE id = ?`, franchiseId);
+  invalidateAnimeCache();
+  return { success: true };
 }
 
 // -------------------------------------------------------------
@@ -750,62 +723,49 @@ export async function getAdminBlogPostById(id, contextOrLocals = null) {
   return posts.find(p => p.id === id || p.slug === id) || null;
 }
 
-export function saveBlogPost({ id, slug, title, excerpt, content, publishedDate, lastUpdated = '', status = 'published', linkedAnimeIds = [] }) {
-  const db = getSqliteDb();
+export async function saveBlogPost({ id, slug, title, excerpt, content, publishedDate, lastUpdated = '', status = 'published', linkedAnimeIds = [] }, contextOrLocals = null) {
+  const db = await getDatabase(contextOrLocals);
   if (!id || !slug || !title || !content) {
     throw new Error('ID, Slug, Title, and Content are required.');
   }
 
-  db.exec('BEGIN IMMEDIATE TRANSACTION;');
-  try {
-    db.prepare(`
-      INSERT INTO blog_posts (id, slug, title, excerpt, content, published_date, last_updated, status)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-      ON CONFLICT(id) DO UPDATE SET
-        slug = excluded.slug,
-        title = excluded.title,
-        excerpt = excluded.excerpt,
-        content = excluded.content,
-        published_date = excluded.published_date,
-        last_updated = excluded.last_updated,
-        status = excluded.status
-    `).run(
-      id.trim(),
-      slug.trim(),
-      title.trim(),
-      excerpt ? excerpt.trim() : '',
-      content.trim(),
-      publishedDate || new Date().toISOString().split('T')[0],
-      lastUpdated || new Date().toISOString().split('T')[0],
-      status
-    );
+  await db.run(`
+    INSERT INTO blog_posts (id, slug, title, excerpt, content, published_date, last_updated, status)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(id) DO UPDATE SET
+      slug = excluded.slug,
+      title = excluded.title,
+      excerpt = excluded.excerpt,
+      content = excluded.content,
+      published_date = excluded.published_date,
+      last_updated = excluded.last_updated,
+      status = excluded.status
+  `,
+    id.trim(),
+    slug.trim(),
+    title.trim(),
+    excerpt ? excerpt.trim() : '',
+    content.trim(),
+    publishedDate || new Date().toISOString().split('T')[0],
+    lastUpdated || new Date().toISOString().split('T')[0],
+    status
+  );
 
-    // Sync linked anime
-    db.prepare(`DELETE FROM blog_post_anime WHERE post_id = ?`).run(id);
-    const insertLink = db.prepare(`INSERT INTO blog_post_anime (post_id, anime_id) VALUES (?, ?)`);
-    for (const animeId of linkedAnimeIds) {
-      if (animeId && animeId.trim()) {
-        insertLink.run(id, animeId.trim());
-      }
+  // Sync linked anime
+  await db.run(`DELETE FROM blog_post_anime WHERE post_id = ?`, id);
+  for (const animeId of linkedAnimeIds) {
+    if (animeId && animeId.trim()) {
+      await db.run(`INSERT INTO blog_post_anime (post_id, anime_id) VALUES (?, ?)`, id, animeId.trim());
     }
-
-    db.exec('COMMIT;');
-    return { success: true, id };
-  } catch (err) {
-    db.exec('ROLLBACK;');
-    throw err;
   }
+
+  invalidateBlogCache();
+  return { success: true, id };
 }
 
-export function deleteBlogPost(id) {
-  const db = getSqliteDb();
-  db.exec('BEGIN IMMEDIATE TRANSACTION;');
-  try {
-    db.prepare(`DELETE FROM blog_posts WHERE id = ?`).run(id);
-    db.exec('COMMIT;');
-    return { success: true };
-  } catch (err) {
-    db.exec('ROLLBACK;');
-    throw err;
-  }
+export async function deleteBlogPost(id, contextOrLocals = null) {
+  const db = await getDatabase(contextOrLocals);
+  await db.run(`DELETE FROM blog_posts WHERE id = ?`, id);
+  invalidateBlogCache();
+  return { success: true };
 }

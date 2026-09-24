@@ -196,64 +196,68 @@ export async function getDatabase(contextOrLocals) {
   return wrapped;
 }
 
+let animeCache = {
+  data: null,
+  timestamp: 0
+};
+
+let blogCache = {
+  data: null,
+  timestamp: 0
+};
+
+export function invalidateAnimeCache() {
+  animeCache.data = null;
+  animeCache.timestamp = 0;
+}
+
+export function invalidateBlogCache() {
+  blogCache.data = null;
+  blogCache.timestamp = 0;
+}
+
 /**
  * Fetch all anime from D1 (or local D1 SQLite during build/prerender)
  * Formatted with camelCase properties matching the UI expectations.
  */
 export async function getAllAnime(contextOrLocals) {
+  const now = Date.now();
+  if (animeCache.data && (now - animeCache.timestamp < 30000)) {
+    return animeCache.data;
+  }
+
   const db = await getDatabase(contextOrLocals);
 
-  // 1. Fetch all anime rows
-  let animeRows = [];
-  try {
-    animeRows = await db.query(`SELECT * FROM anime ORDER BY year DESC, title ASC`);
-  } catch (err) {
-    console.error("Failed to query anime table:", err);
+  // Parallelize all 7 sub-queries concurrently via Promise.allSettled to eliminate query waterfalls
+  const [
+    animeRes,
+    aliasesRes,
+    genresRes,
+    vibesRes,
+    fillerRes,
+    charRes,
+    watchRes
+  ] = await Promise.allSettled([
+    db.query(`SELECT * FROM anime ORDER BY year DESC, title ASC`),
+    db.query(`SELECT anime_id, alias FROM anime_aliases`),
+    db.query(`SELECT anime_id, genre FROM anime_genres`),
+    db.query(`SELECT anime_id, vibe_id FROM anime_vibes`),
+    db.query(`SELECT * FROM anime_filler_ranges`),
+    db.query(`SELECT anime_id, rank, name, category, role, commentary FROM anime_characters ORDER BY rank ASC`),
+    db.query(`SELECT franchise_id, step_order, title, type, episodes, anime_id, note FROM franchise_watch_order ORDER BY step_order ASC`)
+  ]);
+
+  const animeRows = animeRes.status === 'fulfilled' ? animeRes.value : [];
+  const aliasesRows = aliasesRes.status === 'fulfilled' ? aliasesRes.value : [];
+  const genresRows = genresRes.status === 'fulfilled' ? genresRes.value : [];
+  const vibesRows = vibesRes.status === 'fulfilled' ? vibesRes.value : [];
+  const fillerRows = fillerRes.status === 'fulfilled' ? fillerRes.value : [];
+  const characterRows = charRes.status === 'fulfilled' ? charRes.value : [];
+  const watchOrderRows = watchRes.status === 'fulfilled' ? watchRes.value : [];
+
+  if (animeRes.status === 'rejected') {
+    console.error("Failed to query anime table:", animeRes.reason);
     return [];
-  }
-
-  // 2. Fetch related collections safely with fallbacks
-  let aliasesRows = [];
-  try {
-    aliasesRows = await db.query(`SELECT anime_id, alias FROM anime_aliases`);
-  } catch (e) {
-    console.warn("Failed to load anime_aliases:", e?.message || e);
-  }
-
-  let genresRows = [];
-  try {
-    genresRows = await db.query(`SELECT anime_id, genre FROM anime_genres`);
-  } catch (e) {
-    console.warn("Failed to load anime_genres:", e?.message || e);
-  }
-
-  let vibesRows = [];
-  try {
-    vibesRows = await db.query(`SELECT anime_id, vibe_id FROM anime_vibes`);
-  } catch (e) {
-    console.warn("Failed to load anime_vibes:", e?.message || e);
-  }
-
-  // Tolerant query: selecting * works on both legacy schema (range) and simplified schema (episodes)
-  let fillerRows = [];
-  try {
-    fillerRows = await db.query(`SELECT * FROM anime_filler_ranges`);
-  } catch (e) {
-    console.warn("Failed to load anime_filler_ranges:", e?.message || e);
-  }
-
-  let characterRows = [];
-  try {
-    characterRows = await db.query(`SELECT anime_id, rank, name, category, role, commentary FROM anime_characters ORDER BY rank ASC`);
-  } catch (e) {
-    console.warn("Failed to load anime_characters:", e?.message || e);
-  }
-
-  let watchOrderRows = [];
-  try {
-    watchOrderRows = await db.query(`SELECT franchise_id, step_order, title, type, episodes, anime_id, note FROM franchise_watch_order ORDER BY step_order ASC`);
-  } catch (e) {
-    console.warn("Failed to load franchise_watch_order:", e?.message || e);
   }
 
   // Group helpers
@@ -480,6 +484,10 @@ export async function getAllAnime(contextOrLocals) {
       sectionVisibility
     };
   });
+
+  animeCache.data = formattedAnime;
+  animeCache.timestamp = Date.now();
+  return formattedAnime;
 }
 
 /**
@@ -565,31 +573,29 @@ export async function getAllBlogPosts(optionsOrContext = {}, contextOrLocals = n
     }
   }
 
+  const now = Date.now();
+  if (!includeDrafts && blogCache.data && (now - blogCache.timestamp < 30000)) {
+    return blogCache.data;
+  }
+
   const db = await getDatabase(ctx);
   const query = includeDrafts
     ? `SELECT * FROM blog_posts ORDER BY published_date DESC`
     : `SELECT * FROM blog_posts WHERE status = 'published' ORDER BY published_date DESC`;
 
-  let postRows = [];
-  try {
-    postRows = await db.query(query);
-  } catch (err) {
-    console.warn("Could not query blog_posts:", err?.message || err);
-    return [];
-  }
-
-  // Fetch linked anime
-  let linkRows = [];
-  try {
-    linkRows = await db.query(`
+  // Parallelize blog post query and linked anime query
+  const [postsRes, linksRes] = await Promise.allSettled([
+    db.query(query),
+    db.query(`
       SELECT bpa.post_id, a.id, a.slug, a.title, a.year, a.honesty_status
       FROM blog_post_anime bpa
       JOIN anime a ON bpa.anime_id = a.id
       ORDER BY a.title ASC
-    `);
-  } catch (err) {
-    console.warn("Could not query blog_post_anime:", err?.message || err);
-  }
+    `)
+  ]);
+
+  const postRows = postsRes.status === 'fulfilled' ? postsRes.value : [];
+  const linkRows = linksRes.status === 'fulfilled' ? linksRes.value : [];
 
   const linksMap = new Map();
   for (const row of linkRows) {
@@ -603,7 +609,7 @@ export async function getAllBlogPosts(optionsOrContext = {}, contextOrLocals = n
     });
   }
 
-  return postRows.map((row) => {
+  const formattedPosts = postRows.map((row) => {
     const wordCount = row.content ? row.content.trim().split(/\s+/).length : 0;
     const readTimeMinutes = Math.max(1, Math.ceil(wordCount / 200));
 
@@ -620,6 +626,13 @@ export async function getAllBlogPosts(optionsOrContext = {}, contextOrLocals = n
       linkedAnime: linksMap.get(row.id) || []
     };
   });
+
+  if (!includeDrafts) {
+    blogCache.data = formattedPosts;
+    blogCache.timestamp = Date.now();
+  }
+
+  return formattedPosts;
 }
 
 /**

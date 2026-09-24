@@ -8,6 +8,9 @@ interface Props {
 }
 
 const { title, activeSection = 'anime' } = Astro.props;
+
+// Disable all caching for admin dashboard pages
+Astro.response.headers.set('Cache-Control', 'private, no-cache, no-store, must-revalidate');
 ---
 
 <!DOCTYPE html>
