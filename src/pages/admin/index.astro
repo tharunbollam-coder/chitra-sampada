@@ -82,8 +82,13 @@ const totalTrending = animeList.filter(a => a.trending).length;
           {animeList.map(anime => (
             <tr class="hover:bg-slate-800/40 transition anime-row" data-search={`${anime.title} ${anime.id} ${anime.slug}`.toLowerCase()}>
               <td class="py-4 px-4 sm:px-6">
-                <div class="font-semibold text-white text-base leading-snug">
-                  {anime.title}
+                <div class="font-semibold text-white text-base leading-snug flex items-center gap-2">
+                  <span>{anime.title}</span>
+                  {anime.type === 'movie' && (
+                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-950/80 text-purple-300 border border-purple-800/80">
+                      Movie
+                    </span>
+                  )}
                 </div>
                 <div class="flex items-center gap-2 mt-1 text-xs text-slate-400 font-mono">
                   <span>id: {anime.id}</span>
@@ -93,7 +98,11 @@ const totalTrending = animeList.filter(a => a.trending).length;
               </td>
               <td class="py-4 px-4 hidden sm:table-cell text-slate-300">
                 <div>{anime.year}</div>
-                <div class="text-xs text-slate-400">{anime.episodes} eps {anime.fillerPercentage > 0 ? `(${anime.fillerPercentage}% filler)` : ''}</div>
+                <div class="text-xs text-slate-400">
+                  {anime.type === 'movie'
+                    ? `Movie ${anime.runtime ? `(${anime.runtime}m)` : ''}`
+                    : `${anime.episodes} eps ${anime.fillerPercentage > 0 ? `(${anime.fillerPercentage}% filler)` : ''}`}
+                </div>
               </td>
               <td class="py-4 px-4">
                 <div class="flex flex-wrap gap-1.5 items-center">

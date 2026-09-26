@@ -7,11 +7,20 @@ import WellnessNote from '../components/WellnessNote.astro';
 import { siteConfig } from '../config/site.js';
 import '../styles/global.css';
 
+interface Props {
+  title?: string;
+  description?: string;
+  ogImage?: string;
+  canonicalUrl?: string;
+  showWellnessNote?: boolean;
+}
+
 const {
   title = siteConfig.name,
   description = siteConfig.description,
   ogImage = '/favicon.svg',
-  canonicalUrl: propCanonicalUrl
+  canonicalUrl: propCanonicalUrl,
+  showWellnessNote
 } = Astro.props;
 
 // Determine clean page title without redundant site name suffix
@@ -26,6 +35,7 @@ if (title === siteConfig.name) {
 
 const siteOrigin = siteConfig.siteUrl || (Astro.site ? Astro.site.origin : 'https://chitrasampada.com');
 const cleanPathname = Astro.url.pathname === '/' ? '/' : Astro.url.pathname.replace(/\/+$/, '');
+const isHomepage = showWellnessNote !== undefined ? showWellnessNote : (cleanPathname === '' || cleanPathname === '/');
 const canonicalUrl = propCanonicalUrl || new URL(cleanPathname, siteOrigin).href;
 const resolvedOgImage = ogImage.startsWith('http') ? ogImage : new URL(ogImage, siteOrigin).href;
 
@@ -90,7 +100,7 @@ if (!Astro.url.pathname.startsWith('/admin') && !Astro.url.pathname.startsWith('
       <slot />
     </main>
 
-    <WellnessNote />
+    {isHomepage && <WellnessNote />}
 
     <Footer />
 

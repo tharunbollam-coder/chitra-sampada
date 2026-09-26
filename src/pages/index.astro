@@ -14,7 +14,7 @@ const animeList = await getAllAnime(Astro.locals);
 const spotlightAnime = animeList.filter((a) => a.trending).slice(0, 4);
 ---
 
-<BaseLayout title={siteConfig.name} description={siteConfig.description}>
+<BaseLayout title={siteConfig.name} description={siteConfig.description} showWellnessNote={true}>
   <Fragment slot="structured-data">
     <script type="application/ld+json" set:html={JSON.stringify({
       "@context": "https://schema.org",

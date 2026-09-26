@@ -9,6 +9,8 @@ import TabSource from '../../../components/anime/TabSource.astro';
 import TabPowerSystem from '../../../components/anime/TabPowerSystem.astro';
 import TabReview from '../../../components/anime/TabReview.astro';
 import TabLessons from '../../../components/anime/TabLessons.astro';
+import TabUniverse from '../../../components/anime/TabUniverse.astro';
+import TabRecommendations from '../../../components/anime/TabRecommendations.astro';
 import RelatedBlogPosts from '../../../components/RelatedBlogPosts.astro';
 import { getAllAnime, getAvailableTabs, getDefaultTabKey } from '../../../lib/d1.js';
 import { siteConfig } from '../../../config/site.js';
@@ -36,6 +38,16 @@ if (tab && !availableTabs.some((t) => t.key === tab)) {
 const activeTabKey = tab || defaultTabKey;
 
 const isZeroFiller = anime.fillerPercentage === 0;
+const isMovie = anime.type === 'movie';
+
+function formatRuntime(runtimeMinutes) {
+  if (!runtimeMinutes || isNaN(runtimeMinutes)) return 'Feature Film';
+  const mins = parseInt(runtimeMinutes, 10);
+  if (mins < 60) return `${mins}m`;
+  const hours = Math.floor(mins / 60);
+  const remainingMins = mins % 60;
+  return remainingMins > 0 ? `${hours}h ${remainingMins}m` : `${hours}h`;
+}
 const activeTab = availableTabs.find((t) => t.key === activeTabKey) || availableTabs[0];
 
 const isWatched = anime.honestyStatus === 'watched';
@@ -53,7 +65,9 @@ const tabTitleMap = {
   'source': 'Manga & Light Novel Source Guide',
   'power-system': 'Power System & Lore',
   'review': 'My Honest Take & Review',
-  'lessons': 'What I Learned (Reflections)'
+  'lessons': 'What I Learned (Reflections)',
+  'universe': 'Related & Universe Media',
+  'recommendations': 'Shows Like This (Recommendations)'
 };
 
 const tabDescMap = {
@@ -63,7 +77,9 @@ const tabDescMap = {
   'source': `Manga and light novel source material guide for ${anime.title}. Chapter adaptation coverage and where to start reading.`,
   'power-system': `In-depth power system breakdown, combat mechanics, and worldbuilding lore for ${anime.title}.`,
   'review': `Honest, spoiler-free personal review and rating for ${anime.title}. Real viewer perspective without promotional hype.`,
-  'lessons': `Key takeaways and philosophical reflections learned from watching ${anime.title}.`
+  'lessons': `Key takeaways and philosophical reflections learned from watching ${anime.title}.`,
+  'universe': `Complete franchise media directory for ${anime.title}. Official canon storylines, movies, spin-offs, and specials.`,
+  'recommendations': `Curated anime recommendations for fans of ${anime.title}. Similar themes, combat systems, and captivating stories.`
 };
 
 const currentTabLabel = tabTitleMap[activeTab?.key] || 'Honest Guide';
@@ -230,16 +246,23 @@ if (anime.honestyStatus === 'watched' && anime.personalRating !== undefined && a
           <div class="flex items-center gap-2 flex-wrap">
             <HonestyBadge status={anime.honestyStatus} size="md" />
 
-            <span
-              class:list={[
-                'text-xs font-bold px-3 py-1 rounded-full border tracking-wide select-none',
-                isZeroFiller
-                  ? 'bg-[#EEF2FF] text-[#4F46E5] border-[#C7D2FE]'
-                  : 'bg-slate-100 text-slate-700 border-slate-200'
-              ]}
-            >
-              {isZeroFiller ? '0% Filler (Pure Canon)' : `${anime.fillerPercentage}% Filler Content`}
-            </span>
+            {isMovie ? (
+              <span class="text-xs font-bold px-3 py-1 rounded-full border tracking-wide select-none bg-purple-50 text-purple-700 border-purple-200 flex items-center gap-1.5 shadow-2xs">
+                <span>🎬</span>
+                <span>{anime.movieCanonType ? (anime.movieCanonType === 'Canon' ? '★ Canon Storyline' : anime.movieCanonType) : 'Feature Film'}</span>
+              </span>
+            ) : (
+              <span
+                class:list={[
+                  'text-xs font-bold px-3 py-1 rounded-full border tracking-wide select-none',
+                  isZeroFiller
+                    ? 'bg-[#EEF2FF] text-[#4F46E5] border-[#C7D2FE]'
+                    : 'bg-slate-100 text-slate-700 border-slate-200'
+                ]}
+              >
+                {isZeroFiller ? '0% Filler (Pure Canon)' : `${anime.fillerPercentage}% Filler Content`}
+              </span>
+            )}
 
             <!-- Personal Rating Badge (Only rendered if watched and personalRating exists) -->
             {anime.honestyStatus === 'watched' && anime.personalRating && (
@@ -275,7 +298,7 @@ if (anime.honestyStatus === 'watched' && anime.personalRating !== undefined && a
 
           <!-- Detailed Metadata Matrix -->
           <div class="flex items-center gap-2 sm:gap-3 text-xs text-slate-600 flex-wrap pt-1 font-medium">
-            <span>{anime.episodes} episodes</span>
+            <span>{isMovie ? `Movie • ${formatRuntime(anime.runtime)}` : `${anime.episodes} episodes`}</span>
             <span class="text-slate-300">•</span>
             <span class="px-2 py-0.5 rounded-md bg-slate-100 border border-slate-200/80 text-slate-700">{anime.status}</span>
             <span class="text-slate-300">•</span>
@@ -380,6 +403,8 @@ if (anime.honestyStatus === 'watched' && anime.personalRating !== undefined && a
             {t.key === 'power-system' && <TabPowerSystem anime={anime} />}
             {t.key === 'review' && <TabReview anime={anime} />}
             {t.key === 'lessons' && <TabLessons anime={anime} />}
+            {t.key === 'universe' && <TabUniverse anime={anime} />}
+            {t.key === 'recommendations' && <TabRecommendations anime={anime} />}
           </div>
         ))}
       </div>
@@ -488,7 +513,10 @@ if (anime.honestyStatus === 'watched' && anime.personalRating !== undefined && a
         'characters': 'Characters',
         'source': 'Manga & Light Novel',
         'power-system': 'Power System',
-        'review': 'My Take'
+        'review': 'My Take',
+        'lessons': 'What I Learned',
+        'universe': 'Related & Universe',
+        'recommendations': 'Shows Like This'
       };
 
       function activateTab(tabKey, updateHistory, newHref) {

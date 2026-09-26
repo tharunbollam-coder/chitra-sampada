@@ -1,0 +1,120 @@
+---
+// src/components/anime/TabRecommendations.astro
+interface Props {
+  anime: any;
+}
+
+const { anime } = Astro.props;
+const recommendations = Array.isArray(anime.recommendations) ? anime.recommendations : [];
+---
+
+<div class="space-y-6">
+  <div class="bg-white rounded-2xl border border-slate-200 p-6 sm:p-7 shadow-xs">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-5 border-b border-slate-100">
+      <div>
+        <h2 class="font-heading text-xl sm:text-2xl font-bold text-[#0F172A]">
+          Shows Like This
+        </h2>
+        <p class="text-xs sm:text-sm text-slate-500 font-normal mt-1">
+          Handpicked anime recommendations for fans of {anime.title}. Similar themes, high-stakes progression, and rich worldbuilding.
+        </p>
+      </div>
+      <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-[#EEF2FF] text-[#4F46E5] border border-[#C7D2FE] shrink-0 self-start sm:self-auto shadow-2xs">
+        <span class="w-1.5 h-1.5 rounded-full bg-[#6366F1]"></span>
+        {recommendations.length} {recommendations.length === 1 ? 'Recommendation' : 'Recommendations'}
+      </span>
+    </div>
+
+    {recommendations.length === 0 ? (
+      <div class="py-12 text-center space-y-3">
+        <div class="w-12 h-12 mx-auto rounded-full bg-slate-100 text-slate-400 flex items-center justify-center">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+          </svg>
+        </div>
+        <h3 class="font-semibold text-slate-800 text-base">No Recommendations Added Yet</h3>
+        <p class="text-xs text-slate-500 max-w-sm mx-auto">
+          Curated external recommendations for {anime.title} will appear here soon.
+        </p>
+      </div>
+    ) : (
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mt-6">
+        {recommendations.map((rec) => (
+          <div class="bg-slate-50/70 hover:bg-slate-50 border border-slate-200/90 rounded-2xl p-5 flex flex-col justify-between gap-4 transition-all duration-200 shadow-2xs">
+            <div class="space-y-3.5">
+              <!-- Top Anime Summary -->
+              <div class="flex items-start gap-3.5">
+                {rec.targetPoster ? (
+                  <img
+                    src={rec.targetPoster}
+                    alt={rec.targetTitle || 'Anime Poster'}
+                    class="w-14 h-20 rounded-xl object-cover shrink-0 shadow-2xs border border-slate-200 bg-slate-200"
+                    loading="lazy"
+                  />
+                ) : (
+                  <div class="w-14 h-20 rounded-xl bg-slate-200 text-slate-400 flex items-center justify-center shrink-0 border border-slate-300">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" />
+                    </svg>
+                  </div>
+                )}
+
+                <div class="flex-1 min-w-0 space-y-1">
+                  <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-200/80">
+                    {rec.categoryBadge}
+                  </span>
+                  <h3 class="font-heading font-bold text-base sm:text-lg text-[#0F172A] truncate">
+                    {rec.targetTitle || rec.targetAnimeId}
+                  </h3>
+                  <div class="flex items-center gap-2 text-xs text-slate-500 font-medium">
+                    {rec.targetYear && <span>{rec.targetYear}</span>}
+                    {rec.targetYear && rec.targetStatus && <span>•</span>}
+                    {rec.targetStatus && <span>{rec.targetStatus}</span>}
+                    {rec.targetRating !== undefined && rec.targetRating !== null && (
+                      <>
+                        <span>•</span>
+                        <span class="text-amber-600 font-bold flex items-center gap-0.5">
+                          ★ {rec.targetRating}
+                        </span>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <!-- Editorial "Why You Should Watch" Callout Box -->
+              {rec.editorialNote && (
+                <div class="p-3.5 rounded-xl bg-white border border-slate-200/80 space-y-1 shadow-2xs">
+                  <div class="text-[11px] font-bold uppercase tracking-wider text-indigo-600 flex items-center gap-1.5">
+                    <svg class="w-3.5 h-3.5 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                    Why You Should Watch
+                  </div>
+                  <p class="text-xs sm:text-sm text-slate-700 leading-relaxed">
+                    {rec.editorialNote}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <!-- Bottom Button Linking to Recommended Show -->
+            <div class="pt-3 border-t border-slate-200/70 flex items-center justify-between">
+              <span class="text-[11px] font-medium text-slate-400">Available on Chitra Sampada</span>
+              <a
+                href={`/anime/${rec.targetSlug || rec.targetAnimeId}`}
+                class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-xs transition-colors"
+              >
+                <span>View {rec.targetTitle || 'Anime'}</span>
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                </svg>
+              </a>
+            </div>
+          </div>
+        ))}
+      </div>
+    )}
+  </div>
+</div>

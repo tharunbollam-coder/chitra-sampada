@@ -18,6 +18,7 @@ const franchises = await getAllFranchises(Astro.locals);
 const db = await getDatabase(Astro.locals);
 const existingGenreRows = await db.query('SELECT DISTINCT genre FROM anime_genres ORDER BY genre ASC');
 const existingGenres = existingGenreRows.map(r => r.genre);
+const platformAnimeList = await db.query('SELECT id, title, slug FROM anime ORDER BY title ASC');
 
 const fillerBreakdown = anime?.fillerBreakdown || {};
 const initCounts = fillerBreakdown.counts || { mangaCanon: 0, animeCanon: 0, mixedCanon: 0, filler: 0 };
@@ -34,7 +35,9 @@ const sectionVisibility = anime?.sectionVisibility || {
   fillerList: true,
   characters: true,
   source: true,
-  powerSystem: true
+  powerSystem: true,
+  universe: true,
+  recommendations: true
 };
 ---
 
@@ -216,8 +219,24 @@ const sectionVisibility = anime?.sectionVisibility || {
               />
             </div>
 
-            <!-- Episodes -->
+            <!-- Media Format Type -->
             <div>
+              <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5" for="core-type">
+                Media Format <span class="text-rose-400">*</span>
+              </label>
+              <select
+                id="core-type"
+                name="type"
+                class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-sm text-white focus:outline-none focus:border-indigo-500 font-medium"
+              >
+                <option value="series" selected={anime?.type !== 'movie'}>TV Series</option>
+                <option value="movie" selected={anime?.type === 'movie'}>Movie / Film</option>
+              </select>
+              <span class="text-[11px] text-slate-500 mt-1 block">TV Series vs Feature Film.</span>
+            </div>
+
+            <!-- Episodes (for TV Series) -->
+            <div id="wrapper-core-episodes" class={anime?.type === 'movie' ? 'hidden' : ''}>
               <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5" for="core-episodes">
                 Total Episodes <span class="text-rose-400">*</span>
               </label>
@@ -227,9 +246,44 @@ const sectionVisibility = anime?.sectionVisibility || {
                 name="episodes"
                 value={anime?.episodes || 12}
                 min="1"
-                required
                 class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-sm text-white focus:outline-none focus:border-indigo-500"
               />
+              <span class="text-[11px] text-slate-500 mt-1 block">Total number of broadcast episodes.</span>
+            </div>
+
+            <!-- Movie Runtime (Minutes) -->
+            <div id="wrapper-core-runtime" class={anime?.type === 'movie' ? '' : 'hidden'}>
+              <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5" for="core-runtime">
+                Runtime (Minutes) <span class="text-rose-400">*</span>
+              </label>
+              <input
+                type="number"
+                id="core-runtime"
+                name="runtime"
+                value={anime?.runtime || ''}
+                min="1"
+                max="600"
+                placeholder="e.g. 107"
+                class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-sm text-white focus:outline-none focus:border-indigo-500"
+              />
+              <span class="text-[11px] text-slate-500 mt-1 block">Movie duration in minutes (e.g. 107 = 1h 47m).</span>
+            </div>
+
+            <!-- Movie Canon Status -->
+            <div id="wrapper-core-movie-canon" class={anime?.type === 'movie' ? '' : 'hidden'}>
+              <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5" for="core-movie-canon">
+                Movie Canon Status
+              </label>
+              <select
+                id="core-movie-canon"
+                name="movieCanonType"
+                class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-sm text-white focus:outline-none focus:border-indigo-500"
+              >
+                <option value="Canon" selected={anime?.movieCanonType === 'Canon'}>★ Canon Storyline</option>
+                <option value="Non-Canon Spinoff" selected={anime?.movieCanonType === 'Non-Canon Spinoff'}>Theatrical / Non-Canon Spinoff</option>
+                <option value="Standalone Film" selected={anime?.movieCanonType === 'Standalone Film'}>Standalone Film</option>
+              </select>
+              <span class="text-[11px] text-slate-500 mt-1 block">Storyline canon standing.</span>
             </div>
 
             <!-- Status -->
@@ -742,7 +796,7 @@ const sectionVisibility = anime?.sectionVisibility || {
     <!-- ============================================================= -->
     <!-- SECTION 5: FILLER & CANON BREAKDOWN -->
     <!-- ============================================================= -->
-    <div class={`bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden transition dependent-section ${isNew ? 'opacity-50 pointer-events-none' : ''}`} id="section-filler-container">
+    <div class={`bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden transition dependent-section ${isNew ? 'opacity-50 pointer-events-none' : ''} ${anime?.type === 'movie' ? 'hidden' : ''}`} id="section-filler-container">
       <button
         type="button"
         class="w-full px-4 sm:px-6 py-3.5 sm:py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-left hover:bg-slate-850/50 transition cursor-pointer section-toggle"
@@ -1333,6 +1387,276 @@ const sectionVisibility = anime?.sectionVisibility || {
       </div>
     </div>
 
+    <!-- ============================================================= -->
+    <!-- SECTION 9: RELATED & UNIVERSE MEDIA -->
+    <!-- ============================================================= -->
+    <div class={`bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden transition dependent-section ${isNew ? 'opacity-50 pointer-events-none' : ''}`} id="section-universe-container">
+      <button
+        type="button"
+        class="w-full px-4 sm:px-6 py-3.5 sm:py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-left hover:bg-slate-850/50 transition cursor-pointer section-toggle"
+        data-target="section-universe-body"
+      >
+        <div class="flex items-center gap-3">
+          <span class="w-7 h-7 shrink-0 rounded-lg bg-indigo-600/20 text-indigo-400 font-bold text-xs flex items-center justify-center border border-indigo-500/30">
+            9
+          </span>
+          <div>
+            <h2 class="text-base font-semibold text-white font-heading">Related & Universe Media</h2>
+            <p class="text-xs text-slate-400">Official canon storyline vs. non-canon movies, spin-offs, and specials</p>
+          </div>
+        </div>
+        <div class="w-full sm:w-auto flex items-center justify-between sm:justify-end gap-2.5 sm:gap-3 border-t border-slate-800/60 pt-2 sm:pt-0 sm:border-0">
+          <label
+            class="no-section-toggle relative inline-flex items-center gap-2 cursor-pointer select-none px-2.5 py-1 rounded-lg bg-slate-800/90 border border-slate-700/70 hover:border-slate-600 transition"
+            title="Toggle visibility of Related & Universe Media on public anime page"
+            onclick="event.stopPropagation()"
+          >
+            <span class="text-[11px] font-medium text-slate-300 visibility-label">
+              {sectionVisibility.universe ? 'Public: Show' : 'Public: Hide'}
+            </span>
+            <input
+              type="checkbox"
+              class="sr-only section-visibility-checkbox"
+              data-section="universe"
+              checked={sectionVisibility.universe}
+            />
+            <div class:list={[
+              'w-8 h-4.5 rounded-full transition-colors relative flex items-center p-0.5 switch-track',
+              sectionVisibility.universe ? 'bg-indigo-600' : 'bg-slate-700'
+            ]}>
+              <div class:list={[
+                'w-3.5 h-3.5 rounded-full bg-white transition-transform transform shadow-sm switch-thumb',
+                sectionVisibility.universe ? 'translate-x-3.5' : 'translate-x-0'
+              ]}></div>
+            </div>
+          </label>
+          <span id="universe-badge" class="hidden text-xs px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800/80 font-medium">Saved</span>
+          <svg class="w-5 h-5 text-slate-400 transform transition-transform duration-200 section-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+          </svg>
+        </div>
+      </button>
+
+      <div id="section-universe-body" class="px-4 sm:px-6 pb-6 pt-2 border-t border-slate-800/80">
+        <div id="universe-feedback" class="hidden mb-5 p-3.5 rounded-xl text-xs sm:text-sm font-medium border"></div>
+
+        <form id="form-universe" class="space-y-4">
+          <div class="flex items-center justify-between">
+            <p class="text-xs text-slate-400">
+              Catalog franchise entries grouped into Official Canon Storyline vs Non-Canon / Spin-offs.
+            </p>
+            <button
+              type="button"
+              id="btn-add-universe-row"
+              class="text-xs px-3 py-1.5 bg-indigo-600/20 text-indigo-300 border border-indigo-500/40 rounded-lg hover:bg-indigo-600/30 font-semibold flex items-center gap-1 shrink-0 cursor-pointer"
+            >
+              + Add Universe Item
+            </button>
+          </div>
+
+          <div id="universe-container" class="space-y-3">
+            {(anime?.universe?.length ? anime.universe : []).map((u, i) => (
+              <div class="p-3 bg-slate-950 border border-slate-800 rounded-xl space-y-2.5 universe-row">
+                <div class="flex flex-wrap sm:flex-nowrap items-center justify-between gap-2.5">
+                  <div class="flex items-center gap-2 flex-1 min-w-[180px]">
+                    <span class="w-6 h-6 rounded bg-slate-800 text-slate-400 text-xs flex items-center justify-center font-bold shrink-0 universe-order-badge">
+                      {u.itemOrder || i + 1}
+                    </span>
+                    <input
+                      type="text"
+                      value={u.title}
+                      placeholder="Title (e.g. Naruto: Shippuden)"
+                      class="universe-input-title flex-1 px-3 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-sm text-white font-medium"
+                      required
+                    />
+                  </div>
+                  <div class="flex items-center gap-2 shrink-0 ml-auto sm:ml-0">
+                    <select class="universe-input-section px-2.5 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-xs text-white">
+                      <option value="canon" selected={u.section === 'canon'}>Canon Storyline</option>
+                      <option value="non_canon" selected={u.section === 'non_canon'}>Non-Canon / Spin-off</option>
+                    </select>
+                    <select class="universe-input-badge px-2.5 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-xs text-white">
+                      <optgroup label="Canon Badges">
+                        <option value="Main Series" selected={u.badge === 'Main Series'}>Main Series</option>
+                        <option value="Canon Sequel" selected={u.badge === 'Canon Sequel'}>Canon Sequel</option>
+                        <option value="Canon Prequel" selected={u.badge === 'Canon Prequel'}>Canon Prequel</option>
+                        <option value="Canon Movie" selected={u.badge === 'Canon Movie'}>Canon Movie</option>
+                      </optgroup>
+                      <optgroup label="Non-Canon Badges">
+                        <option value="Non-Canon Movie" selected={u.badge === 'Non-Canon Movie'}>Non-Canon Movie</option>
+                        <option value="Spin-off" selected={u.badge === 'Spin-off'}>Spin-off</option>
+                        <option value="OVA / Special" selected={u.badge === 'OVA / Special'}>OVA / Special</option>
+                      </optgroup>
+                    </select>
+                    <button
+                      type="button"
+                      class="btn-remove-universe text-slate-500 hover:text-rose-400 p-1 cursor-pointer"
+                      title="Remove item"
+                    >
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <input
+                    type="text"
+                    value={u.linkSlug || ''}
+                    placeholder="Link Slug (e.g. naruto-shippuden) [Optional]"
+                    class="universe-input-slug sm:col-span-1 px-3 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-xs text-slate-200"
+                  />
+                  <input
+                    type="text"
+                    value={u.editorialNote || ''}
+                    placeholder="Editorial Note (e.g. Set between eps 311 & 312; Kishimoto concept) [Optional]"
+                    class="universe-input-note sm:col-span-2 px-3 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-xs text-slate-200"
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div class="pt-4 border-t border-slate-800 flex justify-end">
+            <button
+              type="submit"
+              class="w-full sm:w-auto px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold rounded-xl shadow-sm transition cursor-pointer"
+            >
+              Save Related & Universe Media
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- ============================================================= -->
+    <!-- SECTION 10: SHOWS LIKE THIS (RECOMMENDATIONS) -->
+    <!-- ============================================================= -->
+    <div class={`bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden transition dependent-section ${isNew ? 'opacity-50 pointer-events-none' : ''}`} id="section-recs-container">
+      <button
+        type="button"
+        class="w-full px-4 sm:px-6 py-3.5 sm:py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-left hover:bg-slate-850/50 transition cursor-pointer section-toggle"
+        data-target="section-recs-body"
+      >
+        <div class="flex items-center gap-3">
+          <span class="w-7 h-7 shrink-0 rounded-lg bg-indigo-600/20 text-indigo-400 font-bold text-xs flex items-center justify-center border border-indigo-500/30">
+            10
+          </span>
+          <div>
+            <h2 class="text-base font-semibold text-white font-heading">Shows Like This (Recommendations)</h2>
+            <p class="text-xs text-slate-400">Curated external recommendations for shows already cataloged on Chitra Sampada</p>
+          </div>
+        </div>
+        <div class="w-full sm:w-auto flex items-center justify-between sm:justify-end gap-2.5 sm:gap-3 border-t border-slate-800/60 pt-2 sm:pt-0 sm:border-0">
+          <label
+            class="no-section-toggle relative inline-flex items-center gap-2 cursor-pointer select-none px-2.5 py-1 rounded-lg bg-slate-800/90 border border-slate-700/70 hover:border-slate-600 transition"
+            title="Toggle visibility of Recommendations on public anime page"
+            onclick="event.stopPropagation()"
+          >
+            <span class="text-[11px] font-medium text-slate-300 visibility-label">
+              {sectionVisibility.recommendations ? 'Public: Show' : 'Public: Hide'}
+            </span>
+            <input
+              type="checkbox"
+              class="sr-only section-visibility-checkbox"
+              data-section="recommendations"
+              checked={sectionVisibility.recommendations}
+            />
+            <div class:list={[
+              'w-8 h-4.5 rounded-full transition-colors relative flex items-center p-0.5 switch-track',
+              sectionVisibility.recommendations ? 'bg-indigo-600' : 'bg-slate-700'
+            ]}>
+              <div class:list={[
+                'w-3.5 h-3.5 rounded-full bg-white transition-transform transform shadow-sm switch-thumb',
+                sectionVisibility.recommendations ? 'translate-x-3.5' : 'translate-x-0'
+              ]}></div>
+            </div>
+          </label>
+          <span id="recs-badge" class="hidden text-xs px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800/80 font-medium">Saved</span>
+          <svg class="w-5 h-5 text-slate-400 transform transition-transform duration-200 section-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+          </svg>
+        </div>
+      </button>
+
+      <div id="section-recs-body" class="px-4 sm:px-6 pb-6 pt-2 border-t border-slate-800/80">
+        <div id="recs-feedback" class="hidden mb-5 p-3.5 rounded-xl text-xs sm:text-sm font-medium border"></div>
+
+        <form id="form-recs" class="space-y-4">
+          <div class="flex items-center justify-between">
+            <p class="text-xs text-slate-400">
+              Pick other anime titles on the platform and explain why fans of this show will love them.
+            </p>
+            <button
+              type="button"
+              id="btn-add-rec-row"
+              class="text-xs px-3 py-1.5 bg-indigo-600/20 text-indigo-300 border border-indigo-500/40 rounded-lg hover:bg-indigo-600/30 font-semibold flex items-center gap-1 shrink-0 cursor-pointer"
+            >
+              + Add Recommendation
+            </button>
+          </div>
+
+          <div id="recs-container" class="space-y-3">
+            {(anime?.recommendations?.length ? anime.recommendations : []).map((r, i) => (
+              <div class="p-3 bg-slate-950 border border-slate-800 rounded-xl space-y-2.5 rec-row">
+                <div class="flex flex-wrap sm:flex-nowrap items-center justify-between gap-2.5">
+                  <div class="flex items-center gap-2 flex-1 min-w-[200px]">
+                    <span class="w-6 h-6 rounded bg-slate-800 text-slate-400 text-xs flex items-center justify-center font-bold shrink-0 rec-order-badge">
+                      {r.itemOrder || i + 1}
+                    </span>
+                    <select class="rec-input-target flex-1 px-3 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-sm text-white font-medium" required>
+                      <option value="">-- Select Recommended Anime --</option>
+                      {platformAnimeList.filter(pa => pa.id !== anime?.id).map(pa => (
+                        <option value={pa.id} selected={pa.id === r.targetAnimeId}>
+                          {pa.title} ({pa.id})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div class="flex items-center gap-2 flex-1 sm:max-w-xs">
+                    <input
+                      type="text"
+                      value={r.categoryBadge}
+                      placeholder="Category Badge (e.g. Similar Shonen Progression)"
+                      class="rec-input-badge w-full px-3 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-xs text-white"
+                      required
+                    />
+                    <button
+                      type="button"
+                      class="btn-remove-rec text-slate-500 hover:text-rose-400 p-1 cursor-pointer shrink-0"
+                      title="Remove recommendation"
+                    >
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <textarea
+                    rows="2"
+                    placeholder="Why You Should Watch (editorial hook comparing dynamics, themes, or pacing)..."
+                    class="rec-input-note w-full px-3 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                  >{r.editorialNote || ''}</textarea>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div class="pt-4 border-t border-slate-800 flex justify-end">
+            <button
+              type="submit"
+              class="w-full sm:w-auto px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold rounded-xl shadow-sm transition cursor-pointer"
+            >
+              Save Recommendations
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
     <!-- Bottom Static Save Bar -->
     <div class="mt-8 pt-6 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
       <div class="text-center sm:text-left">
@@ -1354,7 +1678,7 @@ const sectionVisibility = anime?.sectionVisibility || {
   </div>
 
   <!-- Client JavaScript for Interactivity, Dynamic Rows, Hydration, and Section Saves -->
-  <script is:inline define:vars={{ initialAnime: anime, isNewRecord: isNew }}>
+  <script is:inline define:vars={{ initialAnime: anime, isNewRecord: isNew, platformAnimeList }}>
     let currentAnimeId = initialAnime?.id || null;
 
     // Helper: Show localized inline banner in section
@@ -1539,6 +1863,163 @@ const sectionVisibility = anime?.sectionVisibility || {
       container.appendChild(div);
     }
 
+    // Helper: update rank indicators for Universe Media
+    function updateUniverseRanks() {
+      document.querySelectorAll('#universe-container .universe-row').forEach((row, i) => {
+        const badge = row.querySelector('.universe-order-badge');
+        if (badge) badge.textContent = i + 1;
+      });
+    }
+
+    // Helper: add a Related & Universe Media row to Section 9
+    function addUniverseRow(u = {}, index = 1) {
+      const container = document.getElementById('universe-container');
+      if (!container) return;
+      const div = document.createElement('div');
+      div.className = 'p-3 bg-slate-950 border border-slate-800 rounded-xl space-y-2.5 universe-row';
+      const sectionVal = u.section || 'canon';
+      const badgeVal = u.badge || 'Main Series';
+      const titleVal = u.title || '';
+      const slugVal = u.linkSlug || '';
+      const noteVal = u.editorialNote || '';
+
+      div.innerHTML = `
+        <div class="flex flex-wrap sm:flex-nowrap items-center justify-between gap-2.5">
+          <div class="flex items-center gap-2 flex-1 min-w-[180px]">
+            <span class="w-6 h-6 rounded bg-slate-800 text-slate-400 text-xs flex items-center justify-center font-bold shrink-0 universe-order-badge">
+              ${u.itemOrder || index}
+            </span>
+            <input
+              type="text"
+              value="${titleVal}"
+              placeholder="Title (e.g. Naruto: Shippuden)"
+              class="universe-input-title flex-1 px-3 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-sm text-white font-medium"
+              required
+            />
+          </div>
+          <div class="flex items-center gap-2 shrink-0 ml-auto sm:ml-0">
+            <select class="universe-input-section px-2.5 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-xs text-white">
+              <option value="canon" ${sectionVal === 'canon' ? 'selected' : ''}>Canon Storyline</option>
+              <option value="non_canon" ${sectionVal === 'non_canon' ? 'selected' : ''}>Non-Canon / Spin-off</option>
+            </select>
+            <select class="universe-input-badge px-2.5 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-xs text-white">
+              <optgroup label="Canon Badges">
+                <option value="Main Series" ${badgeVal === 'Main Series' ? 'selected' : ''}>Main Series</option>
+                <option value="Canon Sequel" ${badgeVal === 'Canon Sequel' ? 'selected' : ''}>Canon Sequel</option>
+                <option value="Canon Prequel" ${badgeVal === 'Canon Prequel' ? 'selected' : ''}>Canon Prequel</option>
+                <option value="Canon Movie" ${badgeVal === 'Canon Movie' ? 'selected' : ''}>Canon Movie</option>
+              </optgroup>
+              <optgroup label="Non-Canon Badges">
+                <option value="Non-Canon Movie" ${badgeVal === 'Non-Canon Movie' ? 'selected' : ''}>Non-Canon Movie</option>
+                <option value="Spin-off" ${badgeVal === 'Spin-off' ? 'selected' : ''}>Spin-off</option>
+                <option value="OVA / Special" ${badgeVal === 'OVA / Special' ? 'selected' : ''}>OVA / Special</option>
+              </optgroup>
+            </select>
+            <button
+              type="button"
+              class="btn-remove-universe text-slate-500 hover:text-rose-400 p-1 cursor-pointer"
+              title="Remove item"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+          <input
+            type="text"
+            value="${slugVal}"
+            placeholder="Link Slug (e.g. naruto-shippuden) [Optional]"
+            class="universe-input-slug sm:col-span-1 px-3 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-xs text-slate-200"
+          />
+          <input
+            type="text"
+            value="${noteVal}"
+            placeholder="Editorial Note (e.g. Set between eps 311 & 312; Kishimoto concept) [Optional]"
+            class="universe-input-note sm:col-span-2 px-3 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-xs text-slate-200"
+          />
+        </div>
+      `;
+
+      div.querySelector('.btn-remove-universe').addEventListener('click', () => {
+        div.remove();
+        updateUniverseRanks();
+      });
+      container.appendChild(div);
+    }
+
+    // Helper: update rank indicators for Recommendations
+    function updateRecRanks() {
+      document.querySelectorAll('#recs-container .rec-row').forEach((row, i) => {
+        const badge = row.querySelector('.rec-order-badge');
+        if (badge) badge.textContent = i + 1;
+      });
+    }
+
+    // Helper: add a Shows Like This recommendation row to Section 10
+    function addRecRow(r = {}, index = 1) {
+      const container = document.getElementById('recs-container');
+      if (!container) return;
+      const div = document.createElement('div');
+      div.className = 'p-3 bg-slate-950 border border-slate-800 rounded-xl space-y-2.5 rec-row';
+      const targetIdVal = r.targetAnimeId || '';
+      const badgeVal = r.categoryBadge || '';
+      const noteVal = r.editorialNote || '';
+
+      const options = (platformAnimeList || [])
+        .filter(pa => pa.id !== currentAnimeId)
+        .map(pa => `<option value="${pa.id}" ${pa.id === targetIdVal ? 'selected' : ''}>${pa.title} (${pa.id})</option>`)
+        .join('');
+
+      div.innerHTML = `
+        <div class="flex flex-wrap sm:flex-nowrap items-center justify-between gap-2.5">
+          <div class="flex items-center gap-2 flex-1 min-w-[200px]">
+            <span class="w-6 h-6 rounded bg-slate-800 text-slate-400 text-xs flex items-center justify-center font-bold shrink-0 rec-order-badge">
+              ${r.itemOrder || index}
+            </span>
+            <select class="rec-input-target flex-1 px-3 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-sm text-white font-medium" required>
+              <option value="">-- Select Recommended Anime --</option>
+              ${options}
+            </select>
+          </div>
+          <div class="flex items-center gap-2 flex-1 sm:max-w-xs">
+            <input
+              type="text"
+              value="${badgeVal}"
+              placeholder="Category Badge (e.g. Similar Shonen Progression)"
+              class="rec-input-badge w-full px-3 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-xs text-white"
+              required
+            />
+            <button
+              type="button"
+              class="btn-remove-rec text-slate-500 hover:text-rose-400 p-1 cursor-pointer shrink-0"
+              title="Remove recommendation"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <textarea
+            rows="2"
+            placeholder="Why You Should Watch (editorial hook comparing dynamics, themes, or pacing)..."
+            class="rec-input-note w-full px-3 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+          >${noteVal}</textarea>
+        </div>
+      `;
+
+      div.querySelector('.btn-remove-rec').addEventListener('click', () => {
+        div.remove();
+        updateRecRanks();
+      });
+      container.appendChild(div);
+    }
+
     // Helper: count episodes from comma-separated ranges and numbers
     function countEpisodesFromRangeString(str) {
       if (!str || !str.trim()) return 0;
@@ -1600,6 +2081,64 @@ const sectionVisibility = anime?.sectionVisibility || {
       }
     }
 
+    // Dynamic Media Type Mode UI Switcher (Series vs Movie)
+    function updateMediaTypeUI() {
+      const typeEl = document.getElementById('core-type');
+      const isMovie = typeEl?.value === 'movie';
+
+      const epsWrapper = document.getElementById('wrapper-core-episodes');
+      const runtimeWrapper = document.getElementById('wrapper-core-runtime');
+      const canonWrapper = document.getElementById('wrapper-core-movie-canon');
+      const fillerContainer = document.getElementById('section-filler-container');
+      const fillerCheckbox = document.querySelector('input.section-visibility-checkbox[data-section="fillerList"]');
+      const labelContainer = fillerCheckbox?.closest('label');
+      const labelText = labelContainer?.querySelector('.visibility-label');
+      const track = labelContainer?.querySelector('.switch-track');
+      const thumb = labelContainer?.querySelector('.switch-thumb');
+
+      if (isMovie) {
+        if (epsWrapper) epsWrapper.classList.add('hidden');
+        if (runtimeWrapper) runtimeWrapper.classList.remove('hidden');
+        if (canonWrapper) canonWrapper.classList.remove('hidden');
+        if (fillerContainer) fillerContainer.classList.add('hidden');
+        if (fillerCheckbox) {
+          fillerCheckbox.checked = false;
+          if (labelText) labelText.textContent = 'Public: Hide (Movie)';
+          if (track) {
+            track.classList.remove('bg-indigo-600');
+            track.classList.add('bg-slate-700');
+          }
+          if (thumb) {
+            thumb.classList.remove('translate-x-3.5');
+            thumb.classList.add('translate-x-0');
+          }
+        }
+        const epsInput = document.getElementById('core-episodes');
+        if (epsInput && (!epsInput.value || epsInput.value === '0')) {
+          epsInput.value = '1';
+        }
+      } else {
+        if (epsWrapper) epsWrapper.classList.remove('hidden');
+        if (runtimeWrapper) runtimeWrapper.classList.add('hidden');
+        if (canonWrapper) canonWrapper.classList.add('hidden');
+        if (fillerContainer) fillerContainer.classList.remove('hidden');
+        if (fillerCheckbox) {
+          const isVisible = fillerCheckbox.checked;
+          if (labelText) labelText.textContent = isVisible ? 'Public: Show' : 'Public: Hide';
+          if (track) {
+            track.classList.toggle('bg-indigo-600', isVisible);
+            track.classList.toggle('bg-slate-700', !isVisible);
+          }
+          if (thumb) {
+            thumb.classList.toggle('translate-x-3.5', isVisible);
+            thumb.classList.toggle('translate-x-0', !isVisible);
+          }
+        }
+      }
+    }
+
+    document.getElementById('core-type')?.addEventListener('change', updateMediaTypeUI);
+
     // Full Form Hydration Function: populates all fields, unlocks sections, sets Edit header
     function hydrateAnimeData(a) {
       if (!a) return;
@@ -1648,8 +2187,19 @@ const sectionVisibility = anime?.sectionVisibility || {
       const yearEl = document.getElementById('core-year');
       if (yearEl) yearEl.value = a.year || '';
 
+      const typeEl = document.getElementById('core-type');
+      if (typeEl) typeEl.value = a.type || 'series';
+
+      const runtimeEl = document.getElementById('core-runtime');
+      if (runtimeEl) runtimeEl.value = a.runtime || '';
+
+      const movieCanonEl = document.getElementById('core-movie-canon');
+      if (movieCanonEl) movieCanonEl.value = a.movieCanonType || 'Canon';
+
       const epsEl = document.getElementById('core-episodes');
       if (epsEl) epsEl.value = a.episodes || '';
+
+      updateMediaTypeUI();
 
       const statusEl = document.getElementById('core-status');
       if (statusEl && a.status) statusEl.value = a.status;
@@ -1810,6 +2360,24 @@ const sectionVisibility = anime?.sectionVisibility || {
           addPowerParagraph(p, idx + 1);
         });
       }
+
+      // 11. Populate Section 9: Related & Universe Media
+      const universeContainer = document.getElementById('universe-container');
+      if (universeContainer) {
+        universeContainer.innerHTML = '';
+        (a.universe || []).forEach((u, idx) => {
+          addUniverseRow(u, idx + 1);
+        });
+      }
+
+      // 12. Populate Section 10: Shows Like This (Recommendations)
+      const recsContainer = document.getElementById('recs-container');
+      if (recsContainer) {
+        recsContainer.innerHTML = '';
+        (a.recommendations || []).forEach((r, idx) => {
+          addRecRow(r, idx + 1);
+        });
+      }
     }
 
     // Check if initialAnime exists from SSR, or fetch from API if client loaded with ?id= or ?slug=
@@ -1864,13 +2432,27 @@ const sectionVisibility = anime?.sectionVisibility || {
         .map(s => s.trim())
         .filter(Boolean);
 
+      const typeVal = document.getElementById('core-type')?.value || 'series';
+      const isMovie = typeVal === 'movie';
+      const runtimeVal = document.getElementById('core-runtime')?.value;
+      const movieCanonVal = document.getElementById('core-movie-canon')?.value;
+      const episodesVal = isMovie ? (document.getElementById('core-episodes')?.value || '1') : document.getElementById('core-episodes')?.value;
+
+      if (isMovie && (!runtimeVal || parseInt(runtimeVal, 10) <= 0)) {
+        setFeedback(coreFeedback, 'Please enter a valid runtime in minutes for this movie.', 'error');
+        return;
+      }
+
       const payload = {
         id: document.getElementById('core-id').value.trim(),
         slug: document.getElementById('core-slug').value.trim(),
         title: document.getElementById('core-title').value.trim(),
         originalTitle: document.getElementById('core-original-title').value.trim(),
+        type: typeVal,
+        runtime: isMovie && runtimeVal ? parseInt(runtimeVal, 10) : null,
+        movieCanonType: isMovie ? movieCanonVal : null,
         year: document.getElementById('core-year').value,
-        episodes: document.getElementById('core-episodes').value,
+        episodes: episodesVal,
         status: document.getElementById('core-status').value,
         honestyStatus: document.getElementById('core-honesty').value,
         personalRating: document.getElementById('core-rating').value,
@@ -2342,7 +2924,109 @@ const sectionVisibility = anime?.sectionVisibility || {
     });
 
     // -------------------------------------------------------------
-    // UNIVERSAL SAVE ALL (All Sections 1-8 + Visibility Toggles)
+    // 9. SAVE RELATED & UNIVERSE MEDIA
+    // -------------------------------------------------------------
+    const formUniverse = document.getElementById('form-universe');
+    const universeFeedback = document.getElementById('universe-feedback');
+    const universeBadge = document.getElementById('universe-badge');
+
+    document.getElementById('btn-add-universe-row')?.addEventListener('click', () => {
+      const container = document.getElementById('universe-container');
+      const count = container ? container.querySelectorAll('.universe-row').length + 1 : 1;
+      addUniverseRow({}, count);
+    });
+
+    formUniverse?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!currentAnimeId) {
+        setFeedback(universeFeedback, 'Please save Section 1 Core Details first.', 'error');
+        return;
+      }
+
+      const rows = document.querySelectorAll('#universe-container .universe-row');
+      const universe = [];
+      rows.forEach((row, idx) => {
+        const title = row.querySelector('.universe-input-title')?.value.trim();
+        const section = row.querySelector('.universe-input-section')?.value;
+        const badge = row.querySelector('.universe-input-badge')?.value;
+        const linkSlug = row.querySelector('.universe-input-slug')?.value.trim() || null;
+        const editorialNote = row.querySelector('.universe-input-note')?.value.trim() || null;
+        if (title && badge) {
+          universe.push({ itemOrder: idx + 1, title, section, badge, linkSlug, editorialNote });
+        }
+      });
+
+      try {
+        const res = await fetch('/api/admin/anime/universe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ animeId: currentAnimeId, universe })
+        });
+        const data = await res.json();
+        if (data.success) {
+          setFeedback(universeFeedback, '✓ Related & Universe media saved successfully!', 'success');
+          universeBadge.classList.remove('hidden');
+          window.showAdminToast('Universe media saved successfully', 'success');
+        } else {
+          setFeedback(universeFeedback, 'Error: ' + data.error, 'error');
+        }
+      } catch (err) {
+        setFeedback(universeFeedback, 'Network error: ' + err.message, 'error');
+      }
+    });
+
+    // -------------------------------------------------------------
+    // 10. SAVE SHOWS LIKE THIS (RECOMMENDATIONS)
+    // -------------------------------------------------------------
+    const formRecs = document.getElementById('form-recs');
+    const recsFeedback = document.getElementById('recs-feedback');
+    const recsBadge = document.getElementById('recs-badge');
+
+    document.getElementById('btn-add-rec-row')?.addEventListener('click', () => {
+      const container = document.getElementById('recs-container');
+      const count = container ? container.querySelectorAll('.rec-row').length + 1 : 1;
+      addRecRow({}, count);
+    });
+
+    formRecs?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!currentAnimeId) {
+        setFeedback(recsFeedback, 'Please save Section 1 Core Details first.', 'error');
+        return;
+      }
+
+      const rows = document.querySelectorAll('#recs-container .rec-row');
+      const recommendations = [];
+      rows.forEach((row, idx) => {
+        const targetAnimeId = row.querySelector('.rec-input-target')?.value;
+        const categoryBadge = row.querySelector('.rec-input-badge')?.value.trim();
+        const editorialNote = row.querySelector('.rec-input-note')?.value.trim() || null;
+        if (targetAnimeId && categoryBadge) {
+          recommendations.push({ itemOrder: idx + 1, targetAnimeId, categoryBadge, editorialNote });
+        }
+      });
+
+      try {
+        const res = await fetch('/api/admin/anime/recommendations', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ animeId: currentAnimeId, recommendations })
+        });
+        const data = await res.json();
+        if (data.success) {
+          setFeedback(recsFeedback, '✓ Recommendations saved successfully!', 'success');
+          recsBadge.classList.remove('hidden');
+          window.showAdminToast('Recommendations saved successfully', 'success');
+        } else {
+          setFeedback(recsFeedback, 'Error: ' + data.error, 'error');
+        }
+      } catch (err) {
+        setFeedback(recsFeedback, 'Network error: ' + err.message, 'error');
+      }
+    });
+
+    // -------------------------------------------------------------
+    // UNIVERSAL SAVE ALL (All Sections 1-10 + Visibility Toggles)
     // -------------------------------------------------------------
     async function executeSaveAll() {
       const formCore = document.getElementById('form-core');
@@ -2352,15 +3036,29 @@ const sectionVisibility = anime?.sectionVisibility || {
       const slug = document.getElementById('core-slug').value.trim();
       const title = document.getElementById('core-title').value.trim();
       const year = document.getElementById('core-year').value;
-      const episodes = document.getElementById('core-episodes').value;
+      const typeVal = document.getElementById('core-type')?.value || 'series';
+      const isMovie = typeVal === 'movie';
+      const episodes = isMovie ? (document.getElementById('core-episodes')?.value || '1') : document.getElementById('core-episodes')?.value;
+      const runtimeVal = document.getElementById('core-runtime')?.value;
+      const movieCanonVal = document.getElementById('core-movie-canon')?.value;
 
-      if (!id || !slug || !title || !year || !episodes) {
+      if (!id || !slug || !title || !year || (!isMovie && !episodes)) {
         alert('Please fill in all required fields in Section 1 (ID, Title, Slug, Year, Episodes) before saving.');
         const target = document.getElementById('section-core-body');
         if (target && target.classList.contains('hidden')) {
           target.classList.remove('hidden');
         }
         formCore.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        return;
+      }
+
+      if (isMovie && (!runtimeVal || parseInt(runtimeVal, 10) <= 0)) {
+        alert('Please enter a valid runtime in minutes for this movie in Section 1.');
+        const target = document.getElementById('section-core-body');
+        if (target && target.classList.contains('hidden')) {
+          target.classList.remove('hidden');
+        }
+        document.getElementById('core-runtime')?.focus();
         return;
       }
 
@@ -2382,6 +3080,9 @@ const sectionVisibility = anime?.sectionVisibility || {
         slug,
         title,
         originalTitle: document.getElementById('core-original-title').value.trim(),
+        type: typeVal,
+        runtime: isMovie && runtimeVal ? parseInt(runtimeVal, 10) : null,
+        movieCanonType: isMovie ? movieCanonVal : null,
         year,
         episodes,
         status: document.getElementById('core-status').value,
@@ -2412,22 +3113,25 @@ const sectionVisibility = anime?.sectionVisibility || {
       const franchiseStepOrder = document.getElementById('wo-step')?.value || null;
       const watchOrderPayload = { franchiseId, franchiseStepOrder };
 
-      // 5. Section 5 Filler & Canon Breakdown
-      const mangaCanon = document.getElementById('filler-manga-canon')?.value.trim() || '';
-      const animeCanon = document.getElementById('filler-anime-canon')?.value.trim() || '';
-      const mixedCanon = document.getElementById('filler-mixed')?.value.trim() || '';
-      const filler = document.getElementById('filler-filler')?.value.trim() || '';
+      // 5. Section 5 Filler & Canon Breakdown (Skipped for movies)
+      let fillerPayload = null;
+      if (!isMovie) {
+        const mangaCanon = document.getElementById('filler-manga-canon')?.value.trim() || '';
+        const animeCanon = document.getElementById('filler-anime-canon')?.value.trim() || '';
+        const mixedCanon = document.getElementById('filler-mixed')?.value.trim() || '';
+        const filler = document.getElementById('filler-filler')?.value.trim() || '';
 
-      const errManga = validateRangeInput('Manga Canon', mangaCanon);
-      if (errManga) { alert('Section 5 Filler error: ' + errManga); return; }
-      const errAnime = validateRangeInput('Anime Canon', animeCanon);
-      if (errAnime) { alert('Section 5 Filler error: ' + errAnime); return; }
-      const errMixed = validateRangeInput('Mixed Canon/Filler', mixedCanon);
-      if (errMixed) { alert('Section 5 Filler error: ' + errMixed); return; }
-      const errFiller = validateRangeInput('Filler', filler);
-      if (errFiller) { alert('Section 5 Filler error: ' + errFiller); return; }
+        const errManga = validateRangeInput('Manga Canon', mangaCanon);
+        if (errManga) { alert('Section 5 Filler error: ' + errManga); return; }
+        const errAnime = validateRangeInput('Anime Canon', animeCanon);
+        if (errAnime) { alert('Section 5 Filler error: ' + errAnime); return; }
+        const errMixed = validateRangeInput('Mixed Canon/Filler', mixedCanon);
+        if (errMixed) { alert('Section 5 Filler error: ' + errMixed); return; }
+        const errFiller = validateRangeInput('Filler', filler);
+        if (errFiller) { alert('Section 5 Filler error: ' + errFiller); return; }
 
-      const fillerPayload = { mangaCanon, animeCanon, mixedCanon, filler };
+        fillerPayload = { mangaCanon, animeCanon, mixedCanon, filler };
+      }
 
       // 6. Section 6 Characters
       const charRows = document.querySelectorAll('#chars-container .character-row');
@@ -2459,12 +3163,41 @@ const sectionVisibility = anime?.sectionVisibility || {
       const powerParagraphs = Array.from(powerTextareas).map(t => t.value.trim()).filter(Boolean);
       const powerPayload = { name: powerName, paragraphs: powerParagraphs };
 
-      // 9. Visibility Toggles
+      // 9. Section 9 Universe Media
+      const universeRows = document.querySelectorAll('#universe-container .universe-row');
+      const universe = [];
+      universeRows.forEach((row, idx) => {
+        const title = row.querySelector('.universe-input-title')?.value.trim();
+        const section = row.querySelector('.universe-input-section')?.value;
+        const badge = row.querySelector('.universe-input-badge')?.value;
+        const linkSlug = row.querySelector('.universe-input-slug')?.value.trim() || null;
+        const editorialNote = row.querySelector('.universe-input-note')?.value.trim() || null;
+        if (title && badge) {
+          universe.push({ itemOrder: idx + 1, title, section, badge, linkSlug, editorialNote });
+        }
+      });
+
+      // 10. Section 10 Recommendations
+      const recRows = document.querySelectorAll('#recs-container .rec-row');
+      const recommendations = [];
+      recRows.forEach((row, idx) => {
+        const targetAnimeId = row.querySelector('.rec-input-target')?.value;
+        const categoryBadge = row.querySelector('.rec-input-badge')?.value.trim();
+        const editorialNote = row.querySelector('.rec-input-note')?.value.trim() || null;
+        if (targetAnimeId && categoryBadge) {
+          recommendations.push({ itemOrder: idx + 1, targetAnimeId, categoryBadge, editorialNote });
+        }
+      });
+
+      // 11. Visibility Toggles
       const visibilityPayload = {};
       document.querySelectorAll('.section-visibility-checkbox').forEach((cb) => {
         const sec = cb.getAttribute('data-section');
         if (sec) visibilityPayload[sec] = cb.checked;
       });
+      if (isMovie) {
+        visibilityPayload.fillerList = false;
+      }
 
       // Show loading UI on all save-all buttons
       const saveButtons = document.querySelectorAll('.btn-save-all');
@@ -2495,6 +3228,8 @@ const sectionVisibility = anime?.sectionVisibility || {
             characters,
             source: sourcePayload,
             powerSystem: powerPayload,
+            universe,
+            recommendations,
             visibility: visibilityPayload
           })
         });
@@ -2509,7 +3244,8 @@ const sectionVisibility = anime?.sectionVisibility || {
         // Reveal all section badges
         [
           'core-badge', 'review-badge', 'lessons-badge', 'watch-order-badge',
-          'filler-badge', 'chars-badge', 'source-badge', 'power-badge'
+          'filler-badge', 'chars-badge', 'source-badge', 'power-badge',
+          'universe-badge', 'recs-badge'
         ].forEach(id => {
           const badge = document.getElementById(id);
           if (badge) badge.classList.remove('hidden');
@@ -2568,5 +3304,8 @@ const sectionVisibility = anime?.sectionVisibility || {
     document.querySelectorAll('.btn-save-all').forEach((btn) => {
       btn.addEventListener('click', executeSaveAll);
     });
+
+    // Initialize media type UI state on initial page load
+    updateMediaTypeUI();
   </script>
 </AdminLayout>

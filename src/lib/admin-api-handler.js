@@ -11,6 +11,8 @@ import {
   saveAnimeCharacters,
   saveAnimeSource,
   saveAnimePowerSystem,
+  saveAnimeRelatedMedia,
+  saveAnimeRecommendations,
   saveAnimeVisibility,
   saveAllAnime,
   deleteAnime,
@@ -87,6 +89,7 @@ export async function handleAdminApi({ request, locals, url, params }) {
         const db = await getDatabase(locals);
         const list = await db.query(`
           SELECT id, slug, title, original_title as originalTitle, year, episodes, 
+                 type, runtime, movie_canon_type as movieCanonType,
                  status, honesty_status as honestyStatus, personal_rating as personalRating,
                  last_updated as lastUpdated, trending
           FROM anime
@@ -127,13 +130,22 @@ export async function handleAdminApi({ request, locals, url, params }) {
         }, 400);
       }
 
+      const isMovie = body.type === 'movie';
+      const parsedEpisodes = isMovie ? (parseInt(episodes, 10) || 1) : (parseInt(episodes, 10) || 0);
+      const parsedRuntime = (body.runtime !== undefined && body.runtime !== null && body.runtime !== '')
+        ? parseInt(body.runtime, 10)
+        : null;
+
       const cleanData = {
         ...body,
         id: cleanId,
         slug: cleanSlug,
         title: title.trim(),
+        type: isMovie ? 'movie' : 'series',
+        runtime: parsedRuntime,
+        movieCanonType: body.movieCanonType || null,
         year: parseInt(year, 10) || 0,
-        episodes: parseInt(episodes, 10) || 0,
+        episodes: parsedEpisodes,
         personalRating: body.personalRating !== '' && body.personalRating !== null && body.personalRating !== undefined
           ? parseFloat(body.personalRating)
           : null,
@@ -218,6 +230,26 @@ export async function handleAdminApi({ request, locals, url, params }) {
       if (!animeId) return jsonResponse({ success: false, error: 'Anime ID is required' }, 400);
       await saveAnimePowerSystem(animeId, { name, paragraphs }, locals);
       return jsonResponse({ success: true, message: 'Power system details saved successfully' });
+    }
+
+    // Section 9: Related & Universe Media
+    if (route === 'anime/universe' && method === 'POST') {
+      const body = await parseJsonBody(request);
+      const { animeId, universe } = body;
+      if (!animeId) return jsonResponse({ success: false, error: 'Anime ID is required' }, 400);
+      if (!Array.isArray(universe)) return jsonResponse({ success: false, error: 'Universe items must be an array' }, 400);
+      await saveAnimeRelatedMedia(animeId, universe, locals);
+      return jsonResponse({ success: true, message: 'Related & Universe media saved successfully' });
+    }
+
+    // Section 10: Shows Like This Recommendations
+    if (route === 'anime/recommendations' && method === 'POST') {
+      const body = await parseJsonBody(request);
+      const { animeId, recommendations } = body;
+      if (!animeId) return jsonResponse({ success: false, error: 'Anime ID is required' }, 400);
+      if (!Array.isArray(recommendations)) return jsonResponse({ success: false, error: 'Recommendations must be an array' }, 400);
+      await saveAnimeRecommendations(animeId, recommendations, locals);
+      return jsonResponse({ success: true, message: 'Recommendations saved successfully' });
     }
 
     // Section Visibility Toggles (Show/Hide on Public Page)

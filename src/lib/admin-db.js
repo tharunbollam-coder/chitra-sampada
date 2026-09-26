@@ -68,6 +68,30 @@ export async function getAnimeById(idOrSlug, contextOrLocals = null) {
     ORDER BY rank ASC
   `, actualId);
 
+  let relatedMedia = [];
+  try {
+    relatedMedia = await db.query(`
+      SELECT id, section, title, badge, link_slug as linkSlug, editorial_note as editorialNote, item_order as itemOrder
+      FROM anime_related_media
+      WHERE anime_id = ?
+      ORDER BY item_order ASC, id ASC
+    `, actualId);
+  } catch (err) {
+    console.warn("Failed to query anime_related_media in getAnimeById:", err?.message || err);
+  }
+
+  let recommendations = [];
+  try {
+    recommendations = await db.query(`
+      SELECT id, target_anime_id as targetAnimeId, category_badge as categoryBadge, editorial_note as editorialNote, item_order as itemOrder
+      FROM anime_recommendations
+      WHERE anime_id = ?
+      ORDER BY item_order ASC, id ASC
+    `, actualId);
+  } catch (err) {
+    console.warn("Failed to query anime_recommendations in getAnimeById:", err?.message || err);
+  }
+
   let reviewParagraphs = [];
   if (animeRow.review_paragraphs) {
     try {
@@ -93,7 +117,9 @@ export async function getAnimeById(idOrSlug, contextOrLocals = null) {
     fillerList: true,
     characters: true,
     source: true,
-    powerSystem: true
+    powerSystem: true,
+    universe: true,
+    recommendations: true
   };
   if (animeRow.section_visibility) {
     try {
@@ -107,6 +133,9 @@ export async function getAnimeById(idOrSlug, contextOrLocals = null) {
     title: animeRow.title,
     originalTitle: animeRow.original_title || '',
     year: animeRow.year,
+    type: animeRow.type || 'series',
+    runtime: (animeRow.runtime !== null && animeRow.runtime !== undefined && animeRow.runtime !== '') ? Number(animeRow.runtime) : null,
+    movieCanonType: animeRow.movie_canon_type || null,
     episodes: effectiveEpisodes,
     status: animeRow.status,
     personalRating: animeRow.personal_rating !== null ? animeRow.personal_rating : '',
@@ -160,7 +189,9 @@ export async function getAnimeById(idOrSlug, contextOrLocals = null) {
       }
     },
     fillerRows,
-    characters
+    characters,
+    universe: relatedMedia,
+    recommendations
   };
 }
 
@@ -176,6 +207,9 @@ export async function saveAnimeCore(data, contextOrLocals = null) {
     originalTitle = '',
     year,
     episodes,
+    type = 'series',
+    runtime = null,
+    movieCanonType = null,
     status = 'Finished',
     honestyStatus = 'watched',
     personalRating = null,
@@ -197,13 +231,24 @@ export async function saveAnimeCore(data, contextOrLocals = null) {
 
   const existing = await db.queryOne(`SELECT * FROM anime WHERE id = ?`, id);
 
+  const finalType = type === 'movie' ? 'movie' : (existing?.type === 'movie' && type === undefined ? 'movie' : 'series');
+  const finalRuntime = finalType === 'movie'
+    ? ((runtime !== undefined && runtime !== null && runtime !== '') ? Number(runtime) : (existing?.runtime ?? null))
+    : null;
+  const finalMovieCanonType = finalType === 'movie'
+    ? (movieCanonType !== undefined && movieCanonType !== null ? String(movieCanonType).trim() : (existing?.movie_canon_type ?? null))
+    : null;
+
   const parsedRating = personalRating !== '' && personalRating !== null && personalRating !== undefined
     ? Number(personalRating)
     : (existing?.personal_rating ?? null);
   const parsedYear = Number(year) || (existing?.year ?? 0);
-  const parsedEpisodes = (episodes !== undefined && episodes !== null && episodes !== '')
+  let parsedEpisodes = (episodes !== undefined && episodes !== null && episodes !== '')
     ? Number(episodes)
     : (Number(existing?.episodes) || 0);
+  if (finalType === 'movie' && (!parsedEpisodes || parsedEpisodes < 1)) {
+    parsedEpisodes = 1;
+  }
   const parsedTrending = trending ? 1 : (existing?.trending ? 1 : 0);
   const parsedFiller = (fillerPercentage !== undefined && fillerPercentage !== null && fillerPercentage !== '')
     ? (Number(fillerPercentage) || 0)
@@ -222,12 +267,14 @@ export async function saveAnimeCore(data, contextOrLocals = null) {
     await db.run(`
       UPDATE anime SET
         slug = ?, title = ?, original_title = ?, year = ?, episodes = ?,
+        type = ?, runtime = ?, movie_canon_type = ?,
         status = ?, personal_rating = ?, poster = ?, backdrop = ?,
         added_date = ?, last_updated = ?, honesty_status = ?,
         filler_percentage = ?, trending = ?, synopsis = ?
       WHERE id = ?
     `,
       slug, title, finalOriginalTitle, parsedYear, parsedEpisodes,
+      finalType, finalRuntime, finalMovieCanonType,
       finalStatus, parsedRating, finalPoster, finalBackdrop,
       finalAddedDate, finalLastUpdated, finalHonestyStatus,
       parsedFiller, parsedTrending, finalSynopsis,
@@ -237,12 +284,14 @@ export async function saveAnimeCore(data, contextOrLocals = null) {
     await db.run(`
       INSERT INTO anime (
         id, slug, title, original_title, year, episodes,
+        type, runtime, movie_canon_type,
         status, personal_rating, poster, backdrop,
         added_date, last_updated, honesty_status,
         filler_percentage, trending, synopsis
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `,
       id, slug, title, finalOriginalTitle, parsedYear, parsedEpisodes,
+      finalType, finalRuntime, finalMovieCanonType,
       finalStatus, parsedRating, finalPoster, finalBackdrop,
       finalAddedDate, finalLastUpdated, finalHonestyStatus,
       parsedFiller, parsedTrending, finalSynopsis
@@ -363,9 +412,23 @@ export async function saveAllAnime(payload, contextOrLocals = null) {
     await saveAnimePowerSystem(animeId, payload.powerSystem, contextOrLocals);
   }
 
-  // 9. Visibility Toggles
+  // 9. Related & Universe Media
+  if (payload.universe) {
+    await saveAnimeRelatedMedia(animeId, payload.universe, contextOrLocals);
+  }
+
+  // 10. Shows Like This Recommendations
+  if (payload.recommendations) {
+    await saveAnimeRecommendations(animeId, payload.recommendations, contextOrLocals);
+  }
+
+  // 11. Visibility Toggles
   if (payload.visibility) {
-    await saveAnimeVisibility(animeId, payload.visibility, contextOrLocals);
+    const finalVis = { ...payload.visibility };
+    if (payload.core?.type === 'movie') {
+      finalVis.fillerList = false;
+    }
+    await saveAnimeVisibility(animeId, finalVis, contextOrLocals);
   }
 
   invalidateAnimeCache();
@@ -596,6 +659,62 @@ export async function saveAnimePowerSystem(animeId, { name = '', paragraphs = []
     WHERE id = ?
   `, name.trim() || null, jsonParagraphs, animeId);
 
+  invalidateAnimeCache();
+  return { success: true };
+}
+
+/**
+ * Save Related & Universe Media.
+ */
+export async function saveAnimeRelatedMedia(animeId, items = [], contextOrLocals = null) {
+  const db = await getDatabase(contextOrLocals);
+  await db.run(`DELETE FROM anime_related_media WHERE anime_id = ?`, animeId);
+
+  for (let index = 0; index < items.length; index++) {
+    const item = items[index];
+    const section = item.section === 'non_canon' ? 'non_canon' : 'canon';
+    const title = String(item.title || '').trim();
+    const badge = String(item.badge || '').trim();
+    const linkSlug = item.linkSlug ? String(item.linkSlug).trim() : null;
+    const editorialNote = item.editorialNote ? String(item.editorialNote).trim() : null;
+    const itemOrder = Number(item.itemOrder || index + 1);
+
+    if (title && badge) {
+      await db.run(`
+        INSERT INTO anime_related_media (anime_id, section, title, badge, link_slug, editorial_note, item_order) 
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `, animeId, section, title, badge, linkSlug, editorialNote, itemOrder);
+    }
+  }
+
+  await db.run(`UPDATE anime SET last_updated = date('now') WHERE id = ?`, animeId);
+  invalidateAnimeCache();
+  return { success: true };
+}
+
+/**
+ * Save Shows Like This Recommendations.
+ */
+export async function saveAnimeRecommendations(animeId, items = [], contextOrLocals = null) {
+  const db = await getDatabase(contextOrLocals);
+  await db.run(`DELETE FROM anime_recommendations WHERE anime_id = ?`, animeId);
+
+  for (let index = 0; index < items.length; index++) {
+    const item = items[index];
+    const targetAnimeId = String(item.targetAnimeId || '').trim();
+    const categoryBadge = String(item.categoryBadge || '').trim();
+    const editorialNote = item.editorialNote ? String(item.editorialNote).trim() : null;
+    const itemOrder = Number(item.itemOrder || index + 1);
+
+    if (targetAnimeId && categoryBadge) {
+      await db.run(`
+        INSERT INTO anime_recommendations (anime_id, target_anime_id, category_badge, editorial_note, item_order) 
+        VALUES (?, ?, ?, ?, ?)
+      `, animeId, targetAnimeId, categoryBadge, editorialNote, itemOrder);
+    }
+  }
+
+  await db.run(`UPDATE anime SET last_updated = date('now') WHERE id = ?`, animeId);
   invalidateAnimeCache();
   return { success: true };
 }

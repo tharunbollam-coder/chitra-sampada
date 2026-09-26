@@ -3,6 +3,8 @@ dist/
 .wrangler/
 # generated types
 .astro/
+scratch/
+.tmp-d1-*.sql
 
 # dependencies
 node_modules/

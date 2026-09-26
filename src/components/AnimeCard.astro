@@ -6,6 +6,7 @@ const { anime } = Astro.props;
 
 const isWatched = anime.honestyStatus === 'watched';
 const isZeroFiller = anime.fillerPercentage === 0;
+const isMovie = anime.type === 'movie';
 ---
 
 <article
@@ -13,6 +14,7 @@ const isZeroFiller = anime.fillerPercentage === 0;
   data-vibe={anime.vibes ? anime.vibes.join(' ') : ''}
   data-status={anime.honestyStatus}
   data-filler={anime.fillerPercentage === 0 ? 'zero' : 'has-filler'}
+  data-type={anime.type || 'series'}
   data-title={anime.title.toLowerCase()}
 >
   <!-- Poster Image Container (Cleanly contained with defined boundary, NO badges/overlays over artwork) -->
@@ -30,20 +32,26 @@ const isZeroFiller = anime.fillerPercentage === 0;
   <div class="flex-1 flex flex-col justify-between space-y-3">
     <div class="space-y-2">
       
-      <!-- Badges Row: Honesty Status & Filler Percentage -->
+      <!-- Badges Row: Honesty Status & Format / Filler Percentage -->
       <div class="flex items-center justify-between gap-1.5 flex-wrap">
         <HonestyBadge status={anime.honestyStatus} size="sm" />
 
-        <span
-          class:list={[
-            'text-[10px] font-bold px-2.5 py-0.5 rounded-full border tracking-wide select-none',
-            isZeroFiller
-              ? 'bg-[#EEF2FF] text-[#4F46E5] border-[#C7D2FE]'
-              : 'bg-slate-100 text-slate-700 border-slate-200'
-          ]}
-        >
-          {isZeroFiller ? '0% Filler' : `${anime.fillerPercentage}% Filler`}
-        </span>
+        {isMovie ? (
+          <span class="text-[10px] font-bold px-2 py-0.5 rounded-full border tracking-wide select-none bg-purple-50 text-purple-700 border-purple-200">
+            Movie
+          </span>
+        ) : (
+          <span
+            class:list={[
+              'text-[10px] font-bold px-2.5 py-0.5 rounded-full border tracking-wide select-none',
+              isZeroFiller
+                ? 'bg-[#EEF2FF] text-[#4F46E5] border-[#C7D2FE]'
+                : 'bg-slate-100 text-slate-700 border-slate-200'
+            ]}
+          >
+            {isZeroFiller ? '0% Filler' : `${anime.fillerPercentage}% Filler`}
+          </span>
+        )}
       </div>
 
       <!-- Title -->
@@ -55,11 +63,11 @@ const isZeroFiller = anime.fillerPercentage === 0;
         </h3>
       </div>
 
-      <!-- Metadata (Year, Episodes, Genres) -->
+      <!-- Metadata (Year, Episodes / Runtime, Genres) -->
       <div class="flex items-center gap-2 text-xs text-slate-500 font-medium">
         <span>{anime.year}</span>
         <span class="text-slate-300">•</span>
-        <span>{anime.episodes} eps</span>
+        <span>{isMovie ? (anime.runtime ? `${anime.runtime}m` : 'Movie') : `${anime.episodes} eps`}</span>
         <span class="text-slate-300">•</span>
         <span class="truncate">{anime.genres.slice(0, 2).join(', ')}</span>
       </div>
@@ -72,7 +80,7 @@ const isZeroFiller = anime.fillerPercentage === 0;
         href={`/anime/${anime.slug}`}
         class="text-[11px] font-bold text-[#4F46E5] hover:text-[#4338CA] hover:underline transition-colors"
       >
-        Watch Order & Guide →
+        {isMovie ? 'Movie Details & Guide →' : 'Watch Order & Guide →'}
       </a>
       <span class="text-[10px] font-medium text-slate-600 bg-slate-100 px-2 py-0.5 rounded border border-slate-200/60">
         {anime.status}

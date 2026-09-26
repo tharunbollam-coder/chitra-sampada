@@ -109,11 +109,57 @@ async function ensureSchemaCompatibility(db) {
       try {
         const animeInfo = await db.query(`PRAGMA table_info(anime)`);
         const animeCols = new Set(animeInfo.map(c => c.name));
-        if (animeCols.size > 0 && !animeCols.has('section_visibility')) {
-          await db.run(`ALTER TABLE anime ADD COLUMN section_visibility TEXT`);
+        if (animeCols.size > 0) {
+          if (!animeCols.has('section_visibility')) {
+            await db.run(`ALTER TABLE anime ADD COLUMN section_visibility TEXT`);
+          }
+          if (!animeCols.has('type')) {
+            await db.run(`ALTER TABLE anime ADD COLUMN type TEXT NOT NULL DEFAULT 'series'`);
+          }
+          if (!animeCols.has('runtime')) {
+            await db.run(`ALTER TABLE anime ADD COLUMN runtime INTEGER DEFAULT NULL`);
+          }
+          if (!animeCols.has('movie_canon_type')) {
+            await db.run(`ALTER TABLE anime ADD COLUMN movie_canon_type TEXT DEFAULT NULL`);
+          }
         }
       } catch (err) {
-        console.warn('[Schema Compatibility] anime section_visibility note:', err?.message || err);
+        console.warn('[Schema Compatibility] anime table note:', err?.message || err);
+      }
+
+      try {
+        await db.run(`
+          CREATE TABLE IF NOT EXISTS anime_related_media (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            anime_id TEXT NOT NULL,
+            section TEXT NOT NULL CHECK(section IN ('canon', 'non_canon')),
+            title TEXT NOT NULL,
+            badge TEXT NOT NULL,
+            link_slug TEXT DEFAULT NULL,
+            editorial_note TEXT DEFAULT NULL,
+            item_order INTEGER NOT NULL DEFAULT 1,
+            FOREIGN KEY (anime_id) REFERENCES anime(id) ON DELETE CASCADE
+          )
+        `);
+      } catch (err) {
+        console.warn('[Schema Compatibility] anime_related_media note:', err?.message || err);
+      }
+
+      try {
+        await db.run(`
+          CREATE TABLE IF NOT EXISTS anime_recommendations (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            anime_id TEXT NOT NULL,
+            target_anime_id TEXT NOT NULL,
+            category_badge TEXT NOT NULL,
+            editorial_note TEXT DEFAULT NULL,
+            item_order INTEGER NOT NULL DEFAULT 1,
+            FOREIGN KEY (anime_id) REFERENCES anime(id) ON DELETE CASCADE,
+            FOREIGN KEY (target_anime_id) REFERENCES anime(id) ON DELETE CASCADE
+          )
+        `);
+      } catch (err) {
+        console.warn('[Schema Compatibility] anime_recommendations note:', err?.message || err);
       }
     })();
   }
@@ -228,7 +274,7 @@ export async function getAllAnime(contextOrLocals) {
 
   const db = await getDatabase(contextOrLocals);
 
-  // Parallelize all 7 sub-queries concurrently via Promise.allSettled to eliminate query waterfalls
+  // Parallelize all 9 sub-queries concurrently via Promise.allSettled to eliminate query waterfalls
   const [
     animeRes,
     aliasesRes,
@@ -236,7 +282,9 @@ export async function getAllAnime(contextOrLocals) {
     vibesRes,
     fillerRes,
     charRes,
-    watchRes
+    watchRes,
+    universeRes,
+    recsRes
   ] = await Promise.allSettled([
     db.query(`SELECT * FROM anime ORDER BY year DESC, title ASC`),
     db.query(`SELECT anime_id, alias FROM anime_aliases`),
@@ -244,7 +292,9 @@ export async function getAllAnime(contextOrLocals) {
     db.query(`SELECT anime_id, vibe_id FROM anime_vibes`),
     db.query(`SELECT * FROM anime_filler_ranges`),
     db.query(`SELECT anime_id, rank, name, category, role, commentary FROM anime_characters ORDER BY rank ASC`),
-    db.query(`SELECT franchise_id, step_order, title, type, episodes, anime_id, note FROM franchise_watch_order ORDER BY step_order ASC`)
+    db.query(`SELECT franchise_id, step_order, title, type, episodes, anime_id, note FROM franchise_watch_order ORDER BY step_order ASC`),
+    db.query(`SELECT id, anime_id, section, title, badge, link_slug, editorial_note, item_order FROM anime_related_media ORDER BY item_order ASC, id ASC`),
+    db.query(`SELECT id, anime_id, target_anime_id, category_badge, editorial_note, item_order FROM anime_recommendations ORDER BY item_order ASC, id ASC`)
   ]);
 
   const animeRows = animeRes.status === 'fulfilled' ? animeRes.value : [];
@@ -254,6 +304,8 @@ export async function getAllAnime(contextOrLocals) {
   const fillerRows = fillerRes.status === 'fulfilled' ? fillerRes.value : [];
   const characterRows = charRes.status === 'fulfilled' ? charRes.value : [];
   const watchOrderRows = watchRes.status === 'fulfilled' ? watchRes.value : [];
+  const universeRows = universeRes.status === 'fulfilled' ? universeRes.value : [];
+  const recsRows = recsRes.status === 'fulfilled' ? recsRes.value : [];
 
   if (animeRes.status === 'rejected') {
     console.error("Failed to query anime table:", animeRes.reason);
@@ -311,10 +363,32 @@ export async function getAllAnime(contextOrLocals) {
     watchOrderMap.get(row.franchise_id).push(row);
   }
 
+  const universeMap = new Map();
+  for (const row of universeRows) {
+    if (!universeMap.has(row.anime_id)) universeMap.set(row.anime_id, []);
+    universeMap.get(row.anime_id).push({
+      id: row.id,
+      section: row.section,
+      title: row.title,
+      badge: row.badge,
+      linkSlug: row.link_slug,
+      editorialNote: row.editorial_note,
+      itemOrder: row.item_order
+    });
+  }
+
+  const recsMap = new Map();
+  for (const row of recsRows) {
+    if (!recsMap.has(row.anime_id)) recsMap.set(row.anime_id, []);
+    recsMap.get(row.anime_id).push(row);
+  }
+
   const animeSlugMap = new Map();
   const animeTitleMap = new Map();
+  const animeMapById = new Map();
   for (const a of animeRows) {
     animeSlugMap.set(a.id, a.slug);
+    animeMapById.set(a.id, a);
     if (a.title) animeTitleMap.set(a.title.trim().toLowerCase(), a.slug);
   }
 
@@ -446,13 +520,33 @@ export async function getAllAnime(contextOrLocals) {
       fillerList: true,
       characters: true,
       source: true,
-      powerSystem: true
+      powerSystem: true,
+      universe: true,
+      recommendations: true
     };
     if (row.section_visibility) {
       try {
         sectionVisibility = { ...sectionVisibility, ...JSON.parse(row.section_visibility) };
       } catch {}
     }
+
+    const rawRecs = recsMap.get(row.id) || [];
+    const recommendations = rawRecs.map(rec => {
+      const target = animeMapById.get(rec.target_anime_id);
+      return {
+        id: rec.id,
+        targetAnimeId: rec.target_anime_id,
+        targetTitle: target?.title || '',
+        targetSlug: target?.slug || '',
+        targetPoster: target?.poster || '',
+        targetYear: target?.year || null,
+        targetStatus: target?.status || '',
+        targetRating: target?.personal_rating !== null && target?.personal_rating !== undefined ? target.personal_rating : undefined,
+        categoryBadge: rec.category_badge,
+        editorialNote: rec.editorial_note,
+        itemOrder: rec.item_order
+      };
+    });
 
     return {
       id: row.id,
@@ -461,6 +555,9 @@ export async function getAllAnime(contextOrLocals) {
       title: row.title,
       originalTitle: row.original_title,
       year: row.year,
+      type: row.type || 'series',
+      runtime: (row.runtime !== null && row.runtime !== undefined && row.runtime !== '') ? Number(row.runtime) : null,
+      movieCanonType: row.movie_canon_type || null,
       episodes: row.episodes || fillerList?.totalEpisodes || 0,
       status: row.status,
       personalRating: row.personal_rating !== null ? row.personal_rating : undefined,
@@ -481,6 +578,8 @@ export async function getAllAnime(contextOrLocals) {
       source,
       powerSystem,
       lessons,
+      universe: universeMap.get(row.id) || [],
+      recommendations,
       sectionVisibility
     };
   });
@@ -530,8 +629,8 @@ export function getAvailableTabs(anime) {
     tabs.push({ key: 'watch-order', label: 'Watch Order', count: anime.watchOrder.length });
   }
 
-  // 3. Filler List
-  if (anime.fillerList && anime.fillerList.types && anime.fillerList.types.length > 0 && vis.fillerList !== false) {
+  // 3. Filler List (Movies do not have filler lists)
+  if (anime.type !== 'movie' && anime.fillerList && anime.fillerList.types && anime.fillerList.types.length > 0 && vis.fillerList !== false) {
     tabs.push({ key: 'filler-list', label: 'Filler List' });
   }
 
@@ -548,6 +647,16 @@ export function getAvailableTabs(anime) {
   // 6. Power System
   if (anime.powerSystem && (anime.powerSystem.paragraphs?.length > 0 || anime.powerSystem.name) && vis.powerSystem !== false) {
     tabs.push({ key: 'power-system', label: 'Power System' });
+  }
+
+  // 7. Related & Universe Media
+  if (anime.universe && anime.universe.length > 0 && vis.universe !== false) {
+    tabs.push({ key: 'universe', label: 'Related & Universe', count: anime.universe.length });
+  }
+
+  // 8. Shows Like This (Recommendations)
+  if (anime.recommendations && anime.recommendations.length > 0 && vis.recommendations !== false) {
+    tabs.push({ key: 'recommendations', label: 'Shows Like This', count: anime.recommendations.length });
   }
 
   return tabs;
