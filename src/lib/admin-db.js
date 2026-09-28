@@ -155,7 +155,8 @@ export async function getAnimeById(idOrSlug, contextOrLocals = null) {
     vibes,
     review: {
       heading: animeRow.review_heading || '',
-      paragraphs: reviewParagraphs
+      paragraphs: reviewParagraphs,
+      type: (animeRow.review_type === 'quick' || animeRow.review_type === 'quick_take') ? 'quick' : 'full'
     },
     lessons: {
       heading: animeRow.lesson_heading || '',
@@ -442,16 +443,25 @@ export async function saveAllAnime(payload, contextOrLocals = null) {
 /**
  * Save My Take / Review section.
  */
-export async function saveAnimeReview(animeId, { heading = '', paragraphs = [] } = {}, contextOrLocals = null) {
+export async function saveAnimeReview(animeId, { heading = '', paragraphs = [], type = 'full' } = {}, contextOrLocals = null) {
   const db = await getDatabase(contextOrLocals);
   const cleanParagraphs = Array.isArray(paragraphs) ? paragraphs.map(p => String(p).trim()).filter(Boolean) : [];
   const jsonParagraphs = cleanParagraphs.length > 0 ? JSON.stringify(cleanParagraphs) : null;
+  const cleanType = (type === 'quick' || type === 'quick_take') ? 'quick' : 'full';
 
-  await db.run(`
-    UPDATE anime 
-    SET review_heading = ?, review_paragraphs = ?, last_updated = date('now') 
-    WHERE id = ?
-  `, heading.trim() || null, jsonParagraphs, animeId);
+  try {
+    await db.run(`
+      UPDATE anime 
+      SET review_heading = ?, review_paragraphs = ?, review_type = ?, last_updated = date('now') 
+      WHERE id = ?
+    `, heading.trim() || null, jsonParagraphs, cleanType, animeId);
+  } catch (err) {
+    await db.run(`
+      UPDATE anime 
+      SET review_heading = ?, review_paragraphs = ?, last_updated = date('now') 
+      WHERE id = ?
+    `, heading.trim() || null, jsonParagraphs, animeId);
+  }
 
   invalidateAnimeCache();
   return { success: true };

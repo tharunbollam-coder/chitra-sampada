@@ -159,9 +159,9 @@ export async function handleAdminApi({ request, locals, url, params }) {
     // Section 2: Review (My Take)
     if (route === 'anime/review' && method === 'POST') {
       const body = await parseJsonBody(request);
-      const { animeId, heading, paragraphs } = body;
+      const { animeId, heading, paragraphs, type } = body;
       if (!animeId) return jsonResponse({ success: false, error: 'Anime ID is required' }, 400);
-      await saveAnimeReview(animeId, { heading, paragraphs }, locals);
+      await saveAnimeReview(animeId, { heading, paragraphs, type }, locals);
       return jsonResponse({ success: true, message: 'Review / My Take saved successfully' });
     }
 

@@ -122,6 +122,9 @@ async function ensureSchemaCompatibility(db) {
           if (!animeCols.has('movie_canon_type')) {
             await db.run(`ALTER TABLE anime ADD COLUMN movie_canon_type TEXT DEFAULT NULL`);
           }
+          if (!animeCols.has('review_type')) {
+            await db.run(`ALTER TABLE anime ADD COLUMN review_type TEXT DEFAULT 'full'`);
+          }
         }
       } catch (err) {
         console.warn('[Schema Compatibility] anime table note:', err?.message || err);
@@ -406,7 +409,8 @@ export async function getAllAnime(contextOrLocals) {
     if (row.review_heading || paragraphs.length > 0) {
       review = {
         heading: row.review_heading,
-        paragraphs
+        paragraphs,
+        type: (row.review_type === 'quick' || row.review_type === 'quick_take') ? 'quick' : 'full'
       };
     }
 
@@ -599,16 +603,18 @@ export function getAvailableTabs(anime) {
   const tabs = [];
   const vis = anime.sectionVisibility || {};
 
-  // 1. My Take (FIRST position when present or when watched with a personal rating; NEVER for reference guides or un-watched)
+  // 1. My Take / Quick Take (FIRST position when present; NEVER for reference guides, un-watched, or when no review text is written)
   const isWatched = anime.honestyStatus === 'watched';
-  const hasReviewContent = isWatched && anime.review && (
-    anime.review.heading ||
-    (Array.isArray(anime.review.paragraphs) && anime.review.paragraphs.length > 0)
+  const hasReviewContent = isWatched && Boolean(
+    anime.review && (
+      (anime.review.heading && anime.review.heading.trim().length > 0) ||
+      (Array.isArray(anime.review.paragraphs) && anime.review.paragraphs.some((p) => typeof p === 'string' && p.trim().length > 0))
+    )
   );
-  const isWatchedWithRating = isWatched && (anime.personalRating !== undefined && anime.personalRating !== null);
 
-  if ((hasReviewContent || isWatchedWithRating) && vis.review !== false) {
-    tabs.push({ key: 'review', label: 'My Take' });
+  if (hasReviewContent && vis.review !== false) {
+    const reviewTabLabel = anime.review?.type === 'quick' ? 'Quick Take' : 'My Take';
+    tabs.push({ key: 'review', label: reviewTabLabel });
   }
 
   // 2. What I Learned (Personal reflections / philosophical takeaways)

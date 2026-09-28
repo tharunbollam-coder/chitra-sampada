@@ -296,9 +296,10 @@ const sectionVisibility = anime?.sectionVisibility || {
                 name="status"
                 class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-sm text-white focus:outline-none focus:border-indigo-500"
               >
-                <option value="Finished" selected={anime?.status === 'Finished'}>Finished</option>
                 <option value="Currently Airing" selected={anime?.status === 'Currently Airing'}>Currently Airing</option>
                 <option value="Upcoming" selected={anime?.status === 'Upcoming'}>Upcoming</option>
+                <option value="Season Finished" selected={anime?.status === 'Season Finished'}>Season Finished</option>
+                <option value="Completed" selected={anime?.status === 'Completed' || anime?.status === 'Finished'}>Completed</option>
               </select>
             </div>
 
@@ -312,10 +313,9 @@ const sectionVisibility = anime?.sectionVisibility || {
                 name="honestyStatus"
                 class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-sm text-white focus:outline-none focus:border-indigo-500"
               >
-                <option value="watched" selected={anime?.honestyStatus === 'watched'}>watched (Full review active)</option>
-                <option value="watching" selected={anime?.honestyStatus === 'watching'}>watching (In progress)</option>
-                <option value="plan_to_watch" selected={anime?.honestyStatus === 'plan_to_watch'}>plan_to_watch (Coming soon)</option>
-                <option value="dropped" selected={anime?.honestyStatus === 'dropped'}>dropped</option>
+                <option value="watched" selected={anime?.honestyStatus === 'watched'}>Watched (Full review active)</option>
+                <option value="plan_to_watch" selected={anime?.honestyStatus === 'plan_to_watch' || anime?.honestyStatus === 'watchlist'}>Plan to Watch (Coming soon)</option>
+                <option value="dropped" selected={anime?.honestyStatus === 'dropped'}>Dropped</option>
               </select>
             </div>
 
@@ -532,6 +532,37 @@ const sectionVisibility = anime?.sectionVisibility || {
         <div id="review-feedback" class="hidden mb-5 p-3.5 rounded-xl text-xs sm:text-sm font-medium border"></div>
 
         <form id="form-review" class="space-y-5">
+          <!-- Review Type: Quick Take vs Full Take -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
+              Review Type / Format
+            </label>
+            <div class="flex items-center gap-3">
+              <label class="flex items-center gap-2 cursor-pointer px-3.5 py-2 rounded-xl border border-slate-700/80 bg-slate-950 hover:bg-slate-900 transition">
+                <input
+                  type="radio"
+                  name="review-type"
+                  value="quick"
+                  checked={anime?.review?.type === 'quick'}
+                  class="text-indigo-600 focus:ring-indigo-500 bg-slate-900 border-slate-700"
+                />
+                <span class="text-sm font-medium text-slate-200">Quick Take</span>
+                <span class="text-[11px] text-slate-400">(Short Initial Reaction)</span>
+              </label>
+              <label class="flex items-center gap-2 cursor-pointer px-3.5 py-2 rounded-xl border border-slate-700/80 bg-slate-950 hover:bg-slate-900 transition">
+                <input
+                  type="radio"
+                  name="review-type"
+                  value="full"
+                  checked={anime?.review?.type !== 'quick'}
+                  class="text-indigo-600 focus:ring-indigo-500 bg-slate-900 border-slate-700"
+                />
+                <span class="text-sm font-medium text-slate-200">Full Take</span>
+                <span class="text-[11px] text-slate-400">(Complete Editorial Review)</span>
+              </label>
+            </div>
+          </div>
+
           <div>
             <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5" for="review-heading">
               Review Heading / Hook
@@ -2202,7 +2233,7 @@ const sectionVisibility = anime?.sectionVisibility || {
       updateMediaTypeUI();
 
       const statusEl = document.getElementById('core-status');
-      if (statusEl && a.status) statusEl.value = a.status;
+      if (statusEl && a.status) statusEl.value = (a.status === 'Finished' ? 'Completed' : a.status);
 
       const honestyEl = document.getElementById('core-honesty');
       if (honestyEl && a.honestyStatus) honestyEl.value = a.honestyStatus;
@@ -2249,6 +2280,14 @@ const sectionVisibility = anime?.sectionVisibility || {
       // 4. Populate Section 2: Personal Take / Review
       const revHeading = document.getElementById('review-heading');
       if (revHeading) revHeading.value = a.review?.heading || '';
+
+      const isQuick = a.review?.type === 'quick';
+      const quickRadio = document.querySelector('input[name="review-type"][value="quick"]');
+      const fullRadio = document.querySelector('input[name="review-type"][value="full"]');
+      if (quickRadio && fullRadio) {
+        quickRadio.checked = isQuick;
+        fullRadio.checked = !isQuick;
+      }
 
       const revContainer = document.getElementById('review-paragraphs-container');
       if (revContainer) {
@@ -2539,12 +2578,13 @@ const sectionVisibility = anime?.sectionVisibility || {
       const heading = document.getElementById('review-heading').value.trim();
       const textareas = document.querySelectorAll('#review-paragraphs-container textarea');
       const paragraphs = Array.from(textareas).map(t => t.value.trim()).filter(Boolean);
+      const reviewType = document.querySelector('input[name="review-type"]:checked')?.value || 'full';
 
       try {
         const res = await fetch('/api/admin/anime/review', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ animeId: currentAnimeId, heading, paragraphs })
+          body: JSON.stringify({ animeId: currentAnimeId, heading, paragraphs, type: reviewType })
         });
         const data = await res.json();
         if (data.success) {
@@ -3101,7 +3141,8 @@ const sectionVisibility = anime?.sectionVisibility || {
       const reviewHeading = document.getElementById('review-heading')?.value.trim() || '';
       const reviewTextareas = document.querySelectorAll('#review-paragraphs-container textarea');
       const reviewParagraphs = Array.from(reviewTextareas).map(t => t.value.trim()).filter(Boolean);
-      const reviewPayload = { heading: reviewHeading, paragraphs: reviewParagraphs };
+      const reviewType = document.querySelector('input[name="review-type"]:checked')?.value || 'full';
+      const reviewPayload = { heading: reviewHeading, paragraphs: reviewParagraphs, type: reviewType };
 
       // 3. Section 3 Lessons
       const lessonHeading = document.getElementById('lesson-heading')?.value.trim() || '';

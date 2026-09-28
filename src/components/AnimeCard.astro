@@ -7,6 +7,25 @@ const { anime } = Astro.props;
 const isWatched = anime.honestyStatus === 'watched';
 const isZeroFiller = anime.fillerPercentage === 0;
 const isMovie = anime.type === 'movie';
+
+// Format status styling
+const normalizedStatus = (anime.status || '').trim().toLowerCase();
+let statusBadgeClass = 'text-slate-700 bg-slate-100 border-slate-200/80';
+let displayStatus = anime.status || 'Status';
+
+if (normalizedStatus === 'currently airing' || normalizedStatus === 'airing') {
+  statusBadgeClass = 'text-emerald-700 bg-emerald-50 border-emerald-200/80';
+  displayStatus = 'Currently Airing';
+} else if (normalizedStatus === 'upcoming') {
+  statusBadgeClass = 'text-sky-700 bg-sky-50 border-sky-200/80';
+  displayStatus = 'Upcoming';
+} else if (normalizedStatus === 'season finished') {
+  statusBadgeClass = 'text-amber-700 bg-amber-50 border-amber-200/80';
+  displayStatus = 'Season Finished';
+} else if (normalizedStatus === 'completed' || normalizedStatus === 'finished') {
+  statusBadgeClass = 'text-slate-700 bg-slate-100 border-slate-200/80';
+  displayStatus = 'Completed';
+}
 ---
 
 <article
@@ -82,8 +101,8 @@ const isMovie = anime.type === 'movie';
       >
         {isMovie ? 'Movie Details & Guide →' : 'Watch Order & Guide →'}
       </a>
-      <span class="text-[10px] font-medium text-slate-600 bg-slate-100 px-2 py-0.5 rounded border border-slate-200/60">
-        {anime.status}
+      <span class:list={['text-[10px] font-semibold px-2 py-0.5 rounded border', statusBadgeClass]}>
+        {displayStatus}
       </span>
     </div>
   </div>

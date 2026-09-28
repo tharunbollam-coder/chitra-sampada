@@ -15,29 +15,68 @@ if (Array.isArray(review.paragraphs) && review.paragraphs.length > 0) {
 
 const isWatched = anime.honestyStatus === 'watched';
 const score = anime.personalRating;
-const hasFullReview = paragraphs.length > 0;
-const showComingSoonNote = isWatched && score && !hasFullReview;
+const hasContent = Boolean(
+  (review.heading && review.heading.trim().length > 0) || paragraphs.length > 0
+);
+
+// Review type: 'quick' vs 'full' (defaults to 'full')
+const isQuickTake = review.type === 'quick';
 ---
 
-<div class="space-y-6">
-  <div class="bg-white rounded-2xl border border-slate-200 p-6 sm:p-7 shadow-xs space-y-6">
-    
-    <!-- Review Title Header -->
-    <div class="pb-5 border-b border-slate-100">
-      <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <h2 class="font-heading text-xl sm:text-2xl font-bold text-[#0F172A]">
-          {review.heading || `My Honest Take on ${anime.title}`}
-        </h2>
-        {score && (
-          <span class="text-sm sm:text-base font-medium text-slate-500">
-            • <strong class="text-[#0F172A] font-bold">{score}</strong>/10
-          </span>
-        )}
-      </div>
-    </div>
+{hasContent ? (
+  <div class="space-y-6">
+    <div class="bg-white rounded-2xl border border-slate-200 p-6 sm:p-7 shadow-xs space-y-6">
+      
+      <!-- Review Title Header -->
+      <div class="pb-5 border-b border-slate-100 space-y-3">
+        <!-- Badge & Rating Row -->
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div class="flex items-center gap-2.5 flex-wrap">
+            {isQuickTake ? (
+              <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200/80 shadow-2xs">
+                <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                <span>Quick Take</span>
+                <span class="text-[10px] text-amber-600/80 font-normal">• Initial Reaction</span>
+              </span>
+            ) : (
+              <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-200/80 shadow-2xs">
+                <span class="w-1.5 h-1.5 rounded-full bg-[#6366F1]"></span>
+                <span>Full Editorial Take</span>
+              </span>
+            )}
 
-    <!-- Review content: either full written review or friendly coming soon note -->
-    {hasFullReview ? (
+            {score && (
+              <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-800 border border-slate-200 shadow-2xs">
+                <span class="text-amber-500 font-bold">★</span>
+                <span>{score} / 10</span>
+                <span class="text-[10px] text-slate-500 font-normal">(Personal Rating)</span>
+              </span>
+            )}
+          </div>
+        </div>
+
+        <!-- Heading style: Quick Take vs Full Editorial Heading -->
+        <div>
+          {isQuickTake ? (
+            <div class="space-y-1">
+              <h2 class="font-heading text-lg sm:text-xl font-bold text-[#0F172A] tracking-tight">
+                {review.heading || `Quick Take: Initial Reaction to ${anime.title}`}
+              </h2>
+            </div>
+          ) : (
+            <h2 class="font-heading text-xl sm:text-2xl font-bold text-[#0F172A] tracking-tight">
+              {review.heading || `My Honest Take on ${anime.title}`}
+            </h2>
+          )}
+        </div>
+
+        <!-- Polite & Warm Personal Take Disclaimer Note -->
+        <p class="text-xs sm:text-sm text-slate-500 font-normal leading-relaxed">
+          This is my personal take — anime hits everyone differently, and that's completely fine.
+        </p>
+      </div>
+
+      <!-- Review content paragraphs -->
       <div class="space-y-4">
         {paragraphs.map((p) => (
           <p class="text-sm sm:text-base text-slate-700 leading-relaxed font-normal">
@@ -45,23 +84,7 @@ const showComingSoonNote = isWatched && score && !hasFullReview;
           </p>
         ))}
       </div>
-    ) : showComingSoonNote ? (
-      <div class="p-5 sm:p-6 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row items-start sm:items-center gap-4 text-slate-700 shadow-2xs">
-        <div class="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center shrink-0 text-[#4F46E5] shadow-2xs">
-          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-          </svg>
-        </div>
-        <div class="space-y-1">
-          <span class="text-xs font-bold uppercase tracking-wider text-[#4F46E5] block">
-            Written Review in Progress
-          </span>
-          <p class="text-xs sm:text-sm text-slate-600 leading-relaxed font-normal">
-            Every anime I've watched gets a rating right away — that's quick and honest. The full written review takes a bit more time, since I want to actually say something worth reading, not just fill space. It's coming, just not instantly — thanks for your patience.
-          </p>
-        </div>
-      </div>
-    ) : null}
 
+    </div>
   </div>
-</div>
+) : null}

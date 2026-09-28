@@ -172,11 +172,11 @@ export function adminApiPlugin() {
           // Section 2: Review (My Take)
           if (pathname === '/api/admin/anime/review' && method === 'POST') {
             const body = await parseJsonBody(req);
-            const { animeId, heading, paragraphs } = body;
+            const { animeId, heading, paragraphs, type } = body;
             if (!animeId) {
               return sendJson(res, 400, { success: false, error: 'Anime ID is required' });
             }
-            saveAnimeReview(animeId, { heading, paragraphs });
+            saveAnimeReview(animeId, { heading, paragraphs, type });
             return sendJson(res, 200, { success: true, message: 'Review / My Take saved successfully' });
           }
 

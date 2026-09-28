@@ -50,6 +50,58 @@ function formatRuntime(runtimeMinutes) {
 }
 const activeTab = availableTabs.find((t) => t.key === activeTabKey) || availableTabs[0];
 
+function getAirStatusDetails(status) {
+  const s = (status || '').trim();
+  const lower = s.toLowerCase();
+
+  if (lower === 'currently airing' || lower === 'airing') {
+    return {
+      label: 'Currently Airing',
+      badgeClass: 'bg-emerald-50 text-emerald-700 border-emerald-200/80',
+      dotClass: 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]',
+      explanation: 'New episodes are currently broadcasting or releasing.'
+    };
+  }
+
+  if (lower === 'upcoming') {
+    return {
+      label: 'Upcoming',
+      badgeClass: 'bg-sky-50 text-sky-700 border-sky-200/80',
+      dotClass: 'bg-sky-500 shadow-[0_0_8px_rgba(14,165,233,0.5)]',
+      explanation: 'Announced or scheduled for release — not yet broadcasting.'
+    };
+  }
+
+  if (lower === 'season finished') {
+    return {
+      label: 'Season Finished',
+      badgeClass: 'bg-amber-50 text-amber-700 border-amber-200/80',
+      dotClass: 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]',
+      explanation: 'Current season has concluded — more content or future seasons expected.'
+    };
+  }
+
+  // Completed or legacy Finished
+  if (lower === 'completed' || lower === 'finished') {
+    return {
+      label: 'Completed',
+      badgeClass: 'bg-slate-100 text-slate-700 border-slate-200/80',
+      dotClass: 'bg-slate-500',
+      explanation: 'This story has fully wrapped up — no further seasons planned.'
+    };
+  }
+
+  return {
+    label: s || 'Status Unknown',
+    badgeClass: 'bg-slate-100 text-slate-700 border-slate-200/80',
+    dotClass: 'bg-slate-400',
+    explanation: ''
+  };
+}
+
+const airStatusInfo = getAirStatusDetails(anime.status);
+const isQuickReview = activeTab?.key === 'review' && anime.review?.type === 'quick';
+
 const isWatched = anime.honestyStatus === 'watched';
 const lessonText = isWatched
   ? (typeof anime.lessons === 'string'
@@ -64,7 +116,7 @@ const tabTitleMap = {
   'characters': 'Ranked Characters',
   'source': 'Manga & Light Novel Source Guide',
   'power-system': 'Power System & Lore',
-  'review': 'My Honest Take & Review',
+  'review': isQuickReview ? 'Quick Take: Initial Reaction' : 'My Honest Take & Review',
   'lessons': 'What I Learned (Reflections)',
   'universe': 'Related & Universe Media',
   'recommendations': 'Shows Like This (Recommendations)'
@@ -300,10 +352,20 @@ if (anime.honestyStatus === 'watched' && anime.personalRating !== undefined && a
           <div class="flex items-center gap-2 sm:gap-3 text-xs text-slate-600 flex-wrap pt-1 font-medium">
             <span>{isMovie ? `Movie • ${formatRuntime(anime.runtime)}` : `${anime.episodes} episodes`}</span>
             <span class="text-slate-300">•</span>
-            <span class="px-2 py-0.5 rounded-md bg-slate-100 border border-slate-200/80 text-slate-700">{anime.status}</span>
+            <span class:list={['inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md border shadow-2xs font-semibold', airStatusInfo.badgeClass]}>
+              <span class:list={['w-1.5 h-1.5 rounded-full', airStatusInfo.dotClass]}></span>
+              <span>{airStatusInfo.label}</span>
+            </span>
             <span class="text-slate-300">•</span>
             <span>{anime.genres.join(', ')}</span>
           </div>
+
+          <!-- Plain-Language Air Status Explainer (Immediate clarity) -->
+          {airStatusInfo.explanation && (
+            <p class="text-xs text-slate-500 font-normal leading-relaxed -mt-2">
+              <span class="font-medium text-slate-600">{airStatusInfo.label}:</span> {airStatusInfo.explanation}
+            </p>
+          )}
 
           <!-- Explicit Date Stamps (Anime Real-World Release vs Site Publishing Dates) -->
           {(anime.addedDate || anime.lastUpdated) && (
