@@ -24,7 +24,7 @@ const hasAnySourceInfo = Boolean(
   authorCreator
 );
 
-// Determine publication status styling
+// Determine publication status indicator & badge styling
 const normalizedStatus = (publicationStatus || '').trim().toLowerCase();
 const isOngoing = normalizedStatus.includes('ongoing');
 const isCompleted = normalizedStatus.includes('completed');
@@ -47,17 +47,32 @@ if (isOngoing) {
   statusBadgeClass = 'bg-amber-50 text-amber-700 border-amber-200/80';
 }
 
-// Source type badge class
-const isLightNovel = sourceType.toLowerCase().includes('light novel');
-const sourceTypeBadgeClass = isLightNovel
-  ? 'bg-purple-50 text-purple-700 border-purple-200/80'
-  : 'bg-indigo-50 text-indigo-700 border-indigo-200/80';
+// Beginner-friendly context headlines and explainers
+const normalizedType = (sourceType || '').trim().toLowerCase();
+let adaptationHeadline = 'Adapted from Manga';
+let adaptationExplainer = 'Manga is a Japanese comic book or graphic novel, traditionally read from right to left.';
+
+if (normalizedType.includes('light novel') || normalizedType.includes('novel')) {
+  adaptationHeadline = 'Adapted from Light Novel';
+  adaptationExplainer = 'A Light Novel is a Japanese novella format featuring anime-style character illustrations.';
+} else if (normalizedType.includes('original')) {
+  adaptationHeadline = 'Original Anime Production';
+  adaptationExplainer = 'This is an original anime production not adapted from a pre-existing book or comic.';
+} else if (normalizedType.includes('webtoon') || normalizedType.includes('manhwa')) {
+  adaptationHeadline = `Adapted from ${sourceType}`;
+  adaptationExplainer = 'A digital comic format originally produced and read in a continuous vertical scroll.';
+} else if (sourceType && sourceType.trim().length > 0) {
+  adaptationHeadline = `Adapted from ${sourceType}`;
+  adaptationExplainer = 'Manga is a Japanese comic book or graphic novel, traditionally read from right to left.';
+}
+
+const displaySourceTitle = sourceTitle || anime.title || 'Original Source';
 ---
 
 <div class="space-y-6">
   <div class="bg-white rounded-2xl border border-slate-200 p-6 sm:p-7 shadow-xs space-y-6">
     <!-- Header -->
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-5 border-b border-slate-100">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-5 border-b border-slate-100">
       <div>
         <h2 class="font-heading text-xl sm:text-2xl font-bold text-[#0F172A]">
           Manga & Light Novel Source Guide
@@ -66,96 +81,106 @@ const sourceTypeBadgeClass = isLightNovel
           Everything you need to know about the original source material and where to continue the story.
         </p>
       </div>
+      {sourceType && (
+        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-[#EEF2FF] text-[#4F46E5] border border-[#C7D2FE] shrink-0 self-start sm:self-auto shadow-2xs">
+          <span class="w-1.5 h-1.5 rounded-full bg-[#6366F1]"></span>
+          {sourceType} Guide
+        </span>
+      )}
     </div>
 
     {hasAnySourceInfo ? (
       <div class="space-y-6">
-        <!-- 1. Top Hero Card (The Core Answer) -->
-        <div class="p-6 sm:p-7 rounded-2xl bg-gradient-to-br from-indigo-50/70 via-white to-slate-50/70 border border-indigo-100/90 shadow-2xs space-y-4">
-          <!-- Top Badges -->
-          <div class="flex items-center gap-2 flex-wrap">
-            {sourceType && (
-              <span class={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border shadow-2xs ${sourceTypeBadgeClass}`}>
-                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                </svg>
-                <span>{sourceType}</span>
+        <!-- 1. Beginner-Friendly Context Banner -->
+        <div class="p-4 sm:p-5 rounded-2xl bg-slate-50/80 border border-slate-200/90 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
+          <div class="flex items-start sm:items-center gap-3.5">
+            <div class="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-indigo-600 shadow-2xs shrink-0 mt-0.5 sm:mt-0">
+              <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+              </svg>
+            </div>
+            <div class="space-y-0.5">
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="font-heading font-bold text-sm sm:text-base text-slate-900">
+                  {adaptationHeadline}
+                </span>
+              </div>
+              <p class="text-xs sm:text-sm text-slate-600 font-normal leading-relaxed">
+                {adaptationExplainer}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. Primary Focus: Where to Continue the Story (Hero Card) -->
+        <div class="p-6 sm:p-7 rounded-2xl bg-gradient-to-br from-indigo-50/70 via-white to-slate-50/70 border border-indigo-100/90 shadow-2xs space-y-3.5">
+          <div class="flex items-center justify-between gap-3 flex-wrap">
+            <div class="inline-flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-[#6366F1]"></span>
+              <span class="text-xs font-bold uppercase tracking-wider text-[#4F46E5]">
+                Reading Priority
               </span>
-            )}
+            </div>
             {publicationStatus && (
-              <span class={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border shadow-2xs ${statusBadgeClass}`}>
-                <span class={`w-2 h-2 rounded-full ${statusDotColor}`}></span>
+              <span class={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold border shadow-2xs ${statusBadgeClass}`}>
+                <span class={`w-1.5 h-1.5 rounded-full ${statusDotColor}`}></span>
                 <span>{publicationStatus}</span>
               </span>
             )}
           </div>
 
-          <!-- Title -->
           <div class="space-y-1">
-            <h3 class="font-heading text-lg sm:text-xl font-bold text-[#0F172A] tracking-tight flex items-center gap-2">
-              <span>Where to Pick Up the Story</span>
+            <h3 class="font-heading text-lg sm:text-xl font-bold text-[#0F172A] tracking-tight">
+              Where to Continue the Story
             </h3>
           </div>
 
-          <!-- Prominent Reading Recommendation -->
           <div class="pt-1">
             {readingRecommendation ? (
               <p class="text-base sm:text-lg text-slate-800 font-medium leading-relaxed">
                 {readingRecommendation}
               </p>
             ) : (
-              <p class="text-sm sm:text-base text-slate-600 font-normal leading-relaxed italic">
-                {animeAdaptationCoverage
-                  ? `Specific chapter jump-in notes haven't been published yet for this series. Based on current adaptation coverage (${animeAdaptationCoverage}), continue reading in the original ${sourceType.toLowerCase()} from that point onwards.`
-                  : `Refer to the quick stats below to continue reading where the anime concludes in the original ${sourceType.toLowerCase()}.`}
+              <p class="text-sm sm:text-base text-slate-600 font-normal leading-relaxed">
+                To continue past the anime, pick up the source material following the current adaptation coverage.
               </p>
             )}
           </div>
         </div>
 
-        <!-- 2. Quick Stats Grid (3 Columns on Desktop, 1 on Mobile) -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <!-- Box 1: Total Source Material -->
+        <!-- 3. Key Details Grid (2 Columns on Desktop, 1 on Mobile) -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <!-- Card 1: Original Work & Author -->
           <div class="p-5 rounded-2xl bg-slate-50/80 border border-slate-200/90 shadow-2xs flex flex-col justify-between gap-3">
             <div class="flex items-center justify-between gap-2">
               <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                Total Source Material
+                Original Work & Author
               </span>
-              <div class="w-7 h-7 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-indigo-600 shadow-2xs">
+              <div class="w-7 h-7 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-indigo-600 shadow-2xs shrink-0">
                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                 </svg>
               </div>
             </div>
-            <span class="text-base sm:text-lg font-bold text-slate-900 leading-snug">
-              {volumesChapters || '—'}
-            </span>
-          </div>
-
-          <!-- Box 2: Anime Adapted -->
-          <div class="p-5 rounded-2xl bg-slate-50/80 border border-slate-200/90 shadow-2xs flex flex-col justify-between gap-3">
-            <div class="flex items-center justify-between gap-2">
-              <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                Anime Adapted
+            <div class="space-y-1">
+              <span class="text-base sm:text-lg font-bold text-slate-900 leading-snug block">
+                {displaySourceTitle}
               </span>
-              <div class="w-7 h-7 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-indigo-600 shadow-2xs">
-                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                </svg>
-              </div>
+              {authorCreator ? (
+                <span class="text-xs sm:text-sm text-slate-600 font-medium block">
+                  by {authorCreator}
+                </span>
+              ) : null}
             </div>
-            <span class="text-base sm:text-lg font-bold text-slate-900 leading-snug">
-              {animeAdaptationCoverage || '—'}
-            </span>
           </div>
 
-          <!-- Box 3: Publication Status -->
+          <!-- Card 2: Publication Status -->
           <div class="p-5 rounded-2xl bg-slate-50/80 border border-slate-200/90 shadow-2xs flex flex-col justify-between gap-3">
             <div class="flex items-center justify-between gap-2">
               <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500">
                 Publication Status
               </span>
-              <div class="w-7 h-7 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-indigo-600 shadow-2xs">
+              <div class="w-7 h-7 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-indigo-600 shadow-2xs shrink-0">
                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
@@ -170,29 +195,45 @@ const sourceTypeBadgeClass = isLightNovel
                   </span>
                 </>
               ) : (
-                <span class="text-base sm:text-lg font-bold text-slate-500 leading-snug">—</span>
+                <span class="text-base sm:text-lg font-bold text-slate-400 leading-snug">—</span>
               )}
             </div>
           </div>
-        </div>
 
-        <!-- 3. Reference Information (Subdued Bottom Footer/Card) -->
-        <div class="p-5 rounded-2xl bg-slate-50/70 border border-slate-200/80 shadow-2xs">
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 divide-y sm:divide-y-0 sm:divide-x divide-slate-200/70">
-            <div class="space-y-1">
-              <span class="block text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                Original Work
+          <!-- Card 3: Total Releases -->
+          <div class="p-5 rounded-2xl bg-slate-50/80 border border-slate-200/90 shadow-2xs flex flex-col justify-between gap-3">
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                Total Releases
               </span>
-              <span class="text-sm sm:text-base font-bold text-slate-900 block">
-                {sourceTitle || anime.title || '—'}
+              <div class="w-7 h-7 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-indigo-600 shadow-2xs shrink-0">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                </svg>
+              </div>
+            </div>
+            <div>
+              <span class="text-base sm:text-lg font-bold text-slate-900 leading-snug block">
+                {volumesChapters || '—'}
               </span>
             </div>
-            <div class="space-y-1 pt-3 sm:pt-0 sm:pl-6">
-              <span class="block text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                Author / Artist
+          </div>
+
+          <!-- Card 4: Anime Adapted -->
+          <div class="p-5 rounded-2xl bg-slate-50/80 border border-slate-200/90 shadow-2xs flex flex-col justify-between gap-3">
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                Anime Adapted
               </span>
-              <span class="text-sm sm:text-base font-semibold text-slate-700 block">
-                {authorCreator || '—'}
+              <div class="w-7 h-7 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-indigo-600 shadow-2xs shrink-0">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                </svg>
+              </div>
+            </div>
+            <div>
+              <span class="text-base sm:text-lg font-bold text-slate-900 leading-snug block">
+                {animeAdaptationCoverage || '—'}
               </span>
             </div>
           </div>

@@ -18,7 +18,7 @@ interface Props {
 const {
   title = siteConfig.name,
   description = siteConfig.description,
-  ogImage = '/favicon.svg',
+  ogImage = '/cs.png',
   canonicalUrl: propCanonicalUrl,
   showWellnessNote
 } = Astro.props;
@@ -52,7 +52,8 @@ if (!Astro.url.pathname.startsWith('/admin') && !Astro.url.pathname.startsWith('
 <html lang="en" class="scroll-smooth bg-[#F8FAFC] text-slate-900">
   <head>
     <meta charset="utf-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" href="/cs.png" />
+    <link rel="apple-touch-icon" href="/cs.png" />
     <link rel="icon" href="/favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="generator" content={Astro.generator} />

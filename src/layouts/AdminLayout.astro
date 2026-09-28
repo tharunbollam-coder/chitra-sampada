@@ -17,7 +17,8 @@ Astro.response.headers.set('Cache-Control', 'private, no-cache, no-store, must-r
 <html lang="en" class="bg-slate-900 text-slate-100 antialiased min-h-screen">
   <head>
     <meta charset="utf-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" href="/cs.png" />
+    <link rel="apple-touch-icon" href="/cs.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{title} | Chitra Sampada Admin</title>
     <!-- Google Fonts: Plus Jakarta Sans & Inter -->
@@ -40,9 +41,13 @@ Astro.response.headers.set('Cache-Control', 'private, no-cache, no-store, must-r
         <div class="flex items-center justify-between h-16">
           <div class="flex items-center gap-6">
             <a href="/admin" class="flex items-center gap-2.5 text-white font-bold text-lg font-heading tracking-tight hover:opacity-90">
-              <span class="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white text-base shadow-sm">
-                CS
-              </span>
+              <img
+                src="/cs.png"
+                alt="Chitra Sampada Logo"
+                width="32"
+                height="32"
+                class="w-8 h-8 rounded-lg object-contain shadow-sm shrink-0 aspect-square"
+              />
               <span>Chitra Admin</span>
             </a>
 
