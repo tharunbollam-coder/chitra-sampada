@@ -2,7 +2,20 @@
 // src/components/Footer.astro
 import { siteConfig } from '../config/site.js';
 
+const currentPath = Astro.url.pathname.replace(/\/+$/, '') || '/';
 const currentYear = new Date().getFullYear();
+
+const isAnimeActive = currentPath === '/anime';
+const isBlogActive = currentPath.startsWith('/blog');
+const isAboutActive = currentPath === '/about';
+const isZeroFillerActive = currentPath === '/anime/catalog' && Astro.url.searchParams.get('filter') === 'zero';
+const isCatalogActive = currentPath === '/anime/catalog' && !Astro.url.searchParams.get('filter');
+const isContactActive = currentPath === '/contact';
+
+const isPrivacyActive = currentPath === '/privacy';
+const isTermsActive = currentPath === '/terms';
+const isDmcaActive = currentPath === '/dmca';
+const isDisclaimerActive = currentPath === '/disclaimer';
 ---
 
 <footer class="mt-12 border-t border-slate-200 bg-white text-slate-600 relative overflow-hidden">
@@ -22,9 +35,6 @@ const currentYear = new Date().getFullYear();
           <span class="text-lg font-bold tracking-tight text-[#0F172A] font-heading">
             {siteConfig.name}
           </span>
-          <span class="text-[10px] uppercase font-bold tracking-widest px-2 py-0.5 rounded bg-[#EEF2FF] text-[#4F46E5] border border-[#C7D2FE] shadow-2xs">
-            Anime Live
-          </span>
         </div>
         
         <p class="text-sm text-slate-600 leading-relaxed max-w-lg font-normal">
@@ -41,40 +51,53 @@ const currentYear = new Date().getFullYear();
         <h3 class="text-xs font-bold uppercase tracking-widest text-[#0F172A] mb-4 font-heading">
           Entertainment Hub
         </h3>
-        <ul class="space-y-2.5 text-sm">
+        <ul class="space-y-2 text-sm">
           <li>
-            <a href="/anime" class="text-slate-600 hover:text-[#6366F1] flex items-center justify-between group transition-colors">
-              <span class="group-hover:translate-x-1 transition-transform font-medium">Anime List</span>
-              <span class="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded bg-[#EEF2FF] text-[#4F46E5] border border-[#C7D2FE]">Live</span>
+            <a
+              href="/anime"
+              class:list={[
+                'inline-flex items-center px-2 py-1 -ml-2 rounded-lg transition-colors',
+                isAnimeActive
+                  ? 'bg-[#EEF2FF] text-[#4F46E5] border border-[#C7D2FE] font-bold shadow-2xs'
+                  : 'text-slate-600 hover:text-[#6366F1] font-medium'
+              ]}
+            >
+              Anime List
             </a>
           </li>
           <li>
-            <a href="/blog" class="text-slate-600 hover:text-[#6366F1] flex items-center justify-between group transition-colors">
-              <span class="group-hover:translate-x-1 transition-transform font-medium">Blog & Articles</span>
-              <span class="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded bg-[#EEF2FF] text-[#4F46E5] border border-[#C7D2FE]">Live</span>
+            <a
+              href="/blog"
+              class:list={[
+                'inline-flex items-center px-2 py-1 -ml-2 rounded-lg transition-colors',
+                isBlogActive
+                  ? 'bg-[#EEF2FF] text-[#4F46E5] border border-[#C7D2FE] font-bold shadow-2xs'
+                  : 'text-slate-600 hover:text-[#6366F1] font-medium'
+              ]}
+            >
+              Blog & Articles
             </a>
           </li>
           <li>
-            <a href="/about" class="text-slate-600 hover:text-[#6366F1] transition-colors">
+            <a
+              href="/about"
+              class:list={[
+                'inline-flex items-center px-2 py-1 -ml-2 rounded-lg transition-colors',
+                isAboutActive
+                  ? 'bg-[#EEF2FF] text-[#4F46E5] border border-[#C7D2FE] font-bold shadow-2xs'
+                  : 'text-slate-600 hover:text-[#6366F1] font-medium'
+              ]}
+            >
               About & Why I Built This
             </a>
           </li>
           <li>
-            <a href="/about#suggestions" class="text-slate-600 hover:text-[#6366F1] transition-colors">
+            <a
+              href="/about#suggestions"
+              class="inline-flex items-center px-2 py-1 -ml-2 rounded-lg text-slate-600 hover:text-[#6366F1] font-medium transition-colors"
+            >
               Suggest an Anime
             </a>
-          </li>
-          <li>
-            <div class="flex items-center justify-between text-slate-400">
-              <span>Movies (Coming Later)</span>
-              <span class="text-[10px] uppercase font-semibold text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">Planned</span>
-            </div>
-          </li>
-          <li>
-            <div class="flex items-center justify-between text-slate-400">
-              <span>TV Shows (Coming Later)</span>
-              <span class="text-[10px] uppercase font-semibold text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">Planned</span>
-            </div>
           </li>
         </ul>
       </div>
@@ -84,24 +107,51 @@ const currentYear = new Date().getFullYear();
         <h3 class="text-xs font-bold uppercase tracking-widest text-[#0F172A] mb-4 font-heading">
           Quick Links
         </h3>
-        <ul class="space-y-2.5 text-sm">
+        <ul class="space-y-2 text-sm">
           <li>
-            <a href="/anime#vibes" class="text-slate-600 hover:text-[#6366F1] transition-colors">
+            <a
+              href="/anime#vibes"
+              class="inline-flex items-center px-2 py-1 -ml-2 rounded-lg text-slate-600 hover:text-[#6366F1] font-medium transition-colors"
+            >
               Browse by Vibe
             </a>
           </li>
           <li>
-            <a href="/anime/catalog?filter=zero" class="text-slate-600 hover:text-[#6366F1] transition-colors">
+            <a
+              href="/anime/catalog?filter=zero"
+              class:list={[
+                'inline-flex items-center px-2 py-1 -ml-2 rounded-lg transition-colors',
+                isZeroFillerActive
+                  ? 'bg-[#EEF2FF] text-[#4F46E5] border border-[#C7D2FE] font-bold shadow-2xs'
+                  : 'text-slate-600 hover:text-[#6366F1] font-medium'
+              ]}
+            >
               Zero-Filler Anime Guide
             </a>
           </li>
           <li>
-            <a href="/anime/catalog" class="text-slate-600 hover:text-[#6366F1] transition-colors">
+            <a
+              href="/anime/catalog"
+              class:list={[
+                'inline-flex items-center px-2 py-1 -ml-2 rounded-lg transition-colors',
+                isCatalogActive
+                  ? 'bg-[#EEF2FF] text-[#4F46E5] border border-[#C7D2FE] font-bold shadow-2xs'
+                  : 'text-slate-600 hover:text-[#6366F1] font-medium'
+              ]}
+            >
               Full Anime Catalog
             </a>
           </li>
           <li>
-            <a href="/contact" class="text-slate-600 hover:text-[#6366F1] transition-colors">
+            <a
+              href="/contact"
+              class:list={[
+                'inline-flex items-center px-2 py-1 -ml-2 rounded-lg transition-colors',
+                isContactActive
+                  ? 'bg-[#EEF2FF] text-[#4F46E5] border border-[#C7D2FE] font-bold shadow-2xs'
+                  : 'text-slate-600 hover:text-[#6366F1] font-medium'
+              ]}
+            >
               Contact & Feedback
             </a>
           </li>
@@ -116,29 +166,69 @@ const currentYear = new Date().getFullYear();
         <span class="text-xs font-bold uppercase tracking-wider text-slate-500 font-heading">
           Policies & Guidance
         </span>
-        <ul class="flex items-center gap-x-6 gap-y-2 text-xs text-slate-600 flex-wrap font-medium">
+        <ul class="flex items-center gap-x-2 gap-y-2 text-xs flex-wrap font-medium">
           <li>
-            <a href="/privacy" class="hover:text-[#6366F1] transition-colors">
+            <a
+              href="/privacy"
+              class:list={[
+                'px-2.5 py-1 rounded-md transition-colors',
+                isPrivacyActive
+                  ? 'bg-[#EEF2FF] text-[#4F46E5] border border-[#C7D2FE] font-bold shadow-2xs'
+                  : 'text-slate-600 hover:text-[#6366F1]'
+              ]}
+            >
               Privacy Policy
             </a>
           </li>
           <li>
-            <a href="/terms" class="hover:text-[#6366F1] transition-colors">
+            <a
+              href="/terms"
+              class:list={[
+                'px-2.5 py-1 rounded-md transition-colors',
+                isTermsActive
+                  ? 'bg-[#EEF2FF] text-[#4F46E5] border border-[#C7D2FE] font-bold shadow-2xs'
+                  : 'text-slate-600 hover:text-[#6366F1]'
+              ]}
+            >
               Terms of Use
             </a>
           </li>
           <li>
-            <a href="/dmca" class="hover:text-[#6366F1] transition-colors">
+            <a
+              href="/dmca"
+              class:list={[
+                'px-2.5 py-1 rounded-md transition-colors',
+                isDmcaActive
+                  ? 'bg-[#EEF2FF] text-[#4F46E5] border border-[#C7D2FE] font-bold shadow-2xs'
+                  : 'text-slate-600 hover:text-[#6366F1]'
+              ]}
+            >
               Copyright & DMCA
             </a>
           </li>
           <li>
-            <a href="/disclaimer" class="hover:text-[#6366F1] transition-colors">
+            <a
+              href="/disclaimer"
+              class:list={[
+                'px-2.5 py-1 rounded-md transition-colors',
+                isDisclaimerActive
+                  ? 'bg-[#EEF2FF] text-[#4F46E5] border border-[#C7D2FE] font-bold shadow-2xs'
+                  : 'text-slate-600 hover:text-[#6366F1]'
+              ]}
+            >
               Content & Ratings Disclaimer
             </a>
           </li>
           <li>
-            <a href="/contact" class="hover:text-[#6366F1] transition-colors">
+            <a
+              href="/contact"
+              class:list={[
+                'px-2.5 py-1 rounded-md transition-colors',
+                isContactActive
+                  ? 'bg-[#EEF2FF] text-[#4F46E5] border border-[#C7D2FE] font-bold shadow-2xs'
+                  : 'text-slate-600 hover:text-[#6366F1]'
+              ]}
+            >
               Contact
             </a>
           </li>

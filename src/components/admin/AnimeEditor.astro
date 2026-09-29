@@ -314,7 +314,7 @@ const sectionVisibility = anime?.sectionVisibility || {
                 class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-sm text-white focus:outline-none focus:border-indigo-500"
               >
                 <option value="watched" selected={anime?.honestyStatus === 'watched'}>Watched (Full review active)</option>
-                <option value="plan_to_watch" selected={anime?.honestyStatus === 'plan_to_watch' || anime?.honestyStatus === 'watchlist'}>Plan to Watch (Coming soon)</option>
+                <option value="plan_to_watch" selected={anime?.honestyStatus === 'plan_to_watch' || anime?.honestyStatus === 'watchlist'}>Plan to Watch</option>
                 <option value="dropped" selected={anime?.honestyStatus === 'dropped'}>Dropped</option>
               </select>
             </div>
@@ -335,6 +335,26 @@ const sectionVisibility = anime?.sectionVisibility || {
                 placeholder="e.g. 9.5"
                 class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
               />
+            </div>
+
+            <!-- Age Rating / Minimum Age -->
+            <div>
+              <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5" for="core-age-rating">
+                Age Rating / Minimum Age
+              </label>
+              <input
+                type="number"
+                min="0"
+                max="18"
+                id="core-age-rating"
+                name="ageRating"
+                value={anime?.ageRating ?? ''}
+                placeholder="e.g. 13 (or 0 for General)"
+                class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+              />
+              <span class="text-[11px] text-slate-500 mt-1 block">
+                Enter minimum recommended age (0 for General, 13 for 13+, 16 for 16+, 18 for 18+).
+              </span>
             </div>
           </div>
 
@@ -2241,6 +2261,9 @@ const sectionVisibility = anime?.sectionVisibility || {
       const ratingEl = document.getElementById('core-rating');
       if (ratingEl) ratingEl.value = (a.personalRating !== null && a.personalRating !== undefined) ? a.personalRating : '';
 
+      const ageRatingEl = document.getElementById('core-age-rating');
+      if (ageRatingEl) ageRatingEl.value = (a.ageRating !== null && a.ageRating !== undefined) ? a.ageRating : '';
+
       const posterEl = document.getElementById('core-poster');
       if (posterEl) posterEl.value = a.poster || '';
 
@@ -2495,6 +2518,7 @@ const sectionVisibility = anime?.sectionVisibility || {
         status: document.getElementById('core-status').value,
         honestyStatus: document.getElementById('core-honesty').value,
         personalRating: document.getElementById('core-rating').value,
+        ageRating: document.getElementById('core-age-rating')?.value,
         poster: document.getElementById('core-poster').value.trim(),
         backdrop: document.getElementById('core-backdrop').value.trim(),
         synopsis: document.getElementById('core-synopsis').value.trim(),
@@ -3128,6 +3152,7 @@ const sectionVisibility = anime?.sectionVisibility || {
         status: document.getElementById('core-status').value,
         honestyStatus: document.getElementById('core-honesty').value,
         personalRating: document.getElementById('core-rating').value,
+        ageRating: document.getElementById('core-age-rating')?.value,
         poster: document.getElementById('core-poster').value.trim(),
         backdrop: document.getElementById('core-backdrop').value.trim(),
         synopsis: document.getElementById('core-synopsis').value.trim(),

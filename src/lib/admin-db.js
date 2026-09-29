@@ -139,6 +139,7 @@ export async function getAnimeById(idOrSlug, contextOrLocals = null) {
     episodes: effectiveEpisodes,
     status: animeRow.status,
     personalRating: animeRow.personal_rating !== null ? animeRow.personal_rating : '',
+    ageRating: (animeRow.age_rating !== null && animeRow.age_rating !== undefined && animeRow.age_rating !== '') ? Number(animeRow.age_rating) : null,
     poster: animeRow.poster || '',
     backdrop: animeRow.backdrop || '',
     addedDate: animeRow.added_date || '',
@@ -214,6 +215,7 @@ export async function saveAnimeCore(data, contextOrLocals = null) {
     status = 'Finished',
     honestyStatus = 'watched',
     personalRating = null,
+    ageRating,
     poster = '',
     backdrop = '',
     addedDate = '',
@@ -243,6 +245,9 @@ export async function saveAnimeCore(data, contextOrLocals = null) {
   const parsedRating = personalRating !== '' && personalRating !== null && personalRating !== undefined
     ? Number(personalRating)
     : (existing?.personal_rating ?? null);
+  const parsedAgeRating = (ageRating !== undefined && ageRating !== null && ageRating !== '')
+    ? parseInt(ageRating, 10)
+    : (existing?.age_rating ?? null);
   const parsedYear = Number(year) || (existing?.year ?? 0);
   let parsedEpisodes = (episodes !== undefined && episodes !== null && episodes !== '')
     ? Number(episodes)
@@ -269,14 +274,14 @@ export async function saveAnimeCore(data, contextOrLocals = null) {
       UPDATE anime SET
         slug = ?, title = ?, original_title = ?, year = ?, episodes = ?,
         type = ?, runtime = ?, movie_canon_type = ?,
-        status = ?, personal_rating = ?, poster = ?, backdrop = ?,
+        status = ?, personal_rating = ?, age_rating = ?, poster = ?, backdrop = ?,
         added_date = ?, last_updated = ?, honesty_status = ?,
         filler_percentage = ?, trending = ?, synopsis = ?
       WHERE id = ?
     `,
       slug, title, finalOriginalTitle, parsedYear, parsedEpisodes,
       finalType, finalRuntime, finalMovieCanonType,
-      finalStatus, parsedRating, finalPoster, finalBackdrop,
+      finalStatus, parsedRating, parsedAgeRating, finalPoster, finalBackdrop,
       finalAddedDate, finalLastUpdated, finalHonestyStatus,
       parsedFiller, parsedTrending, finalSynopsis,
       id
@@ -286,14 +291,14 @@ export async function saveAnimeCore(data, contextOrLocals = null) {
       INSERT INTO anime (
         id, slug, title, original_title, year, episodes,
         type, runtime, movie_canon_type,
-        status, personal_rating, poster, backdrop,
+        status, personal_rating, age_rating, poster, backdrop,
         added_date, last_updated, honesty_status,
         filler_percentage, trending, synopsis
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `,
       id, slug, title, finalOriginalTitle, parsedYear, parsedEpisodes,
       finalType, finalRuntime, finalMovieCanonType,
-      finalStatus, parsedRating, finalPoster, finalBackdrop,
+      finalStatus, parsedRating, parsedAgeRating, finalPoster, finalBackdrop,
       finalAddedDate, finalLastUpdated, finalHonestyStatus,
       parsedFiller, parsedTrending, finalSynopsis
     );

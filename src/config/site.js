@@ -21,7 +21,7 @@ export const siteConfig = {
       name: "Anime",
       href: "/anime",
       status: "live",
-      badge: "LIVE",
+      badge: "",
       description: "Filler lists, watch orders, and honest status guides",
     },
     {

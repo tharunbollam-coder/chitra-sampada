@@ -69,27 +69,27 @@ if (normalizedType.includes('light novel') || normalizedType.includes('novel')) 
 const displaySourceTitle = sourceTitle || anime.title || 'Original Source';
 ---
 
-<div class="space-y-6">
-  <div class="bg-white rounded-2xl border border-slate-200 p-6 sm:p-7 shadow-xs space-y-6">
-    <!-- Header -->
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-5 border-b border-slate-100">
-      <div>
-        <h2 class="font-heading text-xl sm:text-2xl font-bold text-[#0F172A]">
-          Manga & Light Novel Source Guide
-        </h2>
-        <p class="text-xs sm:text-sm text-slate-500 font-normal mt-1">
-          Everything you need to know about the original source material and where to continue the story.
-        </p>
+{hasAnySourceInfo ? (
+  <div class="space-y-6">
+    <div class="bg-white rounded-2xl border border-slate-200 p-6 sm:p-7 shadow-xs space-y-6">
+      <!-- Header -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-5 border-b border-slate-100">
+        <div>
+          <h2 class="font-heading text-xl sm:text-2xl font-bold text-[#0F172A]">
+            Manga & Light Novel Source Guide
+          </h2>
+          <p class="text-xs sm:text-sm text-slate-500 font-normal mt-1">
+            Everything you need to know about the original source material and where to continue the story.
+          </p>
+        </div>
+        {sourceType && (
+          <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-[#EEF2FF] text-[#4F46E5] border border-[#C7D2FE] shrink-0 self-start sm:self-auto shadow-2xs">
+            <span class="w-1.5 h-1.5 rounded-full bg-[#6366F1]"></span>
+            {sourceType} Guide
+          </span>
+        )}
       </div>
-      {sourceType && (
-        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-[#EEF2FF] text-[#4F46E5] border border-[#C7D2FE] shrink-0 self-start sm:self-auto shadow-2xs">
-          <span class="w-1.5 h-1.5 rounded-full bg-[#6366F1]"></span>
-          {sourceType} Guide
-        </span>
-      )}
-    </div>
 
-    {hasAnySourceInfo ? (
       <div class="space-y-6">
         <!-- 1. Beginner-Friendly Context Banner -->
         <div class="p-4 sm:p-5 rounded-2xl bg-slate-50/80 border border-slate-200/90 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
@@ -239,18 +239,6 @@ const displaySourceTitle = sourceTitle || anime.title || 'Original Source';
           </div>
         </div>
       </div>
-    ) : (
-      <div class="p-8 sm:p-10 rounded-2xl bg-slate-50 border border-slate-200/80 text-center space-y-3">
-        <div class="w-12 h-12 rounded-2xl bg-white border border-slate-200 flex items-center justify-center mx-auto text-slate-400 shadow-2xs">
-          <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-          </svg>
-        </div>
-        <h3 class="text-base font-bold text-slate-800 font-heading">Source Material Guidance Coming Soon</h3>
-        <p class="text-xs sm:text-sm text-slate-500 max-w-md mx-auto leading-relaxed">
-          Reading guidance and adaptation coverage for {anime.title} have not been indexed yet. Check back soon for manga and light novel chapter details!
-        </p>
-      </div>
-    )}
+    </div>
   </div>
-</div>
+) : null}

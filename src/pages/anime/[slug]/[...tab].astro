@@ -32,13 +32,20 @@ const defaultTabKey = getDefaultTabKey(anime, availableTabs) || 'watch-order';
 
 // If a specific tab is requested in the URL path, ensure it exists in availableTabs
 if (tab && !availableTabs.some((t) => t.key === tab)) {
-  return new Response('Tab Not Found', { status: 404 });
+  return Astro.redirect(`/anime/${anime.slug}`, 302);
 }
 
 const activeTabKey = tab || defaultTabKey;
 
 const isZeroFiller = anime.fillerPercentage === 0;
 const isMovie = anime.type === 'movie';
+const isAiring = (anime.status || '').toLowerCase().includes('airing');
+const isUpcoming = (anime.status || '').toLowerCase().includes('upcoming');
+const yearLabel = isAiring ? 'Since' : (isUpcoming ? 'Premieres' : 'Premiered');
+const hasAgeRating = anime.ageRating !== null && anime.ageRating !== undefined && anime.ageRating !== '';
+const ageRatingDisplay = hasAgeRating
+  ? (Number(anime.ageRating) === 0 ? 'General' : `${anime.ageRating}+`)
+  : null;
 
 function formatRuntime(runtimeMinutes) {
   if (!runtimeMinutes || isNaN(runtimeMinutes)) return 'Feature Film';
@@ -298,6 +305,57 @@ if (anime.honestyStatus === 'watched' && anime.personalRating !== undefined && a
           <div class="flex items-center gap-2 flex-wrap">
             <HonestyBadge status={anime.honestyStatus} size="md" />
 
+            <!-- Air Status Badge with Embedded Guidance Popover -->
+            {airStatusInfo.label && (
+              <div class="relative inline-flex items-center">
+                <span class:list={['text-xs font-semibold px-3 py-1 rounded-full border tracking-wide select-none flex items-center gap-1.5 shadow-2xs', airStatusInfo.badgeClass]}>
+                  <span class:list={['w-1.5 h-1.5 rounded-full', airStatusInfo.dotClass]}></span>
+                  <span>{airStatusInfo.label}</span>
+                  {airStatusInfo.explanation && (
+                    <button
+                      type="button"
+                      id="air-status-info-btn"
+                      aria-label={`${airStatusInfo.label} guidance`}
+                      aria-expanded="false"
+                      aria-controls="air-status-popover"
+                      class="ml-0.5 opacity-70 hover:opacity-100 hover:text-indigo-600 focus:outline-none transition-all cursor-pointer"
+                    >
+                      <svg class="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                      </svg>
+                    </button>
+                  )}
+                </span>
+
+                <!-- Air Status Popover / Tooltip -->
+                {airStatusInfo.explanation && (
+                  <div
+                    id="air-status-popover"
+                    role="tooltip"
+                    class="hidden absolute z-50 right-0 sm:left-0 sm:right-auto top-full mt-2 w-[280px] max-w-[calc(100vw-2.5rem)] p-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl text-left transition-all duration-200"
+                  >
+                    <div class="flex items-start justify-between gap-2 mb-1.5">
+                      <div class="flex items-center gap-1.5 text-xs font-bold text-slate-900 dark:text-slate-100">
+                        <span class:list={['w-1.5 h-1.5 rounded-full', airStatusInfo.dotClass]}></span>
+                        <span>{airStatusInfo.label}</span>
+                      </div>
+                      <button
+                        type="button"
+                        id="close-air-status-popover"
+                        aria-label="Close guidance"
+                        class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5 rounded-lg -mr-1 -mt-1 text-xs cursor-pointer"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                    <p class="text-xs text-slate-600 dark:text-slate-300 font-normal leading-relaxed">
+                      {airStatusInfo.explanation}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
             {isMovie ? (
               <span class="text-xs font-bold px-3 py-1 rounded-full border tracking-wide select-none bg-purple-50 text-purple-700 border-purple-200 flex items-center gap-1.5 shadow-2xs">
                 <span>🎬</span>
@@ -325,12 +383,72 @@ if (anime.honestyStatus === 'watched' && anime.personalRating !== undefined && a
               </span>
             )}
 
-            <!-- Originally Aired Badge -->
+            <!-- Episode Count / Runtime Quick-Fact -->
+            {(isMovie ? (anime.runtime ? formatRuntime(anime.runtime) : null) : (anime.episodes ? `${anime.episodes} episodes` : null)) && (
+              <span class="text-xs font-semibold px-3 py-1 rounded-full bg-slate-100 text-slate-700 border border-slate-200 flex items-center gap-1.5 shadow-2xs">
+                <span class="font-bold text-slate-800">{isMovie ? formatRuntime(anime.runtime) : anime.episodes}</span>
+                <span class="text-slate-500 font-normal">{isMovie ? '' : 'episodes'}</span>
+              </span>
+            )}
+
+            <!-- Premiered / Debut Year Badge -->
             {anime.year && (
               <span class="text-xs font-semibold px-3 py-1 rounded-full bg-slate-100 text-slate-700 border border-slate-200 flex items-center gap-1.5 shadow-2xs">
-                <span class="text-slate-400 font-normal">Aired</span>
+                <span class="text-slate-400 font-normal">{yearLabel}</span>
                 <span class="font-bold text-slate-800">{anime.year}</span>
               </span>
+            )}
+
+            <!-- Age Rating Badge with Guidance Popover -->
+            {hasAgeRating && (
+              <div class="relative inline-flex items-center">
+                <span class="text-xs font-semibold px-3 py-1 rounded-full bg-slate-100 text-slate-800 border border-slate-200 flex items-center gap-1.5 shadow-2xs">
+                  <span class="text-slate-400 font-normal">Age</span>
+                  <span class="font-bold text-slate-800">{ageRatingDisplay}</span>
+                  <button
+                    type="button"
+                    id="age-rating-info-btn"
+                    aria-label="Age Ratings & Guidance info"
+                    aria-expanded="false"
+                    aria-controls="age-rating-popover"
+                    class="ml-0.5 text-slate-400 hover:text-indigo-600 focus:outline-none transition-colors cursor-pointer"
+                  >
+                    <svg class="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
+                      <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                    </svg>
+                  </button>
+                </span>
+
+                <!-- Popover / Tooltip -->
+                <div
+                  id="age-rating-popover"
+                  role="tooltip"
+                  class="hidden absolute z-50 right-0 left-auto top-full mt-2 w-[280px] max-w-[calc(100vw-2.5rem)] p-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl text-left transition-all duration-200"
+                >
+                  <div class="flex items-start justify-between gap-2 mb-2">
+                    <div class="flex items-center gap-1.5 text-xs font-bold text-slate-900 dark:text-slate-100">
+                      <span class="w-2 h-2 rounded-full bg-indigo-500"></span>
+                      <span>Age Ratings & Guidance</span>
+                    </div>
+                    <button
+                      type="button"
+                      id="close-age-popover"
+                      aria-label="Close guidance"
+                      class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5 rounded-lg -mr-1 -mt-1 text-xs cursor-pointer"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                  <div class="space-y-2 text-xs text-slate-600 dark:text-slate-300 leading-relaxed font-normal">
+                    <p>
+                      Age recommendations on Chitra Sampada reflect content maturity including violence, themes, language, and intensity.
+                    </p>
+                    <p>
+                      These ratings serve as an advisory guide to help viewers make informed viewing decisions. Viewer discretion is always advised.
+                    </p>
+                  </div>
+                </div>
+              </div>
             )}
           </div>
 
@@ -348,23 +466,20 @@ if (anime.honestyStatus === 'watched' && anime.personalRating !== undefined && a
             </p>
           )}
 
-          <!-- Detailed Metadata Matrix -->
-          <div class="flex items-center gap-2 sm:gap-3 text-xs text-slate-600 flex-wrap pt-1 font-medium">
-            <span>{isMovie ? `Movie • ${formatRuntime(anime.runtime)}` : `${anime.episodes} episodes`}</span>
-            <span class="text-slate-300">•</span>
-            <span class:list={['inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md border shadow-2xs font-semibold', airStatusInfo.badgeClass]}>
-              <span class:list={['w-1.5 h-1.5 rounded-full', airStatusInfo.dotClass]}></span>
-              <span>{airStatusInfo.label}</span>
-            </span>
-            <span class="text-slate-300">•</span>
-            <span>{anime.genres.join(', ')}</span>
-          </div>
-
-          <!-- Plain-Language Air Status Explainer (Immediate clarity) -->
-          {airStatusInfo.explanation && (
-            <p class="text-xs text-slate-500 font-normal leading-relaxed -mt-2">
-              <span class="font-medium text-slate-600">{airStatusInfo.label}:</span> {airStatusInfo.explanation}
-            </p>
+          <!-- Genres Metadata Block -->
+          {anime.genres && anime.genres.length > 0 && (
+            <div class="space-y-1.5 pt-1">
+              <span class="block text-[11px] font-semibold tracking-wider uppercase text-slate-500 select-none">
+                Genres
+              </span>
+              <div class="flex flex-wrap gap-1.5">
+                {anime.genres.map((genre) => (
+                  <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-slate-100/90 text-slate-700 border border-slate-200/60 select-none hover:bg-slate-200/70 transition-colors">
+                    {genre}
+                  </span>
+                ))}
+              </div>
+            </div>
           )}
 
           <!-- Explicit Date Stamps (Anime Real-World Release vs Site Publishing Dates) -->
@@ -655,6 +770,159 @@ if (anime.honestyStatus === 'watched' && anime.personalRating !== undefined && a
           activateTab(lastPart, false);
         }
       });
+
+      // Age Rating Guidance Popover
+      const ageBtn = document.getElementById('age-rating-info-btn');
+      const agePopover = document.getElementById('age-rating-popover');
+      const closeAgeBtn = document.getElementById('close-age-popover');
+
+      if (ageBtn && agePopover) {
+        let isOpen = false;
+
+        function openPopover() {
+          isOpen = true;
+          agePopover.classList.remove('hidden');
+          ageBtn.setAttribute('aria-expanded', 'true');
+          const rect = agePopover.getBoundingClientRect();
+          if (rect.right > window.innerWidth - 16) {
+            agePopover.classList.add('right-0', 'left-auto');
+          }
+        }
+
+        function closePopover() {
+          isOpen = false;
+          agePopover.classList.add('hidden');
+          ageBtn.setAttribute('aria-expanded', 'false');
+        }
+
+        ageBtn.onclick = function (e) {
+          e.stopPropagation();
+          if (isOpen) {
+            closePopover();
+          } else {
+            openPopover();
+          }
+        };
+
+        let hoverTimer = null;
+        ageBtn.onmouseenter = function () {
+          clearTimeout(hoverTimer);
+          openPopover();
+        };
+
+        ageBtn.onmouseleave = function () {
+          hoverTimer = setTimeout(function () {
+            if (!agePopover.matches(':hover')) {
+              closePopover();
+            }
+          }, 150);
+        };
+
+        agePopover.onmouseenter = function () {
+          clearTimeout(hoverTimer);
+          openPopover();
+        };
+
+        agePopover.onmouseleave = function () {
+          closePopover();
+        };
+
+        if (closeAgeBtn) {
+          closeAgeBtn.onclick = function (e) {
+            e.stopPropagation();
+            closePopover();
+          };
+        }
+
+        document.addEventListener('click', function (e) {
+          if (isOpen && !agePopover.contains(e.target) && !ageBtn.contains(e.target)) {
+            closePopover();
+          }
+        });
+
+        document.addEventListener('keydown', function (e) {
+          if (e.key === 'Escape' && isOpen) {
+            closePopover();
+          }
+        });
+      }
+
+      // Air Status Guidance Tooltip
+      const statusBtn = document.getElementById('air-status-info-btn');
+      const statusPopover = document.getElementById('air-status-popover');
+      const closeStatusBtn = document.getElementById('close-air-status-popover');
+
+      if (statusBtn && statusPopover) {
+        let isStatusOpen = false;
+
+        function openStatusPopover() {
+          isStatusOpen = true;
+          statusPopover.classList.remove('hidden');
+          statusBtn.setAttribute('aria-expanded', 'true');
+          const rect = statusPopover.getBoundingClientRect();
+          if (rect.right > window.innerWidth - 16) {
+            statusPopover.classList.remove('sm:left-0', 'sm:right-auto');
+            statusPopover.classList.add('right-0', 'left-auto');
+          }
+        }
+
+        function closeStatusPopover() {
+          isStatusOpen = false;
+          statusPopover.classList.add('hidden');
+          statusBtn.setAttribute('aria-expanded', 'false');
+        }
+
+        statusBtn.onclick = function (e) {
+          e.stopPropagation();
+          if (isStatusOpen) {
+            closeStatusPopover();
+          } else {
+            openStatusPopover();
+          }
+        };
+
+        let statusHoverTimer = null;
+        statusBtn.onmouseenter = function () {
+          clearTimeout(statusHoverTimer);
+          openStatusPopover();
+        };
+
+        statusBtn.onmouseleave = function () {
+          statusHoverTimer = setTimeout(function () {
+            if (!statusPopover.matches(':hover')) {
+              closeStatusPopover();
+            }
+          }, 150);
+        };
+
+        statusPopover.onmouseenter = function () {
+          clearTimeout(statusHoverTimer);
+          openStatusPopover();
+        };
+
+        statusPopover.onmouseleave = function () {
+          closeStatusPopover();
+        };
+
+        if (closeStatusBtn) {
+          closeStatusBtn.onclick = function (e) {
+            e.stopPropagation();
+            closeStatusPopover();
+          };
+        }
+
+        document.addEventListener('click', function (e) {
+          if (isStatusOpen && !statusPopover.contains(e.target) && !statusBtn.contains(e.target)) {
+            closeStatusPopover();
+          }
+        });
+
+        document.addEventListener('keydown', function (e) {
+          if (e.key === 'Escape' && isStatusOpen) {
+            closeStatusPopover();
+          }
+        });
+      }
     }
 
     // Attach to standard DOM load + Astro ViewTransitions lifecycle events

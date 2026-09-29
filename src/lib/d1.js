@@ -125,6 +125,9 @@ async function ensureSchemaCompatibility(db) {
           if (!animeCols.has('review_type')) {
             await db.run(`ALTER TABLE anime ADD COLUMN review_type TEXT DEFAULT 'full'`);
           }
+          if (!animeCols.has('age_rating')) {
+            await db.run(`ALTER TABLE anime ADD COLUMN age_rating INTEGER DEFAULT NULL`);
+          }
         }
       } catch (err) {
         console.warn('[Schema Compatibility] anime table note:', err?.message || err);
@@ -565,6 +568,7 @@ export async function getAllAnime(contextOrLocals) {
       episodes: row.episodes || fillerList?.totalEpisodes || 0,
       status: row.status,
       personalRating: row.personal_rating !== null ? row.personal_rating : undefined,
+      ageRating: (row.age_rating !== null && row.age_rating !== undefined && row.age_rating !== '') ? Number(row.age_rating) : null,
       poster: row.poster,
       backdrop: row.backdrop,
       addedDate: row.added_date,
@@ -646,7 +650,16 @@ export function getAvailableTabs(anime) {
   }
 
   // 5. Manga & Light Novel
-  if (anime.source && (anime.source.title || anime.source.type) && vis.source !== false) {
+  const hasSourceContent = Boolean(
+    anime.source && (
+      (anime.source.title && anime.source.title.trim().length > 0) ||
+      (anime.source.coverage && anime.source.coverage.trim().length > 0) ||
+      (anime.source.volumes && anime.source.volumes.trim().length > 0) ||
+      (anime.source.notes && anime.source.notes.trim().length > 0) ||
+      (anime.source.author && anime.source.author.trim().length > 0)
+    )
+  );
+  if (hasSourceContent && vis.source !== false) {
     tabs.push({ key: 'source', label: 'Manga & Light Novel' });
   }
 

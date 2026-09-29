@@ -178,7 +178,7 @@ const breadcrumbSchema = {
           <p class="text-xs sm:text-sm text-slate-600 font-normal leading-relaxed">
             Send an email with the title, whether you've watched it, and any watch-order notes or filler tips you think others would find helpful.
           </p>
-          <div class="pt-2 flex flex-col sm:flex-row items-start sm:items-center gap-3">
+          <div class="pt-2">
             <a
               href={`mailto:${siteConfig.contactEmail}?subject=Anime%20Suggestion%20for%20${encodeURIComponent(siteConfig.name)}`}
               class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#6366F1] hover:bg-[#4F46E5] text-white font-bold text-xs shadow-md shadow-indigo-500/20 transition-all duration-200"
@@ -188,9 +188,6 @@ const breadcrumbSchema = {
               </svg>
               <span>Send a Suggestion via Email</span>
             </a>
-            <span class="text-xs text-slate-500">
-              (Or connect via our upcoming community channels)
-            </span>
           </div>
         </div>
 
