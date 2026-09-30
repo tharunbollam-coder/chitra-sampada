@@ -91,7 +91,7 @@ export async function handleAdminApi({ request, locals, url, params }) {
           SELECT id, slug, title, original_title as originalTitle, year, episodes, 
                  type, runtime, movie_canon_type as movieCanonType,
                  status, honesty_status as honestyStatus, personal_rating as personalRating,
-                 last_updated as lastUpdated, trending
+                 last_updated as lastUpdated, trending, community_suggested as communitySuggested
           FROM anime
           ORDER BY title ASC
         `);
@@ -149,6 +149,7 @@ export async function handleAdminApi({ request, locals, url, params }) {
         personalRating: body.personalRating !== '' && body.personalRating !== null && body.personalRating !== undefined
           ? parseFloat(body.personalRating)
           : null,
+        communitySuggested: Boolean(body.communitySuggested),
         lastUpdated: new Date().toISOString().split('T')[0]
       };
 
@@ -159,9 +160,9 @@ export async function handleAdminApi({ request, locals, url, params }) {
     // Section 2: Review (My Take)
     if (route === 'anime/review' && method === 'POST') {
       const body = await parseJsonBody(request);
-      const { animeId, heading, paragraphs, type } = body;
+      const { animeId, heading, paragraphs, type, spoilerLevel } = body;
       if (!animeId) return jsonResponse({ success: false, error: 'Anime ID is required' }, 400);
-      await saveAnimeReview(animeId, { heading, paragraphs, type }, locals);
+      await saveAnimeReview(animeId, { heading, paragraphs, type, spoilerLevel }, locals);
       return jsonResponse({ success: true, message: 'Review / My Take saved successfully' });
     }
 

@@ -128,6 +128,12 @@ async function ensureSchemaCompatibility(db) {
           if (!animeCols.has('age_rating')) {
             await db.run(`ALTER TABLE anime ADD COLUMN age_rating INTEGER DEFAULT NULL`);
           }
+          if (!animeCols.has('review_spoiler_level')) {
+            await db.run(`ALTER TABLE anime ADD COLUMN review_spoiler_level TEXT DEFAULT 'none'`);
+          }
+          if (!animeCols.has('community_suggested')) {
+            await db.run(`ALTER TABLE anime ADD COLUMN community_suggested INTEGER DEFAULT 0`);
+          }
         }
       } catch (err) {
         console.warn('[Schema Compatibility] anime table note:', err?.message || err);
@@ -413,7 +419,8 @@ export async function getAllAnime(contextOrLocals) {
       review = {
         heading: row.review_heading,
         paragraphs,
-        type: (row.review_type === 'quick' || row.review_type === 'quick_take') ? 'quick' : 'full'
+        type: (row.review_type === 'quick' || row.review_type === 'quick_take') ? 'quick' : 'full',
+        spoilerLevel: row.review_spoiler_level || 'none'
       };
     }
 
@@ -578,6 +585,7 @@ export async function getAllAnime(contextOrLocals) {
       genres: genresMap.get(row.id) || [],
       vibes: vibesMap.get(row.id) || [],
       trending: Boolean(row.trending),
+      communitySuggested: Boolean(row.community_suggested),
       synopsis: row.synopsis,
       review,
       watchOrder,

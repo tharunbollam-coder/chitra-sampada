@@ -483,6 +483,25 @@ const sectionVisibility = anime?.sectionVisibility || {
             </label>
           </div>
 
+          <!-- Community Suggested Toggle -->
+          <div class="pt-2">
+            <div class="flex items-center gap-3">
+              <input
+                type="checkbox"
+                id="core-community-suggested"
+                name="communitySuggested"
+                checked={anime?.communitySuggested}
+                class="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 bg-slate-900 border-slate-700"
+              />
+              <label for="core-community-suggested" class="text-sm font-medium text-slate-200 cursor-pointer">
+                Community Suggested
+              </label>
+            </div>
+            <p class="text-xs text-slate-400 mt-1 pl-7">
+              Enable if this title was recommended by a fan or community member.
+            </p>
+          </div>
+
           <!-- Submit Button -->
           <div class="pt-4 border-t border-slate-800 flex justify-end">
             <button
@@ -579,6 +598,48 @@ const sectionVisibility = anime?.sectionVisibility || {
                 />
                 <span class="text-sm font-medium text-slate-200">Full Take</span>
                 <span class="text-[11px] text-slate-400">(Complete Editorial Review)</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Spoiler Level -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
+              Spoiler Level
+            </label>
+            <div class="flex flex-wrap items-center gap-3">
+              <label class="flex items-center gap-2 cursor-pointer px-3.5 py-2 rounded-xl border border-slate-700/80 bg-slate-950 hover:bg-slate-900 transition">
+                <input
+                  type="radio"
+                  name="review-spoiler-level"
+                  value="none"
+                  checked={!anime?.review?.spoilerLevel || anime?.review?.spoilerLevel === 'none'}
+                  class="text-indigo-600 focus:ring-indigo-500 bg-slate-900 border-slate-700"
+                />
+                <span class="text-sm font-medium text-slate-200">None</span>
+                <span class="text-[11px] text-slate-400">(Spoiler-free)</span>
+              </label>
+              <label class="flex items-center gap-2 cursor-pointer px-3.5 py-2 rounded-xl border border-slate-700/80 bg-slate-950 hover:bg-slate-900 transition">
+                <input
+                  type="radio"
+                  name="review-spoiler-level"
+                  value="light"
+                  checked={anime?.review?.spoilerLevel === 'light'}
+                  class="text-indigo-600 focus:ring-indigo-500 bg-slate-900 border-slate-700"
+                />
+                <span class="text-sm font-medium text-slate-200">Light Spoilers</span>
+                <span class="text-[11px] text-slate-400">(General story shape)</span>
+              </label>
+              <label class="flex items-center gap-2 cursor-pointer px-3.5 py-2 rounded-xl border border-slate-700/80 bg-slate-950 hover:bg-slate-900 transition">
+                <input
+                  type="radio"
+                  name="review-spoiler-level"
+                  value="major"
+                  checked={anime?.review?.spoilerLevel === 'major'}
+                  class="text-indigo-600 focus:ring-indigo-500 bg-slate-900 border-slate-700"
+                />
+                <span class="text-sm font-medium text-slate-200">Major Spoilers</span>
+                <span class="text-[11px] text-slate-400">(Key story details)</span>
               </label>
             </div>
           </div>
@@ -2279,6 +2340,9 @@ const sectionVisibility = anime?.sectionVisibility || {
       const trendingEl = document.getElementById('core-trending');
       if (trendingEl) trendingEl.checked = Boolean(a.trending);
 
+      const communityEl = document.getElementById('core-community-suggested');
+      if (communityEl) communityEl.checked = Boolean(a.communitySuggested);
+
       // Check genre checkboxes
       const genreSet = new Set(a.genres || []);
       const matchedGenres = new Set();
@@ -2311,6 +2375,12 @@ const sectionVisibility = anime?.sectionVisibility || {
         quickRadio.checked = isQuick;
         fullRadio.checked = !isQuick;
       }
+
+      const currentSpoilerLevel = a.review?.spoilerLevel || 'none';
+      const spoilerRadios = document.querySelectorAll('input[name="review-spoiler-level"]');
+      spoilerRadios.forEach(radio => {
+        radio.checked = radio.value === currentSpoilerLevel;
+      });
 
       const revContainer = document.getElementById('review-paragraphs-container');
       if (revContainer) {
@@ -2523,6 +2593,7 @@ const sectionVisibility = anime?.sectionVisibility || {
         backdrop: document.getElementById('core-backdrop').value.trim(),
         synopsis: document.getElementById('core-synopsis').value.trim(),
         trending: document.getElementById('core-trending').checked ? 1 : 0,
+        communitySuggested: document.getElementById('core-community-suggested')?.checked ? 1 : 0,
         aliases,
         genres: allGenres,
         vibes: checkedVibes
@@ -2603,12 +2674,13 @@ const sectionVisibility = anime?.sectionVisibility || {
       const textareas = document.querySelectorAll('#review-paragraphs-container textarea');
       const paragraphs = Array.from(textareas).map(t => t.value.trim()).filter(Boolean);
       const reviewType = document.querySelector('input[name="review-type"]:checked')?.value || 'full';
+      const spoilerLevel = document.querySelector('input[name="review-spoiler-level"]:checked')?.value || 'none';
 
       try {
         const res = await fetch('/api/admin/anime/review', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ animeId: currentAnimeId, heading, paragraphs, type: reviewType })
+          body: JSON.stringify({ animeId: currentAnimeId, heading, paragraphs, type: reviewType, spoilerLevel })
         });
         const data = await res.json();
         if (data.success) {
@@ -3157,6 +3229,7 @@ const sectionVisibility = anime?.sectionVisibility || {
         backdrop: document.getElementById('core-backdrop').value.trim(),
         synopsis: document.getElementById('core-synopsis').value.trim(),
         trending: document.getElementById('core-trending').checked ? 1 : 0,
+        communitySuggested: document.getElementById('core-community-suggested')?.checked ? 1 : 0,
         aliases,
         genres: allGenres,
         vibes: checkedVibes
@@ -3167,7 +3240,8 @@ const sectionVisibility = anime?.sectionVisibility || {
       const reviewTextareas = document.querySelectorAll('#review-paragraphs-container textarea');
       const reviewParagraphs = Array.from(reviewTextareas).map(t => t.value.trim()).filter(Boolean);
       const reviewType = document.querySelector('input[name="review-type"]:checked')?.value || 'full';
-      const reviewPayload = { heading: reviewHeading, paragraphs: reviewParagraphs, type: reviewType };
+      const reviewSpoilerLevel = document.querySelector('input[name="review-spoiler-level"]:checked')?.value || 'none';
+      const reviewPayload = { heading: reviewHeading, paragraphs: reviewParagraphs, type: reviewType, spoilerLevel: reviewSpoilerLevel };
 
       // 3. Section 3 Lessons
       const lessonHeading = document.getElementById('lesson-heading')?.value.trim() || '';

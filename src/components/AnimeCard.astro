@@ -34,6 +34,7 @@ if (normalizedStatus === 'currently airing' || normalizedStatus === 'airing') {
   data-status={anime.honestyStatus}
   data-filler={anime.fillerPercentage === 0 ? 'zero' : 'has-filler'}
   data-type={anime.type || 'series'}
+  data-community={anime.communitySuggested ? 'true' : 'false'}
   data-title={anime.title.toLowerCase()}
 >
   <!-- Poster Image Container (Cleanly contained with defined boundary, NO badges/overlays over artwork) -->
@@ -55,22 +56,31 @@ if (normalizedStatus === 'currently airing' || normalizedStatus === 'airing') {
       <div class="flex items-center justify-between gap-1.5 flex-wrap">
         <HonestyBadge status={anime.honestyStatus} size="sm" />
 
-        {isMovie ? (
-          <span class="text-[10px] font-bold px-2 py-0.5 rounded-full border tracking-wide select-none bg-purple-50 text-purple-700 border-purple-200">
-            Movie
-          </span>
-        ) : (
-          <span
-            class:list={[
-              'text-[10px] font-bold px-2.5 py-0.5 rounded-full border tracking-wide select-none',
-              isZeroFiller
-                ? 'bg-[#EEF2FF] text-[#4F46E5] border-[#C7D2FE]'
-                : 'bg-slate-100 text-slate-700 border-slate-200'
-            ]}
-          >
-            {isZeroFiller ? '0% Filler' : `${anime.fillerPercentage}% Filler`}
-          </span>
-        )}
+        <div class="flex items-center gap-1.5 flex-wrap">
+          {anime.communitySuggested && (
+            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full border tracking-wide select-none bg-sky-50 text-sky-700 border-sky-200/80 flex items-center gap-1 shadow-2xs" title="Community Suggested">
+              <span>💡</span>
+              <span>Community Suggested</span>
+            </span>
+          )}
+
+          {isMovie ? (
+            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full border tracking-wide select-none bg-purple-50 text-purple-700 border-purple-200">
+              Movie
+            </span>
+          ) : (
+            <span
+              class:list={[
+                'text-[10px] font-bold px-2.5 py-0.5 rounded-full border tracking-wide select-none',
+                isZeroFiller
+                  ? 'bg-[#EEF2FF] text-[#4F46E5] border-[#C7D2FE]'
+                  : 'bg-slate-100 text-slate-700 border-slate-200'
+              ]}
+            >
+              {isZeroFiller ? '0% Filler' : `${anime.fillerPercentage}% Filler`}
+            </span>
+          )}
+        </div>
       </div>
 
       <!-- Title -->

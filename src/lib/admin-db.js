@@ -147,6 +147,7 @@ export async function getAnimeById(idOrSlug, contextOrLocals = null) {
     honestyStatus: animeRow.honesty_status,
     fillerPercentage: calculatedFillerPercentage,
     trending: Boolean(animeRow.trending),
+    communitySuggested: Boolean(animeRow.community_suggested),
     synopsis: animeRow.synopsis || '',
     franchiseId: animeRow.franchise_id || '',
     franchiseStepOrder: animeRow.franchise_step_order || '',
@@ -157,7 +158,8 @@ export async function getAnimeById(idOrSlug, contextOrLocals = null) {
     review: {
       heading: animeRow.review_heading || '',
       paragraphs: reviewParagraphs,
-      type: (animeRow.review_type === 'quick' || animeRow.review_type === 'quick_take') ? 'quick' : 'full'
+      type: (animeRow.review_type === 'quick' || animeRow.review_type === 'quick_take') ? 'quick' : 'full',
+      spoilerLevel: animeRow.review_spoiler_level || 'none'
     },
     lessons: {
       heading: animeRow.lesson_heading || '',
@@ -216,6 +218,7 @@ export async function saveAnimeCore(data, contextOrLocals = null) {
     honestyStatus = 'watched',
     personalRating = null,
     ageRating,
+    communitySuggested,
     poster = '',
     backdrop = '',
     addedDate = '',
@@ -256,6 +259,9 @@ export async function saveAnimeCore(data, contextOrLocals = null) {
     parsedEpisodes = 1;
   }
   const parsedTrending = trending ? 1 : (existing?.trending ? 1 : 0);
+  const parsedCommunitySuggested = communitySuggested !== undefined && communitySuggested !== null
+    ? (communitySuggested ? 1 : 0)
+    : (existing?.community_suggested ? 1 : 0);
   const parsedFiller = (fillerPercentage !== undefined && fillerPercentage !== null && fillerPercentage !== '')
     ? (Number(fillerPercentage) || 0)
     : (Number(existing?.filler_percentage) || 0);
@@ -276,14 +282,14 @@ export async function saveAnimeCore(data, contextOrLocals = null) {
         type = ?, runtime = ?, movie_canon_type = ?,
         status = ?, personal_rating = ?, age_rating = ?, poster = ?, backdrop = ?,
         added_date = ?, last_updated = ?, honesty_status = ?,
-        filler_percentage = ?, trending = ?, synopsis = ?
+        filler_percentage = ?, trending = ?, synopsis = ?, community_suggested = ?
       WHERE id = ?
     `,
       slug, title, finalOriginalTitle, parsedYear, parsedEpisodes,
       finalType, finalRuntime, finalMovieCanonType,
       finalStatus, parsedRating, parsedAgeRating, finalPoster, finalBackdrop,
       finalAddedDate, finalLastUpdated, finalHonestyStatus,
-      parsedFiller, parsedTrending, finalSynopsis,
+      parsedFiller, parsedTrending, finalSynopsis, parsedCommunitySuggested,
       id
     );
   } else {
@@ -293,14 +299,14 @@ export async function saveAnimeCore(data, contextOrLocals = null) {
         type, runtime, movie_canon_type,
         status, personal_rating, age_rating, poster, backdrop,
         added_date, last_updated, honesty_status,
-        filler_percentage, trending, synopsis
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        filler_percentage, trending, synopsis, community_suggested
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `,
       id, slug, title, finalOriginalTitle, parsedYear, parsedEpisodes,
       finalType, finalRuntime, finalMovieCanonType,
       finalStatus, parsedRating, parsedAgeRating, finalPoster, finalBackdrop,
       finalAddedDate, finalLastUpdated, finalHonestyStatus,
-      parsedFiller, parsedTrending, finalSynopsis
+      parsedFiller, parsedTrending, finalSynopsis, parsedCommunitySuggested
     );
   }
 
@@ -448,24 +454,33 @@ export async function saveAllAnime(payload, contextOrLocals = null) {
 /**
  * Save My Take / Review section.
  */
-export async function saveAnimeReview(animeId, { heading = '', paragraphs = [], type = 'full' } = {}, contextOrLocals = null) {
+export async function saveAnimeReview(animeId, { heading = '', paragraphs = [], type = 'full', spoilerLevel = 'none' } = {}, contextOrLocals = null) {
   const db = await getDatabase(contextOrLocals);
   const cleanParagraphs = Array.isArray(paragraphs) ? paragraphs.map(p => String(p).trim()).filter(Boolean) : [];
   const jsonParagraphs = cleanParagraphs.length > 0 ? JSON.stringify(cleanParagraphs) : null;
   const cleanType = (type === 'quick' || type === 'quick_take') ? 'quick' : 'full';
+  const cleanSpoilerLevel = ['none', 'light', 'major'].includes(spoilerLevel) ? spoilerLevel : 'none';
 
   try {
     await db.run(`
       UPDATE anime 
-      SET review_heading = ?, review_paragraphs = ?, review_type = ?, last_updated = date('now') 
+      SET review_heading = ?, review_paragraphs = ?, review_type = ?, review_spoiler_level = ?, last_updated = date('now') 
       WHERE id = ?
-    `, heading.trim() || null, jsonParagraphs, cleanType, animeId);
+    `, heading.trim() || null, jsonParagraphs, cleanType, cleanSpoilerLevel, animeId);
   } catch (err) {
-    await db.run(`
-      UPDATE anime 
-      SET review_heading = ?, review_paragraphs = ?, last_updated = date('now') 
-      WHERE id = ?
-    `, heading.trim() || null, jsonParagraphs, animeId);
+    try {
+      await db.run(`
+        UPDATE anime 
+        SET review_heading = ?, review_paragraphs = ?, review_type = ?, last_updated = date('now') 
+        WHERE id = ?
+      `, heading.trim() || null, jsonParagraphs, cleanType, animeId);
+    } catch {
+      await db.run(`
+        UPDATE anime 
+        SET review_heading = ?, review_paragraphs = ?, last_updated = date('now') 
+        WHERE id = ?
+      `, heading.trim() || null, jsonParagraphs, animeId);
+    }
   }
 
   invalidateAnimeCache();

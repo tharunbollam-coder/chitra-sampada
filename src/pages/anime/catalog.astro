@@ -13,6 +13,7 @@ const watchedCount = animeList.filter((a) => a.honestyStatus === 'watched').leng
 const watchlistCount = animeList.filter((a) => a.honestyStatus === 'watchlist').length;
 const referenceCount = animeList.filter((a) => a.honestyStatus === 'reference').length;
 const zeroFillerCount = animeList.filter((a) => a.fillerPercentage === 0).length;
+const communityCount = animeList.filter((a) => a.communitySuggested).length;
 const seriesCount = animeList.filter((a) => (a.type || 'series') === 'series').length;
 const movieCount = animeList.filter((a) => a.type === 'movie').length;
 
@@ -165,6 +166,15 @@ const breadcrumbSchema = {
             <span class="w-1.5 h-1.5 rounded-full bg-[#6366F1]"></span>
             <span>Zero Filler ({zeroFillerCount})</span>
           </button>
+
+          <button
+            type="button"
+            data-filter="community"
+            class="filter-tab-btn px-4 py-1.5 rounded-full text-xs font-semibold tracking-wide transition-all bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 flex items-center gap-1.5 shadow-2xs"
+          >
+            <span class="w-1.5 h-1.5 rounded-full bg-sky-500"></span>
+            <span>Community Suggested ({communityCount})</span>
+          </button>
         </div>
 
         <!-- Format Filter Segment -->
@@ -247,10 +257,13 @@ const breadcrumbSchema = {
     const catalogIntroDesc = document.getElementById('catalog-intro-desc');
     const breadcrumbPageLabel = document.getElementById('breadcrumb-page-label');
 
-    let currentFilter = 'all';
-    let currentFormat = 'all';
-    let searchQuery = '';
-    let currentVibe = null;
+    const urlParams = new URLSearchParams(window.location.search);
+    const initialFilter = urlParams.get('filter');
+    let currentFilter = ['watched', 'watchlist', 'reference', 'zero', 'community'].includes(initialFilter) ? initialFilter : 'all';
+    let currentFormat = ['series', 'movie'].includes(urlParams.get('format')) ? urlParams.get('format') : 'all';
+    let searchQuery = urlParams.get('q') || '';
+    let currentVibe = urlParams.get('vibe') || null;
+    if (searchInput && searchQuery) searchInput.value = searchQuery;
 
     const defaultTitle = "Full Anime Catalog";
     const defaultDesc = "Search and filter through every anime title on the site with chronological watch orders, filler percentage guides, and honest viewer notes.";
@@ -309,6 +322,7 @@ const breadcrumbSchema = {
         const cardStatus = card.getAttribute('data-status');
         const cardFiller = card.getAttribute('data-filler');
         const cardType = card.getAttribute('data-type') || 'series';
+        const cardCommunity = card.getAttribute('data-community');
         const cardVibes = (card.getAttribute('data-vibe') || '').split(' ');
         const cardTitle = card.getAttribute('data-title') || '';
 
@@ -318,6 +332,7 @@ const breadcrumbSchema = {
         if (currentFilter === 'watchlist') matchesTab = (cardStatus === 'watchlist');
         if (currentFilter === 'reference') matchesTab = (cardStatus === 'reference');
         if (currentFilter === 'zero') matchesTab = (cardFiller === 'zero');
+        if (currentFilter === 'community') matchesTab = (cardCommunity === 'true');
 
         // Format match
         let matchesFormat = true;

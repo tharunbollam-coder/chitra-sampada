@@ -21,6 +21,10 @@ const hasContent = Boolean(
 
 // Review type: 'quick' vs 'full' (defaults to 'full')
 const isQuickTake = review.type === 'quick';
+
+// Spoiler level: 'none' | 'light' | 'major' (defaults to 'none')
+const spoilerLevel = review.spoilerLevel || 'none';
+const hasSpoilers = spoilerLevel === 'light' || spoilerLevel === 'major';
 ---
 
 {hasContent ? (
@@ -75,6 +79,23 @@ const isQuickTake = review.type === 'quick';
           This is my personal take — anime hits everyone differently, and that's completely fine.
         </p>
       </div>
+
+      <!-- Spoiler Level Notice (Shown if Light or Major Spoilers) -->
+      {hasSpoilers && (
+        <div class="pt-0.5">
+          {spoilerLevel === 'major' ? (
+            <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 text-rose-800 dark:text-rose-300 border border-rose-200/90 dark:border-rose-800/60 text-xs font-medium shadow-2xs">
+              <span class="inline-flex items-center justify-center w-4 h-4 rounded-full bg-rose-200/90 dark:bg-rose-800 text-rose-900 dark:text-rose-100 text-[10px] font-bold shrink-0">!</span>
+              <span>Major spoilers ahead &mdash; read only if you're okay with key story details.</span>
+            </div>
+          ) : (
+            <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-200/90 dark:border-amber-800/60 text-xs font-medium shadow-2xs">
+              <span class="inline-flex items-center justify-center w-4 h-4 rounded-full bg-amber-200/90 dark:bg-amber-800 text-amber-900 dark:text-amber-100 text-[10px] font-bold shrink-0">ℹ</span>
+              <span>Light spoilers ahead &mdash; nothing beyond general story shape.</span>
+            </div>
+          )}
+        </div>
+      )}
 
       <!-- Review content paragraphs -->
       <div class="space-y-4">

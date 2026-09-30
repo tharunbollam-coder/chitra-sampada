@@ -374,6 +374,14 @@ if (anime.honestyStatus === 'watched' && anime.personalRating !== undefined && a
               </span>
             )}
 
+            <!-- Community Suggested Badge -->
+            {anime.communitySuggested && (
+              <span class="text-xs font-semibold px-3 py-1 rounded-full border tracking-wide select-none bg-sky-50 dark:bg-sky-950/40 text-sky-700 dark:text-sky-300 border-sky-200/80 dark:border-sky-800/60 flex items-center gap-1.5 shadow-2xs">
+                <span>💡</span>
+                <span>Community Suggested</span>
+              </span>
+            )}
+
             <!-- Personal Rating Badge (Only rendered if watched and personalRating exists) -->
             {anime.honestyStatus === 'watched' && anime.personalRating && (
               <span class="text-xs font-bold px-3 py-1 rounded-full bg-slate-100 text-slate-800 border border-slate-200 flex items-center gap-1.5 shadow-2xs">
