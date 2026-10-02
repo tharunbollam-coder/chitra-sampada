@@ -134,9 +134,36 @@ async function ensureSchemaCompatibility(db) {
           if (!animeCols.has('community_suggested')) {
             await db.run(`ALTER TABLE anime ADD COLUMN community_suggested INTEGER DEFAULT 0`);
           }
+          if (!animeCols.has('watch_order_note')) {
+            await db.run(`ALTER TABLE anime ADD COLUMN watch_order_note TEXT DEFAULT NULL`);
+          }
+          if (!animeCols.has('filler_note')) {
+            await db.run(`ALTER TABLE anime ADD COLUMN filler_note TEXT DEFAULT NULL`);
+          }
+          if (!animeCols.has('character_related_post_slug')) {
+            await db.run(`ALTER TABLE anime ADD COLUMN character_related_post_slug TEXT DEFAULT NULL`);
+          }
         }
       } catch (err) {
         console.warn('[Schema Compatibility] anime table note:', err?.message || err);
+      }
+
+      try {
+        await db.run(`
+          CREATE TABLE IF NOT EXISTS site_settings (
+            key TEXT PRIMARY KEY,
+            value TEXT NOT NULL,
+            updated_at TEXT DEFAULT (datetime('now'))
+          )
+        `);
+        await db.run(`
+          INSERT OR IGNORE INTO site_settings (key, value) VALUES (
+            'thought_of_the_week',
+            'Plant a tree if you get the chance — future you will thank present you.'
+          )
+        `);
+      } catch (err) {
+        console.warn('[Schema Compatibility] site_settings note:', err?.message || err);
       }
 
       try {
@@ -296,7 +323,8 @@ export async function getAllAnime(contextOrLocals) {
     charRes,
     watchRes,
     universeRes,
-    recsRes
+    recsRes,
+    blogRes
   ] = await Promise.allSettled([
     db.query(`SELECT * FROM anime ORDER BY year DESC, title ASC`),
     db.query(`SELECT anime_id, alias FROM anime_aliases`),
@@ -306,7 +334,8 @@ export async function getAllAnime(contextOrLocals) {
     db.query(`SELECT anime_id, rank, name, category, role, commentary FROM anime_characters ORDER BY rank ASC`),
     db.query(`SELECT franchise_id, step_order, title, type, episodes, anime_id, note FROM franchise_watch_order ORDER BY step_order ASC`),
     db.query(`SELECT id, anime_id, section, title, badge, link_slug, editorial_note, item_order FROM anime_related_media ORDER BY item_order ASC, id ASC`),
-    db.query(`SELECT id, anime_id, target_anime_id, category_badge, editorial_note, item_order FROM anime_recommendations ORDER BY item_order ASC, id ASC`)
+    db.query(`SELECT id, anime_id, target_anime_id, category_badge, editorial_note, item_order FROM anime_recommendations ORDER BY item_order ASC, id ASC`),
+    db.query(`SELECT id, slug, title, status FROM blog_posts`)
   ]);
 
   const animeRows = animeRes.status === 'fulfilled' ? animeRes.value : [];
@@ -318,10 +347,16 @@ export async function getAllAnime(contextOrLocals) {
   const watchOrderRows = watchRes.status === 'fulfilled' ? watchRes.value : [];
   const universeRows = universeRes.status === 'fulfilled' ? universeRes.value : [];
   const recsRows = recsRes.status === 'fulfilled' ? recsRes.value : [];
+  const blogRows = blogRes.status === 'fulfilled' ? blogRes.value : [];
 
   if (animeRes.status === 'rejected') {
     console.error("Failed to query anime table:", animeRes.reason);
     return [];
+  }
+
+  const blogPostMap = new Map();
+  for (const bp of blogRows) {
+    blogPostMap.set(bp.slug, { id: bp.id, slug: bp.slug, title: bp.title, status: bp.status });
   }
 
   // Group helpers
@@ -589,8 +624,14 @@ export async function getAllAnime(contextOrLocals) {
       synopsis: row.synopsis,
       review,
       watchOrder,
+      watchOrderNote: row.watch_order_note || null,
       fillerList,
+      fillerNote: row.filler_note || null,
       characters: charactersMap.get(row.id) || [],
+      characterRelatedPostSlug: row.character_related_post_slug || null,
+      characterRelatedPost: (row.character_related_post_slug && blogPostMap.has(row.character_related_post_slug))
+        ? blogPostMap.get(row.character_related_post_slug)
+        : (row.character_related_post_slug ? { slug: row.character_related_post_slug, title: 'Related Article' } : null),
       source,
       powerSystem,
       lessons,
@@ -643,12 +684,20 @@ export function getAvailableTabs(anime) {
   }
 
   // 3. Watch Order
-  if (anime.watchOrder && anime.watchOrder.length > 0 && vis.watchOrder !== false) {
-    tabs.push({ key: 'watch-order', label: 'Watch Order', count: anime.watchOrder.length });
+  const hasWatchOrderSteps = anime.watchOrder && anime.watchOrder.length > 0;
+  const hasWatchOrderNote = Boolean(anime.watchOrderNote && anime.watchOrderNote.trim().length > 0);
+  if ((hasWatchOrderSteps || hasWatchOrderNote) && vis.watchOrder !== false) {
+    tabs.push({
+      key: 'watch-order',
+      label: 'Watch Order',
+      ...(hasWatchOrderSteps ? { count: anime.watchOrder.length } : {})
+    });
   }
 
-  // 3. Filler List (Movies do not have filler lists)
-  if (anime.type !== 'movie' && anime.fillerList && anime.fillerList.types && anime.fillerList.types.length > 0 && vis.fillerList !== false) {
+  // 4. Filler List (Movies can show Filler tab if fillerNote exists)
+  const hasFillerData = anime.type !== 'movie' && anime.fillerList && anime.fillerList.types && anime.fillerList.types.length > 0;
+  const hasFillerNote = Boolean(anime.fillerNote && anime.fillerNote.trim().length > 0);
+  if ((hasFillerData || hasFillerNote) && vis.fillerList !== false) {
     tabs.push({ key: 'filler-list', label: 'Filler List' });
   }
 
@@ -831,4 +880,34 @@ export function getDefaultTabKey(anime, availableTabs) {
     return 'review';
   }
   return availableTabs[0].key;
+}
+
+/**
+ * Fetch a site-wide setting value from D1
+ */
+export async function getSiteSetting(key, defaultValue = null, contextOrLocals = null) {
+  if (!key) return defaultValue;
+  try {
+    const db = await getDatabase(contextOrLocals);
+    const row = await db.queryOne(`SELECT value FROM site_settings WHERE key = ?`, key);
+    return row?.value ?? defaultValue;
+  } catch (err) {
+    console.warn(`[getSiteSetting] Failed to fetch setting '${key}':`, err?.message || err);
+    return defaultValue;
+  }
+}
+
+/**
+ * Update or insert a site-wide setting in D1
+ */
+export async function setSiteSetting(key, value, contextOrLocals = null) {
+  if (!key) throw new Error('Setting key is required');
+  const db = await getDatabase(contextOrLocals);
+  const cleanVal = String(value ?? '');
+  await db.run(`
+    INSERT INTO site_settings (key, value, updated_at)
+    VALUES (?, ?, datetime('now'))
+    ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at
+  `, key, cleanVal);
+  return { key, value: cleanVal };
 }

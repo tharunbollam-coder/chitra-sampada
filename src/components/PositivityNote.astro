@@ -1,25 +1,10 @@
 ---
 // src/components/PositivityNote.astro
-// Standalone rotating positivity / reflection note for the main hub homepage.
-// Rotates weekly based on current date/week number.
+// Dynamic positivity / reflection note for the main hub homepage queried from Cloudflare D1.
+import { getSiteSetting } from '../lib/d1.js';
 
-const reflectionMessages = [
-  "Plant a tree if you get the chance — future you will thank present you.",
-  "Use the dustbin, not the sidewalk. Small habit, big difference.",
-  "You're allowed to move at your own pace. Slow progress still counts.",
-  "Drink some water. Seriously, right now.",
-  "Someone out there needs the kindness you're capable of today.",
-  "Turn off a light you don't need. The planet notices the little things.",
-  "You don't have to have it all figured out today.",
-  "Text that friend you've been meaning to check on.",
-  "Recycling one thing today is better than recycling nothing.",
-  "Rest is productive too. You're not falling behind by taking a breath."
-];
-
-// Calculate rotation based on epoch weeks
-const now = new Date();
-const weekIndex = Math.floor(now.getTime() / (7 * 24 * 60 * 60 * 1000));
-const currentMessage = reflectionMessages[Math.abs(weekIndex) % reflectionMessages.length];
+const defaultQuote = "Plant a tree if you get the chance — future you will thank present you.";
+const activeQuote = await getSiteSetting('thought_of_the_week', defaultQuote, Astro.locals);
 ---
 
 <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" aria-label="A small reflection">
@@ -33,21 +18,7 @@ const currentMessage = reflectionMessages[Math.abs(weekIndex) % reflectionMessag
       </span>
     </div>
     <p id="positivity-message-text" class="text-base sm:text-lg font-medium text-slate-700 max-w-2xl leading-relaxed italic">
-      "{currentMessage}"
+      "{activeQuote}"
     </p>
   </div>
 </section>
-
-<script is:inline define:vars={{ reflectionMessages }}>
-  (function () {
-    try {
-      var now = new Date();
-      var weekIndex = Math.floor(now.getTime() / (7 * 24 * 60 * 60 * 1000));
-      var msg = reflectionMessages[Math.abs(weekIndex) % reflectionMessages.length];
-      var el = document.getElementById('positivity-message-text');
-      if (el && msg) {
-        el.textContent = '“' + msg + '”';
-      }
-    } catch (e) {}
-  })();
-</script>

@@ -1,10 +1,11 @@
 ---
 // src/pages/admin/index.astro
 import AdminLayout from '../../layouts/AdminLayout.astro';
-import { getAllAnime } from '../../lib/d1.js';
+import { getAllAnime, getSiteSetting } from '../../lib/d1.js';
 
 // Load anime list dynamically
 const animeList = await getAllAnime(Astro.locals);
+const currentQuote = await getSiteSetting('thought_of_the_week', 'Plant a tree if you get the chance — future you will thank present you.', Astro.locals);
 
 const totalAnime = animeList.length;
 const totalWatched = animeList.filter(a => a.honestyStatus === 'watched').length;
@@ -44,6 +45,41 @@ const totalTrending = animeList.filter(a => a.trending).length;
     <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 col-span-2 sm:col-span-1">
       <div class="text-xs font-medium text-slate-400 uppercase tracking-wider">Spotlight / Trending</div>
       <div class="text-2xl font-bold text-indigo-400 mt-1">{totalTrending}</div>
+    </div>
+  </div>
+
+  <!-- Homepage Thought for the Week Editor Card -->
+  <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 mb-6 shadow-sm">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800/80 mb-3.5">
+      <div class="flex items-center gap-2.5">
+        <span class="w-7 h-7 rounded-lg bg-emerald-950/60 text-emerald-400 font-bold text-xs flex items-center justify-center border border-emerald-800/50">
+          ✨
+        </span>
+        <div>
+          <h2 class="text-sm font-semibold text-white font-heading">Homepage Thought for the Week</h2>
+          <p class="text-xs text-slate-400">Dynamic reflection quote shown to visitors on the homepage.</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2 self-end sm:self-auto">
+        <span id="quote-saved-badge" class="hidden text-xs px-2.5 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800/80 font-medium">Saved</span>
+        <button
+          type="button"
+          id="btn-save-quote"
+          class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white text-xs font-semibold rounded-xl shadow-sm transition cursor-pointer flex items-center gap-1.5"
+        >
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+          <span>Update Quote</span>
+        </button>
+      </div>
+    </div>
+    <div>
+      <input
+        type="text"
+        id="quote-input"
+        value={currentQuote}
+        placeholder="Enter positive thought for the week..."
+        class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-white placeholder-slate-500 text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition"
+      />
     </div>
   </div>
 
@@ -239,6 +275,44 @@ const totalTrending = animeList.filter(a => a.trending).length;
           window.showAdminToast('Network error while deleting: ' + err.message, 'error');
         }
       });
+    });
+
+    // Save Thought of the Week Quote
+    document.getElementById('btn-save-quote')?.addEventListener('click', async () => {
+      const input = document.getElementById('quote-input');
+      const badge = document.getElementById('quote-saved-badge');
+      const btn = document.getElementById('btn-save-quote');
+      const val = input ? input.value.trim() : '';
+
+      if (!val) {
+        alert('Please enter a quote message before saving.');
+        return;
+      }
+
+      if (btn) btn.disabled = true;
+      try {
+        const res = await fetch('/api/admin/settings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ key: 'thought_of_the_week', value: val })
+        });
+        const data = await res.json();
+        if (data.success) {
+          if (badge) {
+            badge.classList.remove('hidden');
+            setTimeout(() => badge.classList.add('hidden'), 3000);
+          }
+          if (window.showAdminToast) {
+            window.showAdminToast('Thought for the Week updated successfully', 'success');
+          }
+        } else {
+          alert('Failed to update quote: ' + (data.error || 'Unknown error'));
+        }
+      } catch (err) {
+        alert('Error updating quote: ' + err.message);
+      } finally {
+        if (btn) btn.disabled = false;
+      }
     });
   </script>
 </AdminLayout>

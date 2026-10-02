@@ -24,7 +24,7 @@ import {
   saveBlogPost,
   deleteBlogPost
 } from './admin-db.js';
-import { getDatabase } from './d1.js';
+import { getDatabase, getSiteSetting, setSiteSetting } from './d1.js';
 import { vibes } from '../data/vibes.js';
 
 function jsonResponse(data, status = 200) {
@@ -178,20 +178,20 @@ export async function handleAdminApi({ request, locals, url, params }) {
     // Section 4: Franchise & Watch Order Link
     if (route === 'anime/watch-order' && method === 'POST') {
       const body = await parseJsonBody(request);
-      const { animeId, franchiseId, franchiseStepOrder } = body;
+      const { animeId, franchiseId, franchiseStepOrder, watchOrderNote } = body;
       if (!animeId) return jsonResponse({ success: false, error: 'Anime ID is required' }, 400);
-      await saveAnimeWatchOrderLink(animeId, { franchiseId, franchiseStepOrder }, locals);
+      await saveAnimeWatchOrderLink(animeId, { franchiseId, franchiseStepOrder, watchOrderNote }, locals);
       return jsonResponse({ success: true, message: 'Watch Order link saved successfully' });
     }
 
     // Section 5: Filler & Canon Breakdown
     if (route === 'anime/filler-ranges' && method === 'POST') {
       const body = await parseJsonBody(request);
-      const { animeId, mangaCanon, animeCanon, mixedCanon, filler } = body;
+      const { animeId, mangaCanon, animeCanon, mixedCanon, filler, fillerNote } = body;
       if (!animeId) return jsonResponse({ success: false, error: 'Anime ID is required' }, 400);
 
       try {
-        const result = await saveAnimeFillerList(animeId, { mangaCanon, animeCanon, mixedCanon, filler }, locals);
+        const result = await saveAnimeFillerList(animeId, { mangaCanon, animeCanon, mixedCanon, filler, fillerNote }, locals);
         return jsonResponse({
           success: true,
           message: `Episode breakdown saved. Total: ${result.totalEpisodes} eps. Filler: ${result.fillerPercentage}%`,
@@ -208,10 +208,10 @@ export async function handleAdminApi({ request, locals, url, params }) {
     // Section 6: Key Characters
     if (route === 'anime/characters' && method === 'POST') {
       const body = await parseJsonBody(request);
-      const { animeId, characters } = body;
+      const { animeId, characters, relatedPostSlug, characterRelatedPostSlug } = body;
       if (!animeId) return jsonResponse({ success: false, error: 'Anime ID is required' }, 400);
       if (!Array.isArray(characters)) return jsonResponse({ success: false, error: 'Characters must be an array' }, 400);
-      await saveAnimeCharacters(animeId, characters, locals);
+      await saveAnimeCharacters(animeId, characters, relatedPostSlug ?? characterRelatedPostSlug, locals);
       return jsonResponse({ success: true, message: 'Key Characters saved successfully' });
     }
 
@@ -372,6 +372,36 @@ export async function handleAdminApi({ request, locals, url, params }) {
         }
         await deleteBlogPost(pid, locals);
         return jsonResponse({ success: true, message: `Blog post "${pid}" deleted successfully` });
+      }
+    }
+
+    // -------------------------------------------------------------
+    // 5. Site Settings Endpoints
+    // -------------------------------------------------------------
+    if (route === 'settings') {
+      if (method === 'GET') {
+        const key = url.searchParams.get('key');
+        if (key) {
+          const val = await getSiteSetting(key, null, locals);
+          return jsonResponse({ success: true, key, value: val });
+        }
+        const db = await getDatabase(locals);
+        const rows = await db.query('SELECT key, value FROM site_settings');
+        const settingsMap = {};
+        for (const r of rows) {
+          settingsMap[r.key] = r.value;
+        }
+        return jsonResponse({ success: true, data: settingsMap });
+      }
+
+      if (method === 'POST') {
+        const body = await parseJsonBody(request);
+        const { key, value } = body;
+        if (!key?.trim()) {
+          return jsonResponse({ success: false, error: 'Setting key is required' }, 400);
+        }
+        const result = await setSiteSetting(key.trim(), value ?? '', locals);
+        return jsonResponse({ success: true, message: 'Setting saved successfully', data: result });
       }
     }
 

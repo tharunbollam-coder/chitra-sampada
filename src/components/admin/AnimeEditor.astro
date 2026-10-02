@@ -1,7 +1,7 @@
 ---
 // src/components/admin/AnimeEditor.astro
 import AdminLayout from '../../layouts/AdminLayout.astro';
-import { getAllFranchises } from '../../lib/admin-db.js';
+import { getAllFranchises, getAllAdminBlogPosts } from '../../lib/admin-db.js';
 import { getDatabase } from '../../lib/d1.js';
 import { vibes } from '../../data/vibes.js';
 
@@ -15,6 +15,7 @@ const isNew = !anime;
 const pageTitle = isNew ? 'Add New Anime' : `Edit Anime: ${anime.title}`;
 
 const franchises = await getAllFranchises(Astro.locals);
+const adminBlogPosts = await getAllAdminBlogPosts(Astro.locals);
 const db = await getDatabase(Astro.locals);
 const existingGenreRows = await db.query('SELECT DISTINCT genre FROM anime_genres ORDER BY genre ASC');
 const existingGenres = existingGenreRows.map(r => r.genre);
@@ -885,6 +886,19 @@ const sectionVisibility = anime?.sectionVisibility || {
             </div>
           </div>
 
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5" for="wo-note">
+              Watch Order Note (Optional)
+            </label>
+            <textarea
+              id="wo-note"
+              rows="3"
+              placeholder="e.g. Can be enjoyed as a standalone story, or best watched directly after Season 1..."
+              class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+            >{anime?.watchOrderNote || ''}</textarea>
+            <p class="text-xs text-slate-400 mt-1">Editorial guidance or context displayed prominently above or in place of the watch roadmap.</p>
+          </div>
+
           <p class="text-xs text-slate-400">
             Need to add or edit franchise watch roadmaps? Manage full franchise sequences in the <a href="/admin/franchises" class="text-indigo-400 underline" target="_blank">Franchises Manager</a>.
           </p>
@@ -908,7 +922,7 @@ const sectionVisibility = anime?.sectionVisibility || {
     <!-- ============================================================= -->
     <!-- SECTION 5: FILLER & CANON BREAKDOWN -->
     <!-- ============================================================= -->
-    <div class={`bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden transition dependent-section ${isNew ? 'opacity-50 pointer-events-none' : ''} ${anime?.type === 'movie' ? 'hidden' : ''}`} id="section-filler-container">
+    <div class={`bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden transition dependent-section ${isNew ? 'opacity-50 pointer-events-none' : ''}`} id="section-filler-container">
       <button
         type="button"
         class="w-full px-4 sm:px-6 py-3.5 sm:py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-left hover:bg-slate-850/50 transition cursor-pointer section-toggle"
@@ -919,9 +933,9 @@ const sectionVisibility = anime?.sectionVisibility || {
             5
           </span>
           <div>
-            <h2 class="text-base font-semibold text-white font-heading">Filler & Canon Episode Breakdown</h2>
+            <h2 class="text-base font-semibold text-white font-heading">Filler & Canon Breakdown</h2>
             <p class="text-xs text-slate-400">
-              Comma-separated lists of episodes and ranges with automatic filler percentage calculation
+              Episode ranges for TV series, or optional timeline and canon note for movies
               <span id="filler-pct-display" class={`text-indigo-400 font-mono ml-1 font-semibold ${initTotal > 0 ? '' : 'hidden'}`}>
                 ({initPct}% filler)
               </span>
@@ -964,6 +978,21 @@ const sectionVisibility = anime?.sectionVisibility || {
         <div id="filler-feedback" class="hidden mb-5 p-3.5 rounded-xl text-xs sm:text-sm font-medium border"></div>
 
         <form id="form-filler" class="space-y-4">
+          <!-- Filler Note / Movie Timeline Note -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5" for="filler-note">
+              Filler Note / Movie Timeline Note (Optional)
+            </label>
+            <textarea
+              id="filler-note"
+              name="fillerNote"
+              rows="3"
+              placeholder="e.g. Canonical movie set between episodes 20 and 21, or standalone filler guidance..."
+              class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+            >{anime?.fillerNote || ''}</textarea>
+            <p class="text-xs text-slate-400 mt-1">Editorial overview or movie canon guidance. For movies or series without episode ranges, this note alone can form the Filler List tab.</p>
+          </div>
+
           <!-- Summary Header Stats Bar (Derived directly from 4 category counts) -->
           <div class="p-4 bg-slate-950 border border-slate-800 rounded-xl flex flex-wrap items-center justify-between gap-4">
             <div class="flex items-center gap-3 sm:gap-4 flex-wrap">
@@ -1209,6 +1238,24 @@ const sectionVisibility = anime?.sectionVisibility || {
                 </div>
               </div>
             ))}
+          </div>
+
+          <div class="pt-4 border-t border-slate-800">
+            <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5" for="chars-related-post">
+              Related Article (Optional)
+            </label>
+            <select
+              id="chars-related-post"
+              class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-sm text-white focus:outline-none focus:border-indigo-500"
+            >
+              <option value="">None / No Related Article</option>
+              {adminBlogPosts.map((p) => (
+                <option value={p.slug} selected={anime?.characterRelatedPostSlug === p.slug}>
+                  {p.title} ({p.status === 'published' ? 'Published' : 'Draft'})
+                </option>
+              ))}
+            </select>
+            <p class="text-xs text-slate-400 mt-1">Select an article or blog post to recommend at the bottom of the public Characters tab.</p>
           </div>
 
           <div class="pt-4 border-t border-slate-800 flex justify-end">
@@ -2212,19 +2259,7 @@ const sectionVisibility = anime?.sectionVisibility || {
         if (epsWrapper) epsWrapper.classList.add('hidden');
         if (runtimeWrapper) runtimeWrapper.classList.remove('hidden');
         if (canonWrapper) canonWrapper.classList.remove('hidden');
-        if (fillerContainer) fillerContainer.classList.add('hidden');
-        if (fillerCheckbox) {
-          fillerCheckbox.checked = false;
-          if (labelText) labelText.textContent = 'Public: Hide (Movie)';
-          if (track) {
-            track.classList.remove('bg-indigo-600');
-            track.classList.add('bg-slate-700');
-          }
-          if (thumb) {
-            thumb.classList.remove('translate-x-3.5');
-            thumb.classList.add('translate-x-0');
-          }
-        }
+        if (fillerContainer) fillerContainer.classList.remove('hidden');
         const epsInput = document.getElementById('core-episodes');
         if (epsInput && (!epsInput.value || epsInput.value === '0')) {
           epsInput.value = '1';
@@ -2234,17 +2269,18 @@ const sectionVisibility = anime?.sectionVisibility || {
         if (runtimeWrapper) runtimeWrapper.classList.add('hidden');
         if (canonWrapper) canonWrapper.classList.add('hidden');
         if (fillerContainer) fillerContainer.classList.remove('hidden');
-        if (fillerCheckbox) {
-          const isVisible = fillerCheckbox.checked;
-          if (labelText) labelText.textContent = isVisible ? 'Public: Show' : 'Public: Hide';
-          if (track) {
-            track.classList.toggle('bg-indigo-600', isVisible);
-            track.classList.toggle('bg-slate-700', !isVisible);
-          }
-          if (thumb) {
-            thumb.classList.toggle('translate-x-3.5', isVisible);
-            thumb.classList.toggle('translate-x-0', !isVisible);
-          }
+      }
+
+      if (fillerCheckbox) {
+        const isVisible = fillerCheckbox.checked;
+        if (labelText) labelText.textContent = isVisible ? 'Public: Show' : 'Public: Hide';
+        if (track) {
+          track.classList.toggle('bg-indigo-600', isVisible);
+          track.classList.toggle('bg-slate-700', !isVisible);
+        }
+        if (thumb) {
+          thumb.classList.toggle('translate-x-3.5', isVisible);
+          thumb.classList.toggle('translate-x-0', !isVisible);
         }
       }
     }
@@ -2400,10 +2436,13 @@ const sectionVisibility = anime?.sectionVisibility || {
 
       // 6. Populate Section 4: Watch Order
       const woFranchise = document.getElementById('wo-franchise');
-      if (woFranchise && a.franchiseId) woFranchise.value = a.franchiseId;
+      if (woFranchise) woFranchise.value = a.franchiseId || '';
 
       const woStep = document.getElementById('wo-step');
       if (woStep) woStep.value = a.franchiseStepOrder || '';
+
+      const woNote = document.getElementById('wo-note');
+      if (woNote) woNote.value = a.watchOrderNote || '';
 
       // 7. Populate Section 5: Filler Breakdown
       const fManga = document.getElementById('filler-manga-canon');
@@ -2418,9 +2457,15 @@ const sectionVisibility = anime?.sectionVisibility || {
       const fFiller = document.getElementById('filler-filler');
       if (fFiller) fFiller.value = a.fillerBreakdown?.filler || '';
 
+      const fNote = document.getElementById('filler-note');
+      if (fNote) fNote.value = a.fillerNote || '';
+
       updateLiveFillerStats();
 
       // 8. Populate Section 6: Characters
+      const charsRelatedPost = document.getElementById('chars-related-post');
+      if (charsRelatedPost) charsRelatedPost.value = a.characterRelatedPostSlug || '';
+
       const charsContainer = document.getElementById('chars-container');
       if (charsContainer) {
         charsContainer.innerHTML = '';
@@ -2747,12 +2792,13 @@ const sectionVisibility = anime?.sectionVisibility || {
 
       const franchiseId = document.getElementById('wo-franchise').value || null;
       const franchiseStepOrder = document.getElementById('wo-step').value || null;
+      const watchOrderNote = document.getElementById('wo-note')?.value.trim() || null;
 
       try {
         const res = await fetch('/api/admin/anime/watch-order', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ animeId: currentAnimeId, franchiseId, franchiseStepOrder })
+          body: JSON.stringify({ animeId: currentAnimeId, franchiseId, franchiseStepOrder, watchOrderNote })
         });
         const data = await res.json();
         if (data.success) {
@@ -2805,6 +2851,7 @@ const sectionVisibility = anime?.sectionVisibility || {
       const animeCanon = document.getElementById('filler-anime-canon').value.trim();
       const mixedCanon = document.getElementById('filler-mixed').value.trim();
       const filler = document.getElementById('filler-filler').value.trim();
+      const fillerNote = document.getElementById('filler-note')?.value.trim() || null;
 
       const errManga = validateRangeInput('Manga Canon', mangaCanon);
       if (errManga) { setFeedback(fillerFeedback, errManga, 'error'); return; }
@@ -2827,7 +2874,8 @@ const sectionVisibility = anime?.sectionVisibility || {
             mangaCanon,
             animeCanon,
             mixedCanon,
-            filler
+            filler,
+            fillerNote
           })
         });
         const data = await res.json();
@@ -2949,11 +2997,13 @@ const sectionVisibility = anime?.sectionVisibility || {
         }
       });
 
+      const relatedPostSlug = document.getElementById('chars-related-post')?.value.trim() || null;
+
       try {
         const res = await fetch('/api/admin/anime/characters', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ animeId: currentAnimeId, characters })
+          body: JSON.stringify({ animeId: currentAnimeId, characters, relatedPostSlug })
         });
         const data = await res.json();
         if (data.success) {
@@ -3251,10 +3301,12 @@ const sectionVisibility = anime?.sectionVisibility || {
       // 4. Section 4 Watch Order
       const franchiseId = document.getElementById('wo-franchise')?.value || null;
       const franchiseStepOrder = document.getElementById('wo-step')?.value || null;
-      const watchOrderPayload = { franchiseId, franchiseStepOrder };
+      const watchOrderNote = document.getElementById('wo-note')?.value.trim() || null;
+      const watchOrderPayload = { franchiseId, franchiseStepOrder, watchOrderNote };
 
-      // 5. Section 5 Filler & Canon Breakdown (Skipped for movies)
-      let fillerPayload = null;
+      // 5. Section 5 Filler & Canon Breakdown
+      const fillerNote = document.getElementById('filler-note')?.value.trim() || null;
+      let fillerPayload = { fillerNote };
       if (!isMovie) {
         const mangaCanon = document.getElementById('filler-manga-canon')?.value.trim() || '';
         const animeCanon = document.getElementById('filler-anime-canon')?.value.trim() || '';
@@ -3270,10 +3322,11 @@ const sectionVisibility = anime?.sectionVisibility || {
         const errFiller = validateRangeInput('Filler', filler);
         if (errFiller) { alert('Section 5 Filler error: ' + errFiller); return; }
 
-        fillerPayload = { mangaCanon, animeCanon, mixedCanon, filler };
+        fillerPayload = { mangaCanon, animeCanon, mixedCanon, filler, fillerNote };
       }
 
       // 6. Section 6 Characters
+      const relatedPostSlug = document.getElementById('chars-related-post')?.value.trim() || null;
       const charRows = document.querySelectorAll('#chars-container .character-row');
       const characters = [];
       charRows.forEach((row, idx) => {
@@ -3335,7 +3388,7 @@ const sectionVisibility = anime?.sectionVisibility || {
         const sec = cb.getAttribute('data-section');
         if (sec) visibilityPayload[sec] = cb.checked;
       });
-      if (isMovie) {
+      if (isMovie && !fillerPayload?.fillerNote) {
         visibilityPayload.fillerList = false;
       }
 
@@ -3365,7 +3418,10 @@ const sectionVisibility = anime?.sectionVisibility || {
             lessons: lessonsPayload,
             watchOrder: watchOrderPayload,
             filler: fillerPayload,
-            characters,
+            characters: {
+              characters,
+              relatedPostSlug
+            },
             source: sourcePayload,
             powerSystem: powerPayload,
             universe,

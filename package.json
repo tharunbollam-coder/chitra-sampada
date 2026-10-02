@@ -10,7 +10,8 @@
     "build": "astro build",
     "preview": "astro preview",
     "astro": "astro",
-    "db:pull": "node scripts/db-pull.js"
+    "db:pull": "node scripts/db-pull.js",
+    "db:push": "node scripts/db-push.js"
   },
   "dependencies": {
     "@astrojs/cloudflare": "^14.3.2",

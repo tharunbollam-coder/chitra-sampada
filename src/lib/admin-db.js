@@ -151,6 +151,9 @@ export async function getAnimeById(idOrSlug, contextOrLocals = null) {
     synopsis: animeRow.synopsis || '',
     franchiseId: animeRow.franchise_id || '',
     franchiseStepOrder: animeRow.franchise_step_order || '',
+    watchOrderNote: animeRow.watch_order_note || '',
+    fillerNote: animeRow.filler_note || '',
+    characterRelatedPostSlug: animeRow.character_related_post_slug || '',
     sectionVisibility,
     aliases,
     genres,
@@ -399,7 +402,8 @@ export async function saveAllAnime(payload, contextOrLocals = null) {
   if (payload.watchOrder) {
     await saveAnimeWatchOrderLink(animeId, {
       franchiseId: payload.watchOrder.franchiseId,
-      franchiseStepOrder: payload.watchOrder.franchiseStepOrder
+      franchiseStepOrder: payload.watchOrder.franchiseStepOrder,
+      watchOrderNote: payload.watchOrder.watchOrderNote
     }, contextOrLocals);
   }
 
@@ -411,7 +415,9 @@ export async function saveAllAnime(payload, contextOrLocals = null) {
 
   // 6. Key Characters
   if (payload.characters) {
-    await saveAnimeCharacters(animeId, payload.characters, contextOrLocals);
+    const charsData = Array.isArray(payload.characters) ? payload.characters : (payload.characters.characters || []);
+    const relSlug = payload.characters?.relatedPostSlug ?? payload.characters?.characterRelatedPostSlug ?? payload.characterRelatedPostSlug;
+    await saveAnimeCharacters(animeId, charsData, relSlug, contextOrLocals);
   }
 
   // 7. Source Material Guidance
@@ -437,7 +443,8 @@ export async function saveAllAnime(payload, contextOrLocals = null) {
   // 11. Visibility Toggles
   if (payload.visibility) {
     const finalVis = { ...payload.visibility };
-    if (payload.core?.type === 'movie') {
+    const hasFillerNote = Boolean(payload.filler?.fillerNote && String(payload.filler.fillerNote).trim().length > 0);
+    if (payload.core?.type === 'movie' && !hasFillerNote && finalVis.fillerList !== true) {
       finalVis.fillerList = false;
     }
     await saveAnimeVisibility(animeId, finalVis, contextOrLocals);
@@ -505,16 +512,25 @@ export async function saveAnimeLessons(animeId, { heading = '', takeaway = '' } 
 /**
  * Save Watch Order & Franchise Placement for anime.
  */
-export async function saveAnimeWatchOrderLink(animeId, { franchiseId = null, franchiseStepOrder = null } = {}, contextOrLocals = null) {
+export async function saveAnimeWatchOrderLink(animeId, { franchiseId = null, franchiseStepOrder = null, watchOrderNote = null } = {}, contextOrLocals = null) {
   const db = await getDatabase(contextOrLocals);
   const cleanFranchiseId = franchiseId ? String(franchiseId).trim() : null;
   const cleanStep = franchiseStepOrder ? Number(franchiseStepOrder) : null;
+  const cleanNote = watchOrderNote !== undefined ? (watchOrderNote ? String(watchOrderNote).trim() : null) : undefined;
 
-  await db.run(`
-    UPDATE anime 
-    SET franchise_id = ?, franchise_step_order = ?, last_updated = date('now') 
-    WHERE id = ?
-  `, cleanFranchiseId, cleanStep, animeId);
+  if (cleanNote !== undefined) {
+    await db.run(`
+      UPDATE anime 
+      SET franchise_id = ?, franchise_step_order = ?, watch_order_note = ?, last_updated = date('now') 
+      WHERE id = ?
+    `, cleanFranchiseId, cleanStep, cleanNote, animeId);
+  } else {
+    await db.run(`
+      UPDATE anime 
+      SET franchise_id = ?, franchise_step_order = ?, last_updated = date('now') 
+      WHERE id = ?
+    `, cleanFranchiseId, cleanStep, animeId);
+  }
 
   invalidateAnimeCache();
   return { success: true };
@@ -522,7 +538,7 @@ export async function saveAnimeWatchOrderLink(animeId, { franchiseId = null, fra
 
 /**
  * Save Filler & Canon Breakdown and recalculate filler_percentage.
- * Accepts { mangaCanon, animeCanon, mixedCanon, filler }.
+ * Accepts { mangaCanon, animeCanon, mixedCanon, filler, fillerNote }.
  */
 export async function saveAnimeFillerList(animeId, breakdown = {}, contextOrLocals = null) {
   const db = await getDatabase(contextOrLocals);
@@ -533,7 +549,8 @@ export async function saveAnimeFillerList(animeId, breakdown = {}, contextOrLoca
     mangaCanon = '',
     animeCanon = '',
     mixedCanon = '',
-    filler = ''
+    filler = '',
+    fillerNote = undefined
   } = breakdown;
 
   const valManga = validateEpisodeString(mangaCanon);
@@ -583,18 +600,36 @@ export async function saveAnimeFillerList(animeId, breakdown = {}, contextOrLoca
     calculatedPercentage = Math.min(100, Math.round((valFiller.count / totalEpisodes) * 100));
   }
 
-  if (!anime.episodes && totalEpisodes > 0) {
-    await db.run(`
-      UPDATE anime 
-      SET filler_percentage = ?, episodes = ?, last_updated = date('now') 
-      WHERE id = ?
-    `, calculatedPercentage, totalEpisodes, animeId);
+  const cleanFillerNote = fillerNote !== undefined ? (fillerNote ? String(fillerNote).trim() : null) : undefined;
+
+  if (cleanFillerNote !== undefined) {
+    if (!anime.episodes && totalEpisodes > 0) {
+      await db.run(`
+        UPDATE anime 
+        SET filler_percentage = ?, episodes = ?, filler_note = ?, last_updated = date('now') 
+        WHERE id = ?
+      `, calculatedPercentage, totalEpisodes, cleanFillerNote, animeId);
+    } else {
+      await db.run(`
+        UPDATE anime 
+        SET filler_percentage = ?, filler_note = ?, last_updated = date('now') 
+        WHERE id = ?
+      `, calculatedPercentage, cleanFillerNote, animeId);
+    }
   } else {
-    await db.run(`
-      UPDATE anime 
-      SET filler_percentage = ?, last_updated = date('now') 
-      WHERE id = ?
-    `, calculatedPercentage, animeId);
+    if (!anime.episodes && totalEpisodes > 0) {
+      await db.run(`
+        UPDATE anime 
+        SET filler_percentage = ?, episodes = ?, last_updated = date('now') 
+        WHERE id = ?
+      `, calculatedPercentage, totalEpisodes, animeId);
+    } else {
+      await db.run(`
+        UPDATE anime 
+        SET filler_percentage = ?, last_updated = date('now') 
+        WHERE id = ?
+      `, calculatedPercentage, animeId);
+    }
   }
 
   invalidateAnimeCache();
@@ -615,12 +650,20 @@ export async function saveAnimeFillerList(animeId, breakdown = {}, contextOrLoca
 /**
  * Save Key Characters.
  */
-export async function saveAnimeCharacters(animeId, characters = [], contextOrLocals = null) {
+export async function saveAnimeCharacters(animeId, characters = [], relatedPostSlug = undefined, contextOrLocals = null) {
   const db = await getDatabase(contextOrLocals);
+  let charList = characters;
+  let relPost = relatedPostSlug;
+
+  if (!Array.isArray(characters) && characters && typeof characters === 'object') {
+    charList = characters.characters || [];
+    relPost = characters.relatedPostSlug !== undefined ? characters.relatedPostSlug : characters.characterRelatedPostSlug;
+  }
+
   await db.run(`DELETE FROM anime_characters WHERE anime_id = ?`, animeId);
 
-  for (let index = 0; index < characters.length; index++) {
-    const char = characters[index];
+  for (let index = 0; index < charList.length; index++) {
+    const char = charList[index];
     const rank = Number(char.rank || index + 1);
     const name = String(char.name || '').trim();
     const category = String(char.category || 'Supporting').trim();
@@ -635,7 +678,13 @@ export async function saveAnimeCharacters(animeId, characters = [], contextOrLoc
     }
   }
 
-  await db.run(`UPDATE anime SET last_updated = date('now') WHERE id = ?`, animeId);
+  const cleanSlug = relPost !== undefined ? (relPost ? String(relPost).trim() : null) : undefined;
+  if (cleanSlug !== undefined) {
+    await db.run(`UPDATE anime SET character_related_post_slug = ?, last_updated = date('now') WHERE id = ?`, cleanSlug, animeId);
+  } else {
+    await db.run(`UPDATE anime SET last_updated = date('now') WHERE id = ?`, animeId);
+  }
+
   invalidateAnimeCache();
   return { success: true };
 }
