@@ -92,6 +92,18 @@ export async function getAnimeById(idOrSlug, contextOrLocals = null) {
     console.warn("Failed to query anime_recommendations in getAnimeById:", err?.message || err);
   }
 
+  let streamingPlatforms = [];
+  try {
+    streamingPlatforms = await db.query(`
+      SELECT id, platform_name as platformName, stream_url as streamUrl, logo_url as logoUrl, note, display_order as displayOrder, is_active as isActive
+      FROM anime_streaming_platforms
+      WHERE anime_id = ?
+      ORDER BY display_order ASC, id ASC
+    `, actualId);
+  } catch (err) {
+    console.warn("Failed to query anime_streaming_platforms in getAnimeById:", err?.message || err);
+  }
+
   let reviewParagraphs = [];
   if (animeRow.review_paragraphs) {
     try {
@@ -119,7 +131,8 @@ export async function getAnimeById(idOrSlug, contextOrLocals = null) {
     source: true,
     powerSystem: true,
     universe: true,
-    recommendations: true
+    recommendations: true,
+    streaming: true
   };
   if (animeRow.section_visibility) {
     try {
@@ -165,7 +178,6 @@ export async function getAnimeById(idOrSlug, contextOrLocals = null) {
       spoilerLevel: animeRow.review_spoiler_level || 'none'
     },
     lessons: {
-      heading: animeRow.lesson_heading || '',
       takeaway: animeRow.lesson_takeaway || ''
     },
     source: {
@@ -198,7 +210,8 @@ export async function getAnimeById(idOrSlug, contextOrLocals = null) {
     fillerRows,
     characters,
     universe: relatedMedia,
-    recommendations
+    recommendations,
+    streamingPlatforms
   };
 }
 
@@ -353,7 +366,10 @@ export async function saveAnimeVisibility(animeId, visibility = {}, contextOrLoc
     fillerList: true,
     characters: true,
     source: true,
-    powerSystem: true
+    powerSystem: true,
+    universe: true,
+    recommendations: true,
+    streaming: true
   };
 
   if (existing.section_visibility) {
@@ -440,7 +456,13 @@ export async function saveAllAnime(payload, contextOrLocals = null) {
     await saveAnimeRecommendations(animeId, payload.recommendations, contextOrLocals);
   }
 
-  // 11. Visibility Toggles
+  // 11. Streaming Platforms / Where to Watch
+  if (payload.streaming) {
+    const platformsData = Array.isArray(payload.streaming) ? payload.streaming : (payload.streaming.platforms || []);
+    await saveAnimeStreamingPlatforms(animeId, platformsData, contextOrLocals);
+  }
+
+  // 12. Visibility Toggles
   if (payload.visibility) {
     const finalVis = { ...payload.visibility };
     const hasFillerNote = Boolean(payload.filler?.fillerNote && String(payload.filler.fillerNote).trim().length > 0);
@@ -497,13 +519,13 @@ export async function saveAnimeReview(animeId, { heading = '', paragraphs = [], 
 /**
  * Save What I Learned / Reflection section.
  */
-export async function saveAnimeLessons(animeId, { heading = '', takeaway = '' } = {}, contextOrLocals = null) {
+export async function saveAnimeLessons(animeId, { takeaway = '' } = {}, contextOrLocals = null) {
   const db = await getDatabase(contextOrLocals);
   await db.run(`
     UPDATE anime 
-    SET lesson_heading = ?, lesson_takeaway = ?, last_updated = date('now') 
+    SET lesson_takeaway = ?, last_updated = date('now') 
     WHERE id = ?
-  `, heading.trim() || null, takeaway.trim() || null, animeId);
+  `, takeaway.trim() || null, animeId);
 
   invalidateAnimeCache();
   return { success: true };
@@ -965,5 +987,42 @@ export async function deleteBlogPost(id, contextOrLocals = null) {
   const db = await getDatabase(contextOrLocals);
   await db.run(`DELETE FROM blog_posts WHERE id = ?`, id);
   invalidateBlogCache();
+  return { success: true };
+}
+
+/**
+ * Save streaming platforms / where to watch options for an anime.
+ */
+export async function saveAnimeStreamingPlatforms(animeId, platforms = [], contextOrLocals = null) {
+  const db = await getDatabase(contextOrLocals);
+  const existing = await db.queryOne('SELECT id FROM anime WHERE id = ?', animeId);
+  if (!existing) throw new Error('Anime not found');
+
+  // Clear existing streaming platforms for this anime
+  await db.run('DELETE FROM anime_streaming_platforms WHERE anime_id = ?', animeId);
+
+  if (Array.isArray(platforms) && platforms.length > 0) {
+    let order = 1;
+    for (const p of platforms) {
+      const name = p.platformName || p.platform_name || p.name;
+      if (!name || !name.trim()) continue;
+
+      const streamUrl = p.streamUrl || p.stream_url || p.url || null;
+      const logoUrl = p.logoUrl || p.logo_url || null;
+      const note = p.note ? p.note.trim() : null;
+      const displayOrder = typeof p.displayOrder === 'number' ? p.displayOrder : (typeof p.display_order === 'number' ? p.display_order : order);
+      const isActive = p.isActive !== false && p.is_active !== 0 ? 1 : 0;
+
+      await db.run(`
+        INSERT INTO anime_streaming_platforms (anime_id, platform_name, stream_url, logo_url, note, display_order, is_active)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `, animeId, name.trim(), streamUrl ? streamUrl.trim() : null, logoUrl ? logoUrl.trim() : null, note, displayOrder, isActive);
+
+      order++;
+    }
+  }
+
+  await db.run(`UPDATE anime SET last_updated = date('now') WHERE id = ?`, animeId);
+  invalidateAnimeCache();
   return { success: true };
 }

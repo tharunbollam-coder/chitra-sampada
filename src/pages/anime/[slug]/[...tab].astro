@@ -11,6 +11,7 @@ import TabReview from '../../../components/anime/TabReview.astro';
 import TabLessons from '../../../components/anime/TabLessons.astro';
 import TabUniverse from '../../../components/anime/TabUniverse.astro';
 import TabRecommendations from '../../../components/anime/TabRecommendations.astro';
+import StreamingAvailability from '../../../components/anime/StreamingAvailability.astro';
 import RelatedBlogPosts from '../../../components/RelatedBlogPosts.astro';
 import { getAllAnime, getAvailableTabs, getDefaultTabKey } from '../../../lib/d1.js';
 import { siteConfig } from '../../../config/site.js';
@@ -525,6 +526,9 @@ if (anime.honestyStatus === 'watched' && anime.personalRating !== undefined && a
               </p>
             </div>
           )}
+
+          <!-- Where to Watch / Streaming Availability -->
+          <StreamingAvailability anime={anime} />
 
         </div>
 

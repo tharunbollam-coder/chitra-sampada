@@ -13,6 +13,7 @@ import {
   saveAnimePowerSystem,
   saveAnimeRelatedMedia,
   saveAnimeRecommendations,
+  saveAnimeStreamingPlatforms,
   saveAnimeVisibility,
   saveAllAnime,
   deleteAnime,
@@ -169,9 +170,9 @@ export async function handleAdminApi({ request, locals, url, params }) {
     // Section 3: Lessons (What I Learned)
     if (route === 'anime/lessons' && method === 'POST') {
       const body = await parseJsonBody(request);
-      const { animeId, heading, takeaway } = body;
+      const { animeId, takeaway } = body;
       if (!animeId) return jsonResponse({ success: false, error: 'Anime ID is required' }, 400);
-      await saveAnimeLessons(animeId, { heading, takeaway }, locals);
+      await saveAnimeLessons(animeId, { takeaway }, locals);
       return jsonResponse({ success: true, message: 'What I Learned section saved successfully' });
     }
 
@@ -251,6 +252,16 @@ export async function handleAdminApi({ request, locals, url, params }) {
       if (!Array.isArray(recommendations)) return jsonResponse({ success: false, error: 'Recommendations must be an array' }, 400);
       await saveAnimeRecommendations(animeId, recommendations, locals);
       return jsonResponse({ success: true, message: 'Recommendations saved successfully' });
+    }
+
+    // Section 11: Streaming Platforms / Where to Watch
+    if (route === 'anime/streaming' && method === 'POST') {
+      const body = await parseJsonBody(request);
+      const { animeId, platforms } = body;
+      if (!animeId) return jsonResponse({ success: false, error: 'Anime ID is required' }, 400);
+      if (!Array.isArray(platforms)) return jsonResponse({ success: false, error: 'Platforms must be an array' }, 400);
+      await saveAnimeStreamingPlatforms(animeId, platforms, locals);
+      return jsonResponse({ success: true, message: 'Streaming platforms saved successfully' });
     }
 
     // Section Visibility Toggles (Show/Hide on Public Page)

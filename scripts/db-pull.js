@@ -101,9 +101,11 @@ async function main() {
       'franchise_watch_order',
       'blog_posts',
       'anime_characters',
+      'anime_streaming_platforms',
       'anime_filler_ranges',
       'anime_genres',
-      'anime_vibes'
+      'anime_vibes',
+      'site_settings'
     ];
 
     const counts = {};

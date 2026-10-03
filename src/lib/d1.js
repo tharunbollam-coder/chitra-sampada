@@ -143,6 +143,13 @@ async function ensureSchemaCompatibility(db) {
           if (!animeCols.has('character_related_post_slug')) {
             await db.run(`ALTER TABLE anime ADD COLUMN character_related_post_slug TEXT DEFAULT NULL`);
           }
+          if (animeCols.has('lesson_heading')) {
+            try {
+              await db.run(`ALTER TABLE anime DROP COLUMN lesson_heading`);
+            } catch (dropErr) {
+              console.warn('[Schema Compatibility] drop lesson_heading note:', dropErr?.message || dropErr);
+            }
+          }
         }
       } catch (err) {
         console.warn('[Schema Compatibility] anime table note:', err?.message || err);
@@ -199,6 +206,28 @@ async function ensureSchemaCompatibility(db) {
         `);
       } catch (err) {
         console.warn('[Schema Compatibility] anime_recommendations note:', err?.message || err);
+      }
+
+      try {
+        await db.run(`
+          CREATE TABLE IF NOT EXISTS anime_streaming_platforms (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            anime_id TEXT NOT NULL,
+            platform_name TEXT NOT NULL,
+            stream_url TEXT,
+            logo_url TEXT,
+            note TEXT,
+            display_order INTEGER NOT NULL DEFAULT 0,
+            is_active INTEGER NOT NULL DEFAULT 1,
+            FOREIGN KEY (anime_id) REFERENCES anime(id) ON DELETE CASCADE
+          )
+        `);
+        await db.run(`
+          CREATE INDEX IF NOT EXISTS idx_anime_streaming_platforms_anime_id 
+          ON anime_streaming_platforms(anime_id, display_order)
+        `);
+      } catch (err) {
+        console.warn('[Schema Compatibility] anime_streaming_platforms note:', err?.message || err);
       }
     })();
   }
@@ -324,7 +353,8 @@ export async function getAllAnime(contextOrLocals) {
     watchRes,
     universeRes,
     recsRes,
-    blogRes
+    blogRes,
+    streamingRes
   ] = await Promise.allSettled([
     db.query(`SELECT * FROM anime ORDER BY year DESC, title ASC`),
     db.query(`SELECT anime_id, alias FROM anime_aliases`),
@@ -335,7 +365,8 @@ export async function getAllAnime(contextOrLocals) {
     db.query(`SELECT franchise_id, step_order, title, type, episodes, anime_id, note FROM franchise_watch_order ORDER BY step_order ASC`),
     db.query(`SELECT id, anime_id, section, title, badge, link_slug, editorial_note, item_order FROM anime_related_media ORDER BY item_order ASC, id ASC`),
     db.query(`SELECT id, anime_id, target_anime_id, category_badge, editorial_note, item_order FROM anime_recommendations ORDER BY item_order ASC, id ASC`),
-    db.query(`SELECT id, slug, title, status FROM blog_posts`)
+    db.query(`SELECT id, slug, title, status FROM blog_posts`),
+    db.query(`SELECT id, anime_id, platform_name, stream_url, logo_url, note, display_order, is_active FROM anime_streaming_platforms ORDER BY display_order ASC, id ASC`)
   ]);
 
   const animeRows = animeRes.status === 'fulfilled' ? animeRes.value : [];
@@ -348,6 +379,7 @@ export async function getAllAnime(contextOrLocals) {
   const universeRows = universeRes.status === 'fulfilled' ? universeRes.value : [];
   const recsRows = recsRes.status === 'fulfilled' ? recsRes.value : [];
   const blogRows = blogRes.status === 'fulfilled' ? blogRes.value : [];
+  const streamingRows = streamingRes.status === 'fulfilled' ? streamingRes.value : [];
 
   if (animeRes.status === 'rejected') {
     console.error("Failed to query anime table:", animeRes.reason);
@@ -428,6 +460,20 @@ export async function getAllAnime(contextOrLocals) {
   for (const row of recsRows) {
     if (!recsMap.has(row.anime_id)) recsMap.set(row.anime_id, []);
     recsMap.get(row.anime_id).push(row);
+  }
+
+  const streamingMap = new Map();
+  for (const row of streamingRows) {
+    if (!streamingMap.has(row.anime_id)) streamingMap.set(row.anime_id, []);
+    streamingMap.get(row.anime_id).push({
+      id: row.id,
+      platformName: row.platform_name,
+      streamUrl: row.stream_url,
+      logoUrl: row.logo_url,
+      note: row.note,
+      displayOrder: row.display_order,
+      isActive: row.is_active !== 0
+    });
   }
 
   const animeSlugMap = new Map();
@@ -554,9 +600,8 @@ export async function getAllAnime(contextOrLocals) {
 
     // Reconstruct lessons
     let lessons = null;
-    if (row.lesson_heading || row.lesson_takeaway) {
+    if (row.lesson_takeaway) {
       lessons = {
-        heading: row.lesson_heading,
         takeaway: row.lesson_takeaway
       };
     }
@@ -571,7 +616,8 @@ export async function getAllAnime(contextOrLocals) {
       source: true,
       powerSystem: true,
       universe: true,
-      recommendations: true
+      recommendations: true,
+      streaming: true
     };
     if (row.section_visibility) {
       try {
@@ -637,6 +683,7 @@ export async function getAllAnime(contextOrLocals) {
       lessons,
       universe: universeMap.get(row.id) || [],
       recommendations,
+      streamingPlatforms: streamingMap.get(row.id) || [],
       sectionVisibility
     };
   });
@@ -675,7 +722,6 @@ export function getAvailableTabs(anime) {
     anime.lessons && (
       (typeof anime.lessons === 'string' && anime.lessons.trim().length > 0) ||
       (anime.lessons.takeaway && anime.lessons.takeaway.trim().length > 0) ||
-      (anime.lessons.heading && anime.lessons.heading.trim().length > 0) ||
       (Array.isArray(anime.lessons.paragraphs) && anime.lessons.paragraphs.length > 0)
     )
   );

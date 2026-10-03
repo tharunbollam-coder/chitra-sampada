@@ -118,6 +118,7 @@ async function main() {
     const tablesToClean = [
       'anime_recommendations',
       'anime_related_media',
+      'anime_streaming_platforms',
       'anime_filler_ranges',
       'blog_post_anime',
       'anime_characters',
@@ -153,6 +154,7 @@ async function main() {
       'anime_genres',
       'anime_vibes',
       'anime_characters',
+      'anime_streaming_platforms',
       'anime_filler_ranges',
       'blog_posts',
       'franchises',

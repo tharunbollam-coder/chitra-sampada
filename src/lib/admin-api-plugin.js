@@ -11,6 +11,7 @@ import {
   saveAnimeCharacters,
   saveAnimeSource,
   saveAnimePowerSystem,
+  saveAnimeStreamingPlatforms,
   saveAnimeVisibility,
   saveAllAnime,
   deleteAnime,
@@ -183,11 +184,11 @@ export function adminApiPlugin() {
           // Section 3: Lessons (What I Learned)
           if (pathname === '/api/admin/anime/lessons' && method === 'POST') {
             const body = await parseJsonBody(req);
-            const { animeId, heading, takeaway } = body;
+            const { animeId, takeaway } = body;
             if (!animeId) {
               return sendJson(res, 400, { success: false, error: 'Anime ID is required' });
             }
-            saveAnimeLessons(animeId, { heading, takeaway });
+            saveAnimeLessons(animeId, { takeaway });
             return sendJson(res, 200, { success: true, message: 'What I Learned section saved successfully' });
           }
 
@@ -264,6 +265,20 @@ export function adminApiPlugin() {
             }
             saveAnimePowerSystem(animeId, { name, paragraphs });
             return sendJson(res, 200, { success: true, message: 'Power system details saved successfully' });
+          }
+
+          // Section 11: Streaming Platforms / Where to Watch
+          if (pathname === '/api/admin/anime/streaming' && method === 'POST') {
+            const body = await parseJsonBody(req);
+            const { animeId, platforms } = body;
+            if (!animeId) {
+              return sendJson(res, 400, { success: false, error: 'Anime ID is required' });
+            }
+            if (!Array.isArray(platforms)) {
+              return sendJson(res, 400, { success: false, error: 'Platforms must be an array' });
+            }
+            await saveAnimeStreamingPlatforms(animeId, platforms);
+            return sendJson(res, 200, { success: true, message: 'Streaming platforms saved successfully' });
           }
 
           // Section Visibility Toggles (Show/Hide on Public Page)

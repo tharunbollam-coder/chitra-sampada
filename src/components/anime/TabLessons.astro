@@ -3,7 +3,6 @@
 const { anime } = Astro.props;
 const lessons = anime.lessons || {};
 
-const heading = typeof lessons === 'object' ? lessons?.heading : null;
 const takeaway = typeof lessons === 'string'
   ? lessons
   : (lessons?.takeaway || (Array.isArray(lessons?.paragraphs) && lessons.paragraphs[0] ? lessons.paragraphs[0] : ''));
@@ -27,11 +26,6 @@ if (Array.isArray(lessons?.paragraphs)) {
       <h2 class="font-heading text-xl sm:text-2xl font-bold text-[#0F172A]">
         What I Learned From {anime.title}
       </h2>
-      {heading && (
-        <p class="text-sm sm:text-base font-semibold text-slate-700 mt-2">
-          {heading}
-        </p>
-      )}
     </div>
 
     <!-- Core Takeaway Quote Card -->

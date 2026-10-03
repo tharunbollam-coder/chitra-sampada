@@ -722,7 +722,7 @@ const sectionVisibility = anime?.sectionVisibility || {
           </span>
           <div>
             <h2 class="text-base font-semibold text-white font-heading">What I Learned (Philosophical Takeaway)</h2>
-            <p class="text-xs text-slate-400">Heading and core life lesson or reflection from the series</p>
+            <p class="text-xs text-slate-400">Core life lesson or reflection from the series</p>
           </div>
         </div>
         <div class="w-full sm:w-auto flex items-center justify-between sm:justify-end gap-2.5 sm:gap-3 border-t border-slate-800/60 pt-2 sm:pt-0 sm:border-0">
@@ -761,19 +761,6 @@ const sectionVisibility = anime?.sectionVisibility || {
         <div id="lessons-feedback" class="hidden mb-5 p-3.5 rounded-xl text-xs sm:text-sm font-medium border"></div>
 
         <form id="form-lessons" class="space-y-5">
-          <div>
-            <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5" for="lesson-heading">
-              Lesson Heading
-            </label>
-            <input
-              type="text"
-              id="lesson-heading"
-              value={anime?.lessons?.heading || ''}
-              placeholder="e.g. Time is the Most Meaningful Currency"
-              class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
-            />
-          </div>
-
           <div>
             <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5" for="lesson-takeaway">
               Takeaway Content / Reflection
@@ -888,15 +875,17 @@ const sectionVisibility = anime?.sectionVisibility || {
 
           <div>
             <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5" for="wo-note">
-              Watch Order Note (Optional)
+              Watch Order Note (Optional — Supports Markdown)
             </label>
             <textarea
               id="wo-note"
-              rows="3"
-              placeholder="e.g. Can be enjoyed as a standalone story, or best watched directly after Season 1..."
-              class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+              rows="5"
+              placeholder="e.g. Can be enjoyed as a standalone story, or best watched directly after Season 1...&#10;&#10;1. Season 1&#10;2. Movie: Mugen Train&#10;3. Season 2"
+              class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 font-sans"
             >{anime?.watchOrderNote || ''}</textarea>
-            <p class="text-xs text-slate-400 mt-1">Editorial guidance or context displayed prominently above or in place of the watch roadmap.</p>
+            <p class="text-xs text-slate-400 mt-1">
+              Editorial guidance displayed in the Watch Order tab. Supports multi-line formatting: paragraphs, <strong>**bold text**</strong>, and numbered lists (1. ... 2. ...).
+            </p>
           </div>
 
           <p class="text-xs text-slate-400">
@@ -1816,6 +1805,143 @@ const sectionVisibility = anime?.sectionVisibility || {
       </div>
     </div>
 
+    <!-- SECTION 10: STREAMING PLATFORMS / WHERE TO WATCH -->
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden accordion-section" id="section-streaming">
+      <button
+        type="button"
+        class="w-full px-4 sm:px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-left hover:bg-slate-800/40 transition cursor-pointer section-toggle-btn"
+        data-target="section-streaming-body"
+      >
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center shrink-0 border border-indigo-500/20">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <div>
+            <h3 class="text-sm sm:text-base font-bold text-white font-heading">
+              10. Streaming Platforms / Where to Watch
+            </h3>
+            <p class="text-xs text-slate-400">
+              Official streaming services, direct watch URLs, and availability notes.
+            </p>
+          </div>
+        </div>
+        <div class="w-full sm:w-auto flex items-center justify-between sm:justify-end gap-2.5 sm:gap-3 border-t border-slate-800/60 pt-2 sm:pt-0 sm:border-0">
+          <label
+            class="no-section-toggle relative inline-flex items-center gap-2 cursor-pointer select-none px-2.5 py-1 rounded-lg bg-slate-800/90 border border-slate-700/70 hover:border-slate-600 transition"
+            title="Toggle visibility of Streaming Platforms on public anime page"
+            onclick="event.stopPropagation()"
+          >
+            <span class="text-[11px] font-medium text-slate-300 visibility-label">
+              {sectionVisibility.streaming !== false ? 'Public: Show' : 'Public: Hide'}
+            </span>
+            <input
+              type="checkbox"
+              class="sr-only section-visibility-checkbox"
+              data-section="streaming"
+              checked={sectionVisibility.streaming !== false}
+            />
+            <div class:list={[
+              'w-8 h-4.5 rounded-full transition-colors relative flex items-center p-0.5 switch-track',
+              sectionVisibility.streaming !== false ? 'bg-indigo-600' : 'bg-slate-700'
+            ]}>
+              <div class:list={[
+                'w-3.5 h-3.5 rounded-full bg-white transition-transform transform shadow-sm switch-thumb',
+                sectionVisibility.streaming !== false ? 'translate-x-3.5' : 'translate-x-0'
+              ]}></div>
+            </div>
+          </label>
+          <span id="streaming-badge" class="hidden text-xs px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800/80 font-medium">Saved</span>
+          <svg class="w-5 h-5 text-slate-400 transform transition-transform duration-200 section-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+          </svg>
+        </div>
+      </button>
+
+      <div id="section-streaming-body" class="px-4 sm:px-6 pb-6 pt-2 border-t border-slate-800/80">
+        <div id="streaming-feedback" class="hidden mb-5 p-3.5 rounded-xl text-xs sm:text-sm font-medium border"></div>
+
+        <form id="form-streaming" class="space-y-4">
+          <div class="flex items-center justify-between">
+            <p class="text-xs text-slate-400">
+              Add platforms where fans can officially stream this show (e.g. Crunchyroll, Netflix, Muse Asia).
+            </p>
+            <button
+              type="button"
+              id="btn-add-streaming-row"
+              class="text-xs px-3 py-1.5 bg-indigo-600/20 text-indigo-300 border border-indigo-500/40 rounded-lg hover:bg-indigo-600/30 font-semibold flex items-center gap-1 shrink-0 cursor-pointer"
+            >
+              + Add Platform
+            </button>
+          </div>
+
+          <div id="streaming-container" class="space-y-3">
+            {(anime?.streamingPlatforms?.length ? anime.streamingPlatforms : []).map((p, i) => (
+              <div class="p-3 bg-slate-950 border border-slate-800 rounded-xl space-y-2.5 streaming-row">
+                <div class="flex flex-wrap sm:flex-nowrap items-center justify-between gap-2.5">
+                  <div class="flex items-center gap-2 flex-1 min-w-[200px]">
+                    <span class="w-6 h-6 rounded bg-slate-800 text-slate-400 text-xs flex items-center justify-center font-bold shrink-0 streaming-order-badge">
+                      {p.displayOrder || i + 1}
+                    </span>
+                    <input
+                      type="text"
+                      value={p.platformName}
+                      placeholder="Platform Name (e.g. Crunchyroll)"
+                      class="streaming-input-name flex-1 px-3 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-sm text-white font-medium"
+                      required
+                    />
+                  </div>
+                  <div class="flex items-center gap-2 flex-1 sm:max-w-xs ml-auto sm:ml-0">
+                    <input
+                      type="url"
+                      value={p.streamUrl || ''}
+                      placeholder="Stream URL (optional)"
+                      class="streaming-input-url w-full px-3 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-xs text-white"
+                    />
+                    <button
+                      type="button"
+                      class="btn-remove-streaming text-slate-500 hover:text-rose-400 p-1 cursor-pointer shrink-0"
+                      title="Remove platform"
+                    >
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <input
+                    type="url"
+                    value={p.logoUrl || ''}
+                    placeholder="Logo / Icon URL (optional)"
+                    class="streaming-input-logo px-3 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-xs text-slate-200"
+                  />
+                  <input
+                    type="text"
+                    value={p.note || ''}
+                    placeholder="Availability Note (e.g. Hindi Dub, Subbed only)"
+                    class="streaming-input-note px-3 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-xs text-slate-200"
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div class="pt-4 border-t border-slate-800 flex justify-end">
+            <button
+              type="submit"
+              class="w-full sm:w-auto px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold rounded-xl shadow-sm transition cursor-pointer"
+            >
+              Save Streaming Platforms
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
     <!-- Bottom Static Save Bar -->
     <div class="mt-8 pt-6 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
       <div class="text-center sm:text-left">
@@ -2179,6 +2305,84 @@ const sectionVisibility = anime?.sectionVisibility || {
       container.appendChild(div);
     }
 
+    // Helper: update rank badges for streaming platforms
+    function updateStreamingRanks() {
+      const container = document.getElementById('streaming-container');
+      if (!container) return;
+      const rows = container.querySelectorAll('.streaming-row');
+      rows.forEach((row, i) => {
+        const badge = row.querySelector('.streaming-order-badge');
+        if (badge) badge.textContent = i + 1;
+      });
+    }
+
+    // Helper: add a Streaming Platform row to Section 10
+    function addStreamingRow(p = {}, index = 1) {
+      const container = document.getElementById('streaming-container');
+      if (!container) return;
+      const div = document.createElement('div');
+      div.className = 'p-3 bg-slate-950 border border-slate-800 rounded-xl space-y-2.5 streaming-row';
+      const nameVal = p.platformName || p.name || '';
+      const urlVal = p.streamUrl || p.url || '';
+      const logoVal = p.logoUrl || '';
+      const noteVal = p.note || '';
+
+      div.innerHTML = `
+        <div class="flex flex-wrap sm:flex-nowrap items-center justify-between gap-2.5">
+          <div class="flex items-center gap-2 flex-1 min-w-[200px]">
+            <span class="w-6 h-6 rounded bg-slate-800 text-slate-400 text-xs flex items-center justify-center font-bold shrink-0 streaming-order-badge">
+              ${p.displayOrder || index}
+            </span>
+            <input
+              type="text"
+              value="${nameVal}"
+              placeholder="Platform Name (e.g. Crunchyroll)"
+              class="streaming-input-name flex-1 px-3 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-sm text-white font-medium"
+              required
+            />
+          </div>
+          <div class="flex items-center gap-2 flex-1 sm:max-w-xs ml-auto sm:ml-0">
+            <input
+              type="url"
+              value="${urlVal}"
+              placeholder="Stream URL (optional)"
+              class="streaming-input-url w-full px-3 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-xs text-white"
+            />
+            <button
+              type="button"
+              class="btn-remove-streaming text-slate-500 hover:text-rose-400 p-1 cursor-pointer shrink-0"
+              title="Remove platform"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <input
+            type="url"
+            value="${logoVal}"
+            placeholder="Logo / Icon URL (optional)"
+            class="streaming-input-logo px-3 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-xs text-slate-200"
+          />
+          <input
+            type="text"
+            value="${noteVal}"
+            placeholder="Availability Note (e.g. Hindi Dub, Subbed only)"
+            class="streaming-input-note px-3 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-xs text-slate-200"
+          />
+        </div>
+      `;
+
+      div.querySelector('.btn-remove-streaming').addEventListener('click', () => {
+        div.remove();
+        updateStreamingRanks();
+      });
+      container.appendChild(div);
+    }
+
     // Helper: count episodes from comma-separated ranges and numbers
     function countEpisodesFromRangeString(str) {
       if (!str || !str.trim()) return 0;
@@ -2428,9 +2632,6 @@ const sectionVisibility = anime?.sectionVisibility || {
       }
 
       // 5. Populate Section 3: Lessons
-      const lessonHeading = document.getElementById('lesson-heading');
-      if (lessonHeading) lessonHeading.value = a.lessons?.heading || '';
-
       const lessonTakeaway = document.getElementById('lesson-takeaway');
       if (lessonTakeaway) lessonTakeaway.value = a.lessons?.takeaway || '';
 
@@ -2754,14 +2955,13 @@ const sectionVisibility = anime?.sectionVisibility || {
         return;
       }
 
-      const heading = document.getElementById('lesson-heading').value.trim();
       const takeaway = document.getElementById('lesson-takeaway').value.trim();
 
       try {
         const res = await fetch('/api/admin/anime/lessons', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ animeId: currentAnimeId, heading, takeaway })
+          body: JSON.stringify({ animeId: currentAnimeId, takeaway })
         });
         const data = await res.json();
         if (data.success) {
@@ -3212,6 +3412,64 @@ const sectionVisibility = anime?.sectionVisibility || {
     });
 
     // -------------------------------------------------------------
+    // 11. SAVE STREAMING PLATFORMS (WHERE TO WATCH)
+    // -------------------------------------------------------------
+    const formStreaming = document.getElementById('form-streaming');
+    const streamingFeedback = document.getElementById('streaming-feedback');
+    const streamingBadge = document.getElementById('streaming-badge');
+
+    document.querySelectorAll('#streaming-container .btn-remove-streaming').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.target.closest('.streaming-row')?.remove();
+        updateStreamingRanks();
+      });
+    });
+
+    document.getElementById('btn-add-streaming-row')?.addEventListener('click', () => {
+      const container = document.getElementById('streaming-container');
+      const count = container ? container.querySelectorAll('.streaming-row').length + 1 : 1;
+      addStreamingRow({}, count);
+    });
+
+    formStreaming?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!currentAnimeId) {
+        setFeedback(streamingFeedback, 'Please save Section 1 Core Details first.', 'error');
+        return;
+      }
+
+      const rows = document.querySelectorAll('#streaming-container .streaming-row');
+      const platforms = [];
+      rows.forEach((row, idx) => {
+        const platformName = row.querySelector('.streaming-input-name')?.value.trim();
+        const streamUrl = row.querySelector('.streaming-input-url')?.value.trim() || null;
+        const logoUrl = row.querySelector('.streaming-input-logo')?.value.trim() || null;
+        const note = row.querySelector('.streaming-input-note')?.value.trim() || null;
+        if (platformName) {
+          platforms.push({ displayOrder: idx + 1, platformName, streamUrl, logoUrl, note, isActive: true });
+        }
+      });
+
+      try {
+        const res = await fetch('/api/admin/anime/streaming', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ animeId: currentAnimeId, platforms })
+        });
+        const data = await res.json();
+        if (data.success) {
+          setFeedback(streamingFeedback, '✓ Streaming platforms saved successfully!', 'success');
+          streamingBadge?.classList.remove('hidden');
+          window.showAdminToast('Streaming platforms saved successfully', 'success');
+        } else {
+          setFeedback(streamingFeedback, 'Error: ' + data.error, 'error');
+        }
+      } catch (err) {
+        setFeedback(streamingFeedback, 'Network error: ' + err.message, 'error');
+      }
+    });
+
+    // -------------------------------------------------------------
     // UNIVERSAL SAVE ALL (All Sections 1-10 + Visibility Toggles)
     // -------------------------------------------------------------
     async function executeSaveAll() {
@@ -3294,9 +3552,8 @@ const sectionVisibility = anime?.sectionVisibility || {
       const reviewPayload = { heading: reviewHeading, paragraphs: reviewParagraphs, type: reviewType, spoilerLevel: reviewSpoilerLevel };
 
       // 3. Section 3 Lessons
-      const lessonHeading = document.getElementById('lesson-heading')?.value.trim() || '';
       const lessonTakeaway = document.getElementById('lesson-takeaway')?.value.trim() || '';
-      const lessonsPayload = { heading: lessonHeading, takeaway: lessonTakeaway };
+      const lessonsPayload = { takeaway: lessonTakeaway };
 
       // 4. Section 4 Watch Order
       const franchiseId = document.getElementById('wo-franchise')?.value || null;
@@ -3382,7 +3639,20 @@ const sectionVisibility = anime?.sectionVisibility || {
         }
       });
 
-      // 11. Visibility Toggles
+      // 11. Section 11 Streaming Platforms
+      const streamingRows = document.querySelectorAll('#streaming-container .streaming-row');
+      const streamingPlatforms = [];
+      streamingRows.forEach((row, idx) => {
+        const platformName = row.querySelector('.streaming-input-name')?.value.trim();
+        const streamUrl = row.querySelector('.streaming-input-url')?.value.trim() || null;
+        const logoUrl = row.querySelector('.streaming-input-logo')?.value.trim() || null;
+        const note = row.querySelector('.streaming-input-note')?.value.trim() || null;
+        if (platformName) {
+          streamingPlatforms.push({ displayOrder: idx + 1, platformName, streamUrl, logoUrl, note, isActive: true });
+        }
+      });
+
+      // 12. Visibility Toggles
       const visibilityPayload = {};
       document.querySelectorAll('.section-visibility-checkbox').forEach((cb) => {
         const sec = cb.getAttribute('data-section');
@@ -3426,6 +3696,7 @@ const sectionVisibility = anime?.sectionVisibility || {
             powerSystem: powerPayload,
             universe,
             recommendations,
+            streaming: streamingPlatforms,
             visibility: visibilityPayload
           })
         });
@@ -3441,7 +3712,7 @@ const sectionVisibility = anime?.sectionVisibility || {
         [
           'core-badge', 'review-badge', 'lessons-badge', 'watch-order-badge',
           'filler-badge', 'chars-badge', 'source-badge', 'power-badge',
-          'universe-badge', 'recs-badge'
+          'universe-badge', 'recs-badge', 'streaming-badge'
         ].forEach(id => {
           const badge = document.getElementById(id);
           if (badge) badge.classList.remove('hidden');
