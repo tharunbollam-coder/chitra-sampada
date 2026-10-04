@@ -293,8 +293,12 @@ if (anime.honestyStatus === 'watched' && anime.personalRating !== undefined && a
             <img
               src={anime.poster}
               alt={`${anime.title} poster`}
+              width="280"
+              height="420"
               class="w-full h-full object-cover"
               loading="eager"
+              fetchpriority="high"
+              decoding="async"
             />
           </div>
         </div>
@@ -937,12 +941,7 @@ if (anime.honestyStatus === 'watched' && anime.personalRating !== undefined && a
       }
     }
 
-    // Attach to standard DOM load + Astro ViewTransitions lifecycle events
+    // Attach to Astro ViewTransitions lifecycle event
     document.addEventListener('astro:page-load', setupAnimeDetailInteractions);
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', setupAnimeDetailInteractions);
-    } else {
-      setupAnimeDetailInteractions();
-    }
   </script>
 </BaseLayout>

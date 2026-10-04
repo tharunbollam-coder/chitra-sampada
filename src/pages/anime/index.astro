@@ -124,8 +124,8 @@ const breadcrumbSchema = {
 
     <!-- Static Grid of Anime Cards -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-7">
-      {featuredAnime.map((anime) => (
-        <AnimeCard anime={anime} />
+      {featuredAnime.map((anime, idx) => (
+        <AnimeCard anime={anime} priority={idx < 2} />
       ))}
     </div>
   </section>

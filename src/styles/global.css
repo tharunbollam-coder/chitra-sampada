@@ -19,6 +19,15 @@
     color: #ffffff;
   }
 
+  html {
+    touch-action: manipulation;
+  }
+
+  a, button, [role="button"], input, select, textarea {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
   body {
     background-color: #F8FAFC;
     color: #334155;
@@ -58,6 +67,11 @@
   border-color: rgba(203, 213, 225, 1);
   box-shadow: 0 10px 15px -3px rgba(15, 23, 42, 0.05), 0 4px 6px -4px rgba(15, 23, 42, 0.05);
   transform: translateY(-2px);
+}
+
+.light-card:active {
+  transform: translateY(0) scale(0.99);
+  transition-duration: 50ms;
 }
 
 /* Custom scrollbar for light mode */

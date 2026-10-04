@@ -2,7 +2,12 @@
 // src/components/AnimeCard.astro
 import HonestyBadge from './HonestyBadge.astro';
 
-const { anime } = Astro.props;
+interface Props {
+  anime: any;
+  priority?: boolean;
+}
+
+const { anime, priority = false } = Astro.props;
 
 const isWatched = anime.honestyStatus === 'watched';
 const isZeroFiller = anime.fillerPercentage === 0;
@@ -42,8 +47,11 @@ if (normalizedStatus === 'currently airing' || normalizedStatus === 'airing') {
     <img
       src={anime.poster}
       alt={`${anime.title} poster`}
-      loading="lazy"
+      width="300"
+      height="450"
+      loading={priority ? 'eager' : 'lazy'}
       decoding="async"
+      fetchpriority={priority ? 'high' : 'auto'}
       class="w-full h-full object-cover object-center group-hover/poster:scale-[1.03] transition-transform duration-300 ease-out"
     />
   </a>

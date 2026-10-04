@@ -146,18 +146,9 @@ if (!Astro.url.pathname.startsWith('/admin') && !Astro.url.pathname.startsWith('
           }
         }
 
-        // Record scroll position continuously on listing pages
-        window.addEventListener('scroll', function () {
-          const path = getCleanPath();
-          if (isListingPage(path)) {
-            try {
-              sessionStorage.setItem('chitra_source_page', window.location.pathname + window.location.search);
-              sessionStorage.setItem('chitra_scroll_' + path, window.scrollY.toString());
-            } catch (e) {}
-          }
-        }, { passive: true });
-
+        // Record scroll position on navigation transitions or page leave without continuous main thread thrashing
         document.addEventListener('astro:before-preparation', recordListingState);
+        window.addEventListener('pagehide', recordListingState);
         document.addEventListener('astro:page-load', restoreListingScroll);
       })();
     </script>

@@ -320,6 +320,11 @@ let blogCache = {
   timestamp: 0
 };
 
+let siteSettingsCache = {
+  data: new Map(),
+  timestamp: 0
+};
+
 export function invalidateAnimeCache() {
   animeCache.data = null;
   animeCache.timestamp = 0;
@@ -328,6 +333,11 @@ export function invalidateAnimeCache() {
 export function invalidateBlogCache() {
   blogCache.data = null;
   blogCache.timestamp = 0;
+}
+
+export function invalidateSiteSettingsCache() {
+  siteSettingsCache.data.clear();
+  siteSettingsCache.timestamp = 0;
 }
 
 /**
@@ -879,31 +889,21 @@ export async function getBlogPostBySlug(slug, optionsOrContext = {}, contextOrLo
  */
 export async function getBlogPostsForAnime(animeId, contextOrLocals = null) {
   if (!animeId) return [];
-  const db = await getDatabase(contextOrLocals);
-  const rows = await db.query(`
-    SELECT bp.*
-    FROM blog_posts bp
-    JOIN blog_post_anime bpa ON bp.id = bpa.post_id
-    WHERE bpa.anime_id = ? AND bp.status = 'published'
-    ORDER BY bp.published_date DESC
-  `, animeId);
-
-  return rows.map((row) => {
-    const wordCount = row.content ? row.content.trim().split(/\s+/).length : 0;
-    const readTimeMinutes = Math.max(1, Math.ceil(wordCount / 200));
-
-    return {
-      id: row.id,
-      slug: row.slug,
-      title: row.title,
-      excerpt: row.excerpt,
-      content: row.content,
-      publishedDate: row.published_date,
-      lastUpdated: row.last_updated,
-      status: row.status,
-      readTime: `${readTimeMinutes} min read`
-    };
-  });
+  // Use cached blog posts from getAllBlogPosts when available to avoid waterfall queries
+  const posts = await getAllBlogPosts({ includeDrafts: false }, contextOrLocals);
+  return posts
+    .filter((p) => p.linkedAnime && p.linkedAnime.some((a) => a.id === animeId || a.slug === animeId))
+    .map((p) => ({
+      id: p.id,
+      slug: p.slug,
+      title: p.title,
+      excerpt: p.excerpt,
+      content: p.content,
+      publishedDate: p.publishedDate,
+      lastUpdated: p.lastUpdated,
+      status: p.status,
+      readTime: p.readTime
+    }));
 }
 
 /**
@@ -929,14 +929,21 @@ export function getDefaultTabKey(anime, availableTabs) {
 }
 
 /**
- * Fetch a site-wide setting value from D1
+ * Fetch a site-wide setting value from D1 with in-memory caching (60s TTL)
  */
 export async function getSiteSetting(key, defaultValue = null, contextOrLocals = null) {
   if (!key) return defaultValue;
+  const now = Date.now();
+  if (siteSettingsCache.data.has(key) && (now - siteSettingsCache.timestamp < 60000)) {
+    return siteSettingsCache.data.get(key);
+  }
   try {
     const db = await getDatabase(contextOrLocals);
     const row = await db.queryOne(`SELECT value FROM site_settings WHERE key = ?`, key);
-    return row?.value ?? defaultValue;
+    const val = row?.value ?? defaultValue;
+    siteSettingsCache.data.set(key, val);
+    siteSettingsCache.timestamp = Date.now();
+    return val;
   } catch (err) {
     console.warn(`[getSiteSetting] Failed to fetch setting '${key}':`, err?.message || err);
     return defaultValue;
@@ -955,5 +962,6 @@ export async function setSiteSetting(key, value, contextOrLocals = null) {
     VALUES (?, ?, datetime('now'))
     ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at
   `, key, cleanVal);
+  invalidateSiteSettingsCache();
   return { key, value: cleanVal };
 }

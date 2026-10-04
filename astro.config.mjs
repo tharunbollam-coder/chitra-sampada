@@ -7,6 +7,10 @@ export default defineConfig({
   site: 'https://chitrasampada.com',
   output: 'server',
   adapter: cloudflare(),
+  prefetch: {
+    prefetchAll: true,
+    defaultStrategy: 'hover',
+  },
   vite: {
     plugins: [tailwindcss()],
   },
