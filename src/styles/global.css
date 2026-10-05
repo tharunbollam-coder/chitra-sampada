@@ -256,6 +256,55 @@
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 
+/* Watch Order Editorial Guidance Note Formatting */
+.watch-order-guidance-content {
+  color: #334155;
+  line-height: 1.7;
+}
+
+.watch-order-guidance-content p {
+  margin-top: 0;
+  margin-bottom: 0.875rem;
+  line-height: 1.7;
+}
+
+.watch-order-guidance-content p:last-child {
+  margin-bottom: 0;
+}
+
+.watch-order-guidance-content ol {
+  margin-top: 0.625rem;
+  margin-bottom: 0.875rem;
+  padding-left: 1.35rem;
+  list-style-type: decimal;
+}
+
+.watch-order-guidance-content ul {
+  margin-top: 0.625rem;
+  margin-bottom: 0.875rem;
+  padding-left: 1.35rem;
+  list-style-type: disc;
+}
+
+.watch-order-guidance-content li {
+  margin-bottom: 0.375rem;
+  line-height: 1.65;
+  padding-left: 0.25rem;
+}
+
+.watch-order-guidance-content li:last-child {
+  margin-bottom: 0;
+}
+
+.watch-order-guidance-content strong {
+  font-weight: 700;
+  color: #0F172A;
+}
+
+.watch-order-guidance-content em {
+  font-style: italic;
+}
+
 
 
 

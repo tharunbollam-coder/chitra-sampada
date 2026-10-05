@@ -16,7 +16,7 @@ const isMovie = anime.type === 'movie';
 // Format status styling
 const normalizedStatus = (anime.status || '').trim().toLowerCase();
 let statusBadgeClass = 'text-slate-700 bg-slate-100 border-slate-200/80';
-let displayStatus = anime.status || 'Status';
+let displayStatus = null;
 
 if (normalizedStatus === 'currently airing' || normalizedStatus === 'airing') {
   statusBadgeClass = 'text-emerald-700 bg-emerald-50 border-emerald-200/80';
@@ -30,11 +30,22 @@ if (normalizedStatus === 'currently airing' || normalizedStatus === 'airing') {
 } else if (normalizedStatus === 'completed' || normalizedStatus === 'finished') {
   statusBadgeClass = 'text-slate-700 bg-slate-100 border-slate-200/80';
   displayStatus = 'Completed';
+} else if (normalizedStatus) {
+  displayStatus = anime.status;
 }
+
+// Parse genres for mobile chips (up to 2 or 3)
+const rawGenres = anime.genres;
+const genreList = Array.isArray(rawGenres)
+  ? rawGenres
+  : typeof rawGenres === 'string'
+    ? rawGenres.split(',').map((g) => g.trim()).filter(Boolean)
+    : [];
+const mobileGenres = genreList.slice(0, 3);
 ---
 
 <article
-  class="group relative flex flex-col rounded-2xl bg-white border border-slate-200/80 hover:border-slate-300 shadow-xs hover:shadow-md transition-all duration-300 hover:-translate-y-1 p-3.5 sm:p-4 h-full"
+  class="group relative flex flex-row md:flex-col gap-3 md:gap-0 p-3 sm:p-3.5 md:p-4 rounded-2xl bg-white border border-slate-200/80 hover:border-slate-300 shadow-xs hover:shadow-md transition-all duration-300 hover:-translate-y-1 h-full items-start md:items-stretch"
   data-vibe={anime.vibes ? anime.vibes.join(' ') : ''}
   data-status={anime.honestyStatus}
   data-filler={anime.fillerPercentage === 0 ? 'zero' : 'has-filler'}
@@ -42,8 +53,11 @@ if (normalizedStatus === 'currently airing' || normalizedStatus === 'airing') {
   data-community={anime.communitySuggested ? 'true' : 'false'}
   data-title={anime.title.toLowerCase()}
 >
-  <!-- Poster Image Container (Cleanly contained with defined boundary, NO badges/overlays over artwork) -->
-  <a href={`/anime/${anime.slug}`} class="relative w-full aspect-[2/3] rounded-xl overflow-hidden bg-slate-100 border border-slate-200/80 shadow-2xs mb-3.5 shrink-0 block group/poster">
+  <!-- Poster Image Container -->
+  <a
+    href={`/anime/${anime.slug}`}
+    class="relative w-24 sm:w-28 md:w-full aspect-[2/3] rounded-lg md:rounded-xl overflow-hidden bg-slate-100 border border-slate-200/80 shadow-2xs mb-0 md:mb-3.5 shrink-0 block group/poster"
+  >
     <img
       src={anime.poster}
       alt={`${anime.title} poster`}
@@ -56,10 +70,85 @@ if (normalizedStatus === 'currently airing' || normalizedStatus === 'airing') {
     />
   </a>
 
-  <!-- Content / Info Section (All status info, badges, and metadata below artwork) -->
-  <div class="flex-1 flex flex-col justify-between space-y-3">
+  <!-- Mobile Content Section (< md viewports) -->
+  <div class="flex md:hidden flex-col justify-between flex-1 min-w-0 py-0.5">
+    <div>
+      <!-- Title -->
+      <h3 class="text-base font-bold text-gray-900 dark:text-white group-hover:text-[#6366F1] transition-colors line-clamp-2 leading-snug font-heading tracking-tight">
+        <a href={`/anime/${anime.slug}`} class="hover:underline">
+          {anime.title}
+        </a>
+      </h3>
+
+      <!-- Sub-meta Line (Year · episodes/runtime) -->
+      <div class="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 font-medium mt-0.5">
+        <span>{anime.year}</span>
+        <span class="text-gray-300 dark:text-gray-600">·</span>
+        <span>{isMovie ? (anime.runtime ? `${anime.runtime}m` : 'Movie') : `${anime.episodes} eps`}</span>
+      </div>
+
+      <!-- Multiple Genre Tag Chips (Mobile Only) -->
+      {mobileGenres.length > 0 && (
+        <div class="flex flex-wrap items-center gap-1.5 mt-1.5">
+          {mobileGenres.map((genre: string) => (
+            <span class="inline-flex text-[11px] px-2 py-0.5 rounded-md bg-gray-100 dark:bg-gray-800/80 text-gray-600 dark:text-gray-300 font-medium">
+              {genre}
+            </span>
+          ))}
+        </div>
+      )}
+
+      <!-- Status & Watch Badges -->
+      <div class="flex flex-wrap items-center gap-1.5 mt-2">
+        <HonestyBadge status={anime.honestyStatus} size="sm" compact={true} />
+
+        {anime.communitySuggested && (
+          <span class="text-[10px] font-bold px-2 py-0.5 rounded-full border tracking-wide select-none bg-sky-50 text-sky-700 border-sky-200/80 flex items-center gap-1 shadow-2xs" title="Community Suggested">
+            <span>💡</span>
+            <span>Suggested</span>
+          </span>
+        )}
+
+        {isMovie ? (
+          <span class="text-[10px] font-bold px-2 py-0.5 rounded-full border tracking-wide select-none bg-purple-50 text-purple-700 border-purple-200">
+            Movie
+          </span>
+        ) : (
+          <span
+            class:list={[
+              'text-[10px] font-bold px-2 py-0.5 rounded-full border tracking-wide select-none',
+              isZeroFiller
+                ? 'bg-[#EEF2FF] text-[#4F46E5] border-[#C7D2FE]'
+                : 'bg-slate-100 text-slate-700 border-slate-200'
+            ]}
+          >
+            {isZeroFiller ? '0% Filler' : `${anime.fillerPercentage}% Filler`}
+          </span>
+        )}
+
+        {displayStatus && (
+          <span class:list={['text-[10px] font-semibold px-2 py-0.5 rounded border', statusBadgeClass]}>
+            {displayStatus}
+          </span>
+        )}
+      </div>
+    </div>
+
+    <!-- Footer Action Link -->
+    <div class="pt-2 border-t border-slate-100 dark:border-slate-800/80 mt-2 flex items-center justify-start">
+      <a
+        href={`/anime/${anime.slug}`}
+        aria-label={`View watch order and filler guide for ${anime.title}`}
+        class="text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:underline transition-colors"
+      >
+        View Guide →
+      </a>
+    </div>
+  </div>
+
+  <!-- Desktop / Tablet Content Section (md: viewports and up - Original Vertical Layout) -->
+  <div class="hidden md:flex flex-1 flex-col justify-between space-y-3">
     <div class="space-y-2">
-      
       <!-- Badges Row: Honesty Status & Format / Filler Percentage -->
       <div class="flex items-center justify-between gap-1.5 flex-wrap">
         <HonestyBadge status={anime.honestyStatus} size="sm" />
@@ -108,20 +197,22 @@ if (normalizedStatus === 'currently airing' || normalizedStatus === 'airing') {
         <span class="text-slate-300">•</span>
         <span class="truncate">{anime.genres.slice(0, 2).join(', ')}</span>
       </div>
-
     </div>
 
     <!-- Watch order cue & Status -->
     <div class="pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs">
       <a
         href={`/anime/${anime.slug}`}
+        aria-label={`View watch order and filler guide for ${anime.title}`}
         class="text-[11px] font-bold text-[#4F46E5] hover:text-[#4338CA] hover:underline transition-colors"
       >
         {isMovie ? 'Movie Details & Guide →' : 'Watch Order & Guide →'}
       </a>
-      <span class:list={['text-[10px] font-semibold px-2 py-0.5 rounded border', statusBadgeClass]}>
-        {displayStatus}
-      </span>
+      {displayStatus && (
+        <span class:list={['text-[10px] font-semibold px-2 py-0.5 rounded border', statusBadgeClass]}>
+          {displayStatus}
+        </span>
+      )}
     </div>
   </div>
 </article>

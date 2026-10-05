@@ -283,7 +283,9 @@ export async function saveAnimeCore(data, contextOrLocals = null) {
     : (Number(existing?.filler_percentage) || 0);
 
   const finalOriginalTitle = originalTitle !== undefined ? String(originalTitle) : (existing?.original_title ?? '');
-  const finalStatus = status || existing?.status || 'Finished';
+  const finalStatus = (status !== undefined && status !== null)
+    ? String(status).trim()
+    : (existing?.status ?? '');
   const finalPoster = poster !== undefined ? String(poster) : (existing?.poster ?? '');
   const finalBackdrop = backdrop !== undefined ? String(backdrop) : (existing?.backdrop ?? '');
   const finalAddedDate = addedDate || existing?.added_date || new Date().toISOString().split('T')[0];
@@ -682,22 +684,32 @@ export async function saveAnimeCharacters(animeId, characters = [], relatedPostS
     relPost = characters.relatedPostSlug !== undefined ? characters.relatedPostSlug : characters.characterRelatedPostSlug;
   }
 
+  // Deduplicate incoming list by normalized character name
+  const seenNames = new Set();
+  const dedupedList = [];
+  for (const char of charList) {
+    const name = String(char?.name || '').trim();
+    if (!name) continue;
+    const lowerName = name.toLowerCase();
+    if (seenNames.has(lowerName)) continue;
+    seenNames.add(lowerName);
+    dedupedList.push({
+      name,
+      category: String(char?.category || 'Supporting').trim(),
+      role: char?.role ? String(char.role).trim() : null,
+      commentary: char?.commentary ? String(char.commentary).trim() : null
+    });
+  }
+
   await db.run(`DELETE FROM anime_characters WHERE anime_id = ?`, animeId);
 
-  for (let index = 0; index < charList.length; index++) {
-    const char = charList[index];
-    const rank = Number(char.rank || index + 1);
-    const name = String(char.name || '').trim();
-    const category = String(char.category || 'Supporting').trim();
-    const role = char.role ? String(char.role).trim() : null;
-    const commentary = char.commentary ? String(char.commentary).trim() : null;
-
-    if (name) {
-      await db.run(`
-        INSERT INTO anime_characters (anime_id, rank, name, category, role, commentary) 
-        VALUES (?, ?, ?, ?, ?, ?)
-      `, animeId, rank, name, category, role, commentary);
-    }
+  for (let index = 0; index < dedupedList.length; index++) {
+    const char = dedupedList[index];
+    const rank = index + 1;
+    await db.run(`
+      INSERT INTO anime_characters (anime_id, rank, name, category, role, commentary) 
+      VALUES (?, ?, ?, ?, ?, ?)
+    `, animeId, rank, char.name, char.category, char.role, char.commentary);
   }
 
   const cleanSlug = relPost !== undefined ? (relPost ? String(relPost).trim() : null) : undefined;

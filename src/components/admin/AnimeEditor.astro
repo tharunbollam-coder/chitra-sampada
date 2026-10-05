@@ -297,6 +297,7 @@ const sectionVisibility = anime?.sectionVisibility || {
                 name="status"
                 class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-sm text-white focus:outline-none focus:border-indigo-500"
               >
+                <option value="" selected={!anime?.status}>Not Specified (Optional)</option>
                 <option value="Currently Airing" selected={anime?.status === 'Currently Airing'}>Currently Airing</option>
                 <option value="Upcoming" selected={anime?.status === 'Upcoming'}>Upcoming</option>
                 <option value="Season Finished" selected={anime?.status === 'Season Finished'}>Season Finished</option>
@@ -1163,24 +1164,17 @@ const sectionVisibility = anime?.sectionVisibility || {
         <div id="chars-feedback" class="hidden mb-5 p-3.5 rounded-xl text-xs sm:text-sm font-medium border"></div>
 
         <form id="form-chars" class="space-y-4">
-          <div class="flex items-center justify-between">
+          <div>
             <p class="text-xs text-slate-400">
               Add primary and memorable characters in order of significance.
             </p>
-            <button
-              type="button"
-              id="btn-add-char-row"
-              class="text-xs px-3 py-1.5 bg-indigo-600/20 text-indigo-300 border border-indigo-500/40 rounded-lg hover:bg-indigo-600/30 font-semibold flex items-center gap-1 shrink-0 cursor-pointer"
-            >
-              + Add Character
-            </button>
           </div>
 
           <div id="chars-container" class="space-y-3">
             {(anime?.characters?.length ? anime.characters : []).map((c, i) => (
-              <div class="p-3 bg-slate-950 border border-slate-800 rounded-xl space-y-2.5 character-row">
-                <div class="flex flex-wrap sm:flex-nowrap items-center justify-between gap-2.5">
-                  <div class="flex items-center gap-2 flex-1 min-w-[180px]">
+              <div class="p-3 sm:p-3.5 bg-slate-950 border border-slate-800 rounded-xl space-y-2.5 character-row">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                  <div class="flex items-center gap-2 flex-1 min-w-0">
                     <span class="w-6 h-6 rounded bg-slate-800 text-slate-400 text-xs flex items-center justify-center font-bold shrink-0 char-rank-badge">
                       {c.rank || i + 1}
                     </span>
@@ -1188,12 +1182,19 @@ const sectionVisibility = anime?.sectionVisibility || {
                       type="text"
                       value={c.name}
                       placeholder="Character Name"
-                      class="char-input-name flex-1 px-3 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-sm text-white font-medium"
+                      class="char-input-name flex-1 min-w-0 px-3 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-sm text-white font-medium"
                       required
                     />
+                    <button
+                      type="button"
+                      class="sm:hidden btn-remove-char p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg shrink-0 cursor-pointer transition"
+                      title="Remove character"
+                    >
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                    </button>
                   </div>
-                  <div class="flex items-center gap-2 shrink-0 ml-auto sm:ml-0">
-                    <select class="char-input-category px-2.5 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-xs text-white">
+                  <div class="flex items-center gap-2 shrink-0">
+                    <select class="char-input-category w-full sm:w-auto px-2.5 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-xs text-white">
                       <option value="Protagonist" selected={c.category === 'Protagonist'}>Protagonist</option>
                       <option value="Main" selected={c.category === 'Main'}>Main</option>
                       <option value="Supporting" selected={c.category === 'Supporting'}>Supporting</option>
@@ -1201,12 +1202,10 @@ const sectionVisibility = anime?.sectionVisibility || {
                     </select>
                     <button
                       type="button"
-                      class="btn-remove-char text-slate-500 hover:text-rose-400 p-1 cursor-pointer"
+                      class="hidden sm:inline-flex btn-remove-char text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg p-1.5 cursor-pointer transition shrink-0"
                       title="Remove character"
                     >
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                     </button>
                   </div>
                 </div>
@@ -1227,6 +1226,17 @@ const sectionVisibility = anime?.sectionVisibility || {
                 </div>
               </div>
             ))}
+          </div>
+
+          <div class="pt-1 flex items-center justify-between">
+            <button
+              type="button"
+              id="btn-add-char-row"
+              class="w-full sm:w-auto text-xs px-4 py-2 bg-indigo-600/20 text-indigo-300 border border-indigo-500/40 rounded-xl hover:bg-indigo-600/30 font-semibold flex items-center justify-center gap-1.5 shrink-0 cursor-pointer transition"
+            >
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+              <span>+ Add Character</span>
+            </button>
           </div>
 
           <div class="pt-4 border-t border-slate-800">
@@ -2554,7 +2564,7 @@ const sectionVisibility = anime?.sectionVisibility || {
       updateMediaTypeUI();
 
       const statusEl = document.getElementById('core-status');
-      if (statusEl && a.status) statusEl.value = (a.status === 'Finished' ? 'Completed' : a.status);
+      if (statusEl) statusEl.value = (a.status === 'Finished' ? 'Completed' : (a.status || ''));
 
       const honestyEl = document.getElementById('core-honesty');
       if (honestyEl && a.honestyStatus) honestyEl.value = a.honestyStatus;
@@ -2672,33 +2682,40 @@ const sectionVisibility = anime?.sectionVisibility || {
         charsContainer.innerHTML = '';
         (a.characters || []).forEach((c, idx) => {
           const div = document.createElement('div');
-          div.className = 'p-3 bg-slate-950 border border-slate-800 rounded-xl space-y-2.5 character-row';
+          div.className = 'p-3 sm:p-3.5 bg-slate-950 border border-slate-800 rounded-xl space-y-2.5 character-row';
           div.innerHTML = `
-            <div class="flex items-center justify-between gap-3">
-              <div class="flex items-center gap-2 flex-1">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+              <div class="flex items-center gap-2 flex-1 min-w-0">
                 <span class="w-6 h-6 rounded bg-slate-800 text-slate-400 text-xs flex items-center justify-center font-bold shrink-0 char-rank-badge">
                   ${c.rank || idx + 1}
                 </span>
-                <input type="text" value="${c.name || ''}" placeholder="Character Name" class="char-input-name flex-1 px-3 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-sm text-white font-medium" required />
+                <input type="text" value="${c.name || ''}" placeholder="Character Name" class="char-input-name flex-1 min-w-0 px-3 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-sm text-white font-medium" required />
+                <button type="button" class="sm:hidden btn-remove-char p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg shrink-0 cursor-pointer transition" title="Remove character">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                </button>
               </div>
-              <select class="char-input-category px-2.5 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-xs text-white">
-                <option value="Protagonist" ${c.category === 'Protagonist' ? 'selected' : ''}>Protagonist</option>
-                <option value="Main" ${c.category === 'Main' ? 'selected' : ''}>Main</option>
-                <option value="Supporting" ${c.category === 'Supporting' ? 'selected' : ''}>Supporting</option>
-                <option value="Antagonist" ${c.category === 'Antagonist' ? 'selected' : ''}>Antagonist</option>
-              </select>
-              <button type="button" class="btn-remove-char text-slate-500 hover:text-rose-400 p-1 cursor-pointer" title="Remove character">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-              </button>
+              <div class="flex items-center gap-2 shrink-0">
+                <select class="char-input-category w-full sm:w-auto px-2.5 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-xs text-white">
+                  <option value="Protagonist" ${c.category === 'Protagonist' ? 'selected' : ''}>Protagonist</option>
+                  <option value="Main" ${c.category === 'Main' ? 'selected' : ''}>Main</option>
+                  <option value="Supporting" ${c.category === 'Supporting' ? 'selected' : ''}>Supporting</option>
+                  <option value="Antagonist" ${c.category === 'Antagonist' ? 'selected' : ''}>Antagonist</option>
+                </select>
+                <button type="button" class="hidden sm:inline-flex btn-remove-char text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg p-1.5 cursor-pointer transition shrink-0" title="Remove character">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                </button>
+              </div>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <input type="text" value="${c.role || ''}" placeholder="Role / Title (e.g. Elven Mage)" class="char-input-role px-3 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-xs text-slate-200" />
               <input type="text" value="${c.commentary || ''}" placeholder="Short commentary or key trait" class="char-input-commentary px-3 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-xs text-slate-200" />
             </div>
           `;
-          div.querySelector('.btn-remove-char').addEventListener('click', () => {
-            div.remove();
-            updateCharacterRanks();
+          div.querySelectorAll('.btn-remove-char').forEach(btn => {
+            btn.addEventListener('click', () => {
+              div.remove();
+              updateCharacterRanks();
+            });
           });
           charsContainer.appendChild(div);
         });
@@ -3126,27 +3143,34 @@ const sectionVisibility = anime?.sectionVisibility || {
     const charsFeedback = document.getElementById('chars-feedback');
     const charsBadge = document.getElementById('chars-badge');
 
-    document.getElementById('btn-add-char-row').addEventListener('click', () => {
+    let isSavingChars = false;
+
+    document.getElementById('btn-add-char-row').addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
       const container = document.getElementById('chars-container');
       const nextRank = container.querySelectorAll('.character-row').length + 1;
       const div = document.createElement('div');
-      div.className = 'p-3 bg-slate-950 border border-slate-800 rounded-xl space-y-2.5 character-row';
+      div.className = 'p-3 sm:p-3.5 bg-slate-950 border border-slate-800 rounded-xl space-y-2.5 character-row';
       div.innerHTML = `
-        <div class="flex flex-wrap sm:flex-nowrap items-center justify-between gap-2.5">
-          <div class="flex items-center gap-2 flex-1 min-w-[180px]">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+          <div class="flex items-center gap-2 flex-1 min-w-0">
             <span class="w-6 h-6 rounded bg-slate-800 text-slate-400 text-xs flex items-center justify-center font-bold shrink-0 char-rank-badge">
               ${nextRank}
             </span>
-            <input type="text" placeholder="Character Name" class="char-input-name flex-1 px-3 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-sm text-white font-medium" required />
+            <input type="text" placeholder="Character Name" class="char-input-name flex-1 min-w-0 px-3 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-sm text-white font-medium" required />
+            <button type="button" class="sm:hidden btn-remove-char p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg shrink-0 cursor-pointer transition" title="Remove character">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+            </button>
           </div>
-          <div class="flex items-center gap-2 shrink-0 ml-auto sm:ml-0">
-            <select class="char-input-category px-2.5 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-xs text-white">
+          <div class="flex items-center gap-2 shrink-0">
+            <select class="char-input-category w-full sm:w-auto px-2.5 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-xs text-white">
               <option value="Main">Main</option>
               <option value="Protagonist">Protagonist</option>
               <option value="Supporting" selected>Supporting</option>
               <option value="Antagonist">Antagonist</option>
             </select>
-            <button type="button" class="btn-remove-char text-slate-500 hover:text-rose-400 p-1 cursor-pointer" title="Remove character">
+            <button type="button" class="hidden sm:inline-flex btn-remove-char text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg p-1.5 cursor-pointer transition shrink-0" title="Remove character">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
             </button>
           </div>
@@ -3156,11 +3180,21 @@ const sectionVisibility = anime?.sectionVisibility || {
           <input type="text" placeholder="Short commentary or key trait" class="char-input-commentary px-3 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-xs text-slate-200" />
         </div>
       `;
-      div.querySelector('.btn-remove-char').addEventListener('click', () => {
-        div.remove();
-        updateCharacterRanks();
+      div.querySelectorAll('.btn-remove-char').forEach(btn => {
+        btn.addEventListener('click', () => {
+          div.remove();
+          updateCharacterRanks();
+        });
       });
       container.appendChild(div);
+      updateCharacterRanks();
+
+      // Keep user's scroll position locked at the bottom and smoothly focus on the new character input
+      const nameInput = div.querySelector('.char-input-name');
+      if (nameInput) {
+        div.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        nameInput.focus({ preventScroll: true });
+      }
     });
 
     function updateCharacterRanks() {
@@ -3180,26 +3214,52 @@ const sectionVisibility = anime?.sectionVisibility || {
 
     formChars.addEventListener('submit', async (e) => {
       e.preventDefault();
+      if (isSavingChars) return;
       if (!currentAnimeId) {
         setFeedback(charsFeedback, 'Please save Section 1 Core Details first.', 'error');
         return;
       }
 
-      const rows = document.querySelectorAll('#chars-container .character-row');
-      const characters = [];
-      rows.forEach((row, idx) => {
-        const name = row.querySelector('.char-input-name').value.trim();
-        const category = row.querySelector('.char-input-category').value;
-        const role = row.querySelector('.char-input-role').value.trim();
-        const commentary = row.querySelector('.char-input-commentary').value.trim();
-        if (name) {
-          characters.push({ rank: idx + 1, name, category, role, commentary });
-        }
-      });
+      const submitBtn = formChars.querySelector('button[type="submit"]');
+      const originalBtnHtml = submitBtn ? submitBtn.innerHTML : 'Save Key Characters';
 
-      const relatedPostSlug = document.getElementById('chars-related-post')?.value.trim() || null;
+      isSavingChars = true;
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.classList.add('opacity-70', 'cursor-not-allowed');
+        submitBtn.innerHTML = `
+          <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          Saving Characters...
+        `;
+      }
 
       try {
+        const rows = document.querySelectorAll('#chars-container .character-row');
+        const characters = [];
+        const seenNames = new Set();
+        rows.forEach((row) => {
+          const nameInput = row.querySelector('.char-input-name');
+          const name = nameInput ? nameInput.value.trim() : '';
+          const categoryEl = row.querySelector('.char-input-category');
+          const category = categoryEl ? categoryEl.value : 'Supporting';
+          const roleInput = row.querySelector('.char-input-role');
+          const role = roleInput ? roleInput.value.trim() : '';
+          const commentaryInput = row.querySelector('.char-input-commentary');
+          const commentary = commentaryInput ? commentaryInput.value.trim() : '';
+          if (name) {
+            const lower = name.toLowerCase();
+            if (!seenNames.has(lower)) {
+              seenNames.add(lower);
+              characters.push({ rank: characters.length + 1, name, category, role, commentary });
+            }
+          }
+        });
+
+        const relatedPostSlug = document.getElementById('chars-related-post')?.value.trim() || null;
+
         const res = await fetch('/api/admin/anime/characters', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -3215,6 +3275,13 @@ const sectionVisibility = anime?.sectionVisibility || {
         }
       } catch (err) {
         setFeedback(charsFeedback, 'Network error: ' + err.message, 'error');
+      } finally {
+        isSavingChars = false;
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.classList.remove('opacity-70', 'cursor-not-allowed');
+          submitBtn.innerHTML = originalBtnHtml;
+        }
       }
     });
 

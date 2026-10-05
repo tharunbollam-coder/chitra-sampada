@@ -60,6 +60,7 @@ const activeTab = availableTabs.find((t) => t.key === activeTabKey) || available
 
 function getAirStatusDetails(status) {
   const s = (status || '').trim();
+  if (!s) return null;
   const lower = s.toLowerCase();
 
   if (lower === 'currently airing' || lower === 'airing') {
@@ -100,7 +101,7 @@ function getAirStatusDetails(status) {
   }
 
   return {
-    label: s || 'Status Unknown',
+    label: s,
     badgeClass: 'bg-slate-100 text-slate-700 border-slate-200/80',
     dotClass: 'bg-slate-400',
     explanation: ''
@@ -311,26 +312,34 @@ if (anime.honestyStatus === 'watched' && anime.personalRating !== undefined && a
             <HonestyBadge status={anime.honestyStatus} size="md" />
 
             <!-- Air Status Badge with Embedded Guidance Popover -->
-            {airStatusInfo.label && (
+            {airStatusInfo?.label && (
               <div class="relative inline-flex items-center">
-                <span class:list={['text-xs font-semibold px-3 py-1 rounded-full border tracking-wide select-none flex items-center gap-1.5 shadow-2xs', airStatusInfo.badgeClass]}>
-                  <span class:list={['w-1.5 h-1.5 rounded-full', airStatusInfo.dotClass]}></span>
-                  <span>{airStatusInfo.label}</span>
-                  {airStatusInfo.explanation && (
-                    <button
-                      type="button"
-                      id="air-status-info-btn"
-                      aria-label={`${airStatusInfo.label} guidance`}
-                      aria-expanded="false"
-                      aria-controls="air-status-popover"
-                      class="ml-0.5 opacity-70 hover:opacity-100 hover:text-indigo-600 focus:outline-none transition-all cursor-pointer"
-                    >
+                {airStatusInfo.explanation ? (
+                  <button
+                    type="button"
+                    id="air-status-info-btn"
+                    aria-label={`${airStatusInfo.label} guidance`}
+                    aria-expanded="false"
+                    aria-controls="air-status-popover"
+                    class:list={[
+                      'text-xs font-semibold px-3 py-1 rounded-full border tracking-wide select-none flex items-center gap-1.5 shadow-2xs cursor-pointer transition-all touch-manipulation',
+                      airStatusInfo.badgeClass
+                    ]}
+                  >
+                    <span class:list={['w-1.5 h-1.5 rounded-full', airStatusInfo.dotClass]}></span>
+                    <span>{airStatusInfo.label}</span>
+                    <span class="ml-0.5 opacity-70 hover:opacity-100 transition-opacity flex items-center">
                       <svg class="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
                         <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
                       </svg>
-                    </button>
-                  )}
-                </span>
+                    </span>
+                  </button>
+                ) : (
+                  <span class:list={['text-xs font-semibold px-3 py-1 rounded-full border tracking-wide select-none flex items-center gap-1.5 shadow-2xs', airStatusInfo.badgeClass]}>
+                    <span class:list={['w-1.5 h-1.5 rounded-full', airStatusInfo.dotClass]}></span>
+                    <span>{airStatusInfo.label}</span>
+                  </span>
+                )}
 
                 <!-- Air Status Popover / Tooltip -->
                 {airStatusInfo.explanation && (
@@ -415,22 +424,22 @@ if (anime.honestyStatus === 'watched' && anime.personalRating !== undefined && a
             <!-- Age Rating Badge with Guidance Popover -->
             {hasAgeRating && (
               <div class="relative inline-flex items-center">
-                <span class="text-xs font-semibold px-3 py-1 rounded-full bg-slate-100 text-slate-800 border border-slate-200 flex items-center gap-1.5 shadow-2xs">
+                <button
+                  type="button"
+                  id="age-rating-info-btn"
+                  aria-label="Age Ratings & Guidance info"
+                  aria-expanded="false"
+                  aria-controls="age-rating-popover"
+                  class="text-xs font-semibold px-3 py-1 rounded-full bg-slate-100 hover:bg-slate-200/80 text-slate-800 border border-slate-200 flex items-center gap-1.5 shadow-2xs cursor-pointer transition-colors touch-manipulation"
+                >
                   <span class="text-slate-400 font-normal">Age</span>
                   <span class="font-bold text-slate-800">{ageRatingDisplay}</span>
-                  <button
-                    type="button"
-                    id="age-rating-info-btn"
-                    aria-label="Age Ratings & Guidance info"
-                    aria-expanded="false"
-                    aria-controls="age-rating-popover"
-                    class="ml-0.5 text-slate-400 hover:text-indigo-600 focus:outline-none transition-colors cursor-pointer"
-                  >
+                  <span class="ml-0.5 text-slate-400 hover:text-indigo-600 transition-colors flex items-center">
                     <svg class="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
                       <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
                     </svg>
-                  </button>
-                </span>
+                  </span>
+                </button>
 
                 <!-- Popover / Tooltip -->
                 <div
@@ -787,71 +796,89 @@ if (anime.honestyStatus === 'watched' && anime.personalRating !== undefined && a
         }
       });
 
-      // Age Rating Guidance Popover
-      const ageBtn = document.getElementById('age-rating-info-btn');
-      const agePopover = document.getElementById('age-rating-popover');
-      const closeAgeBtn = document.getElementById('close-age-popover');
+      // Guidance Tooltips / Popovers (Air Status & Age Rating)
+      function setupTooltip(btn, popover, closeBtn, isLeftPreferred) {
+        if (!btn || !popover) return;
 
-      if (ageBtn && agePopover) {
         let isOpen = false;
+        let isTouchInteraction = false;
+        let hoverTimer = null;
 
         function openPopover() {
           isOpen = true;
-          agePopover.classList.remove('hidden');
-          ageBtn.setAttribute('aria-expanded', 'true');
-          const rect = agePopover.getBoundingClientRect();
-          if (rect.right > window.innerWidth - 16) {
-            agePopover.classList.add('right-0', 'left-auto');
+          popover.classList.remove('hidden');
+          btn.setAttribute('aria-expanded', 'true');
+
+          const rect = popover.getBoundingClientRect();
+          if (rect.right > window.innerWidth - 12) {
+            popover.classList.remove('sm:left-0', 'sm:right-auto');
+            popover.classList.add('right-0', 'left-auto');
+          } else if (isLeftPreferred && rect.left < 12) {
+            popover.classList.remove('right-0', 'left-auto');
+            popover.classList.add('left-0', 'right-auto');
           }
         }
 
         function closePopover() {
           isOpen = false;
-          agePopover.classList.add('hidden');
-          ageBtn.setAttribute('aria-expanded', 'false');
+          popover.classList.add('hidden');
+          btn.setAttribute('aria-expanded', 'false');
         }
 
-        ageBtn.onclick = function (e) {
-          e.stopPropagation();
+        function togglePopover(e) {
+          if (e) e.stopPropagation();
           if (isOpen) {
             closePopover();
           } else {
             openPopover();
           }
-        };
+        }
 
-        let hoverTimer = null;
-        ageBtn.onmouseenter = function () {
+        // Detect touch input so simulated mouseenter/hover does not close or conflict
+        btn.addEventListener('touchstart', function () {
+          isTouchInteraction = true;
+        }, { passive: true });
+
+        btn.addEventListener('click', function (e) {
+          togglePopover(e);
+        });
+
+        // Mouse hover interaction for desktop pointers only
+        btn.addEventListener('mouseenter', function () {
+          if (isTouchInteraction) return;
           clearTimeout(hoverTimer);
           openPopover();
-        };
+        });
 
-        ageBtn.onmouseleave = function () {
+        btn.addEventListener('mouseleave', function () {
+          if (isTouchInteraction) return;
           hoverTimer = setTimeout(function () {
-            if (!agePopover.matches(':hover')) {
+            if (!popover.matches(':hover')) {
               closePopover();
             }
           }, 150);
-        };
+        });
 
-        agePopover.onmouseenter = function () {
+        popover.addEventListener('mouseenter', function () {
+          if (isTouchInteraction) return;
           clearTimeout(hoverTimer);
           openPopover();
-        };
+        });
 
-        agePopover.onmouseleave = function () {
+        popover.addEventListener('mouseleave', function () {
+          if (isTouchInteraction) return;
           closePopover();
-        };
+        });
 
-        if (closeAgeBtn) {
-          closeAgeBtn.onclick = function (e) {
+        if (closeBtn) {
+          closeBtn.addEventListener('click', function (e) {
             e.stopPropagation();
             closePopover();
-          };
+          });
         }
 
         document.addEventListener('click', function (e) {
-          if (isOpen && !agePopover.contains(e.target) && !ageBtn.contains(e.target)) {
+          if (isOpen && !popover.contains(e.target) && !btn.contains(e.target)) {
             closePopover();
           }
         });
@@ -864,81 +891,20 @@ if (anime.honestyStatus === 'watched' && anime.personalRating !== undefined && a
       }
 
       // Air Status Guidance Tooltip
-      const statusBtn = document.getElementById('air-status-info-btn');
-      const statusPopover = document.getElementById('air-status-popover');
-      const closeStatusBtn = document.getElementById('close-air-status-popover');
+      setupTooltip(
+        document.getElementById('air-status-info-btn'),
+        document.getElementById('air-status-popover'),
+        document.getElementById('close-air-status-popover'),
+        true
+      );
 
-      if (statusBtn && statusPopover) {
-        let isStatusOpen = false;
-
-        function openStatusPopover() {
-          isStatusOpen = true;
-          statusPopover.classList.remove('hidden');
-          statusBtn.setAttribute('aria-expanded', 'true');
-          const rect = statusPopover.getBoundingClientRect();
-          if (rect.right > window.innerWidth - 16) {
-            statusPopover.classList.remove('sm:left-0', 'sm:right-auto');
-            statusPopover.classList.add('right-0', 'left-auto');
-          }
-        }
-
-        function closeStatusPopover() {
-          isStatusOpen = false;
-          statusPopover.classList.add('hidden');
-          statusBtn.setAttribute('aria-expanded', 'false');
-        }
-
-        statusBtn.onclick = function (e) {
-          e.stopPropagation();
-          if (isStatusOpen) {
-            closeStatusPopover();
-          } else {
-            openStatusPopover();
-          }
-        };
-
-        let statusHoverTimer = null;
-        statusBtn.onmouseenter = function () {
-          clearTimeout(statusHoverTimer);
-          openStatusPopover();
-        };
-
-        statusBtn.onmouseleave = function () {
-          statusHoverTimer = setTimeout(function () {
-            if (!statusPopover.matches(':hover')) {
-              closeStatusPopover();
-            }
-          }, 150);
-        };
-
-        statusPopover.onmouseenter = function () {
-          clearTimeout(statusHoverTimer);
-          openStatusPopover();
-        };
-
-        statusPopover.onmouseleave = function () {
-          closeStatusPopover();
-        };
-
-        if (closeStatusBtn) {
-          closeStatusBtn.onclick = function (e) {
-            e.stopPropagation();
-            closeStatusPopover();
-          };
-        }
-
-        document.addEventListener('click', function (e) {
-          if (isStatusOpen && !statusPopover.contains(e.target) && !statusBtn.contains(e.target)) {
-            closeStatusPopover();
-          }
-        });
-
-        document.addEventListener('keydown', function (e) {
-          if (e.key === 'Escape' && isStatusOpen) {
-            closeStatusPopover();
-          }
-        });
-      }
+      // Age Rating Guidance Popover
+      setupTooltip(
+        document.getElementById('age-rating-info-btn'),
+        document.getElementById('age-rating-popover'),
+        document.getElementById('close-age-popover'),
+        false
+      );
     }
 
     // Attach to Astro ViewTransitions lifecycle event

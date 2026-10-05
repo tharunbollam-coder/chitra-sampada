@@ -1,7 +1,15 @@
 ---
 // src/components/HonestyBadge.astro
 
-const { status = 'watched', size = 'md', showNote = false, customNote = '' } = Astro.props;
+interface Props {
+  status?: string;
+  size?: 'sm' | 'md' | 'lg';
+  showNote?: boolean;
+  customNote?: string;
+  compact?: boolean;
+}
+
+const { status = 'watched', size = 'md', showNote = false, customNote = '', compact = false } = Astro.props;
 
 const isWatched = status === 'watched';
 const isWatchlist = status === 'watchlist';
@@ -13,17 +21,25 @@ const badgeTitle = isWatched
     ? "On my watchlist to watch next"
     : "Compiled reference guide (not personally watched)";
 
-const badgeLabel = isWatched
+const fullLabel = isWatched
   ? "I've Watched This"
   : isWatchlist
     ? "On My Watchlist"
     : "Reference Guide";
+
+const compactLabel = isWatched
+  ? "Watched"
+  : isWatchlist
+    ? "Watchlist"
+    : "Reference";
+
+const badgeLabel = compact ? compactLabel : fullLabel;
 ---
 
 <div
   class:list={[
     'inline-flex items-center gap-1.5 rounded-full font-semibold tracking-wide transition-all duration-200 select-none shadow-2xs',
-    size === 'sm' && 'px-2.5 py-0.5 text-[11px]',
+    size === 'sm' && (compact ? 'px-2 py-0.5 text-[10px]' : 'px-2.5 py-0.5 text-[11px]'),
     size === 'md' && 'px-3 py-1 text-xs',
     size === 'lg' && 'px-4 py-1.5 text-sm font-semibold',
     isWatched && 'bg-[#EEF2FF] text-[#4F46E5] border border-[#C7D2FE]',
