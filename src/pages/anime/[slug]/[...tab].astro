@@ -346,23 +346,23 @@ if (anime.honestyStatus === 'watched' && anime.personalRating !== undefined && a
                   <div
                     id="air-status-popover"
                     role="tooltip"
-                    class="hidden absolute z-50 right-0 sm:left-0 sm:right-auto top-full mt-2 w-[280px] max-w-[calc(100vw-2.5rem)] p-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl text-left transition-all duration-200"
+                    class="hidden absolute top-full mt-2 z-50 w-[280px] sm:w-[290px] p-3.5 sm:p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl text-left"
                   >
-                    <div class="flex items-start justify-between gap-2 mb-1.5">
-                      <div class="flex items-center gap-1.5 text-xs font-bold text-slate-900 dark:text-slate-100">
-                        <span class:list={['w-1.5 h-1.5 rounded-full', airStatusInfo.dotClass]}></span>
+                    <div class="flex items-start justify-between gap-2 mb-2">
+                      <div class="flex items-center gap-1.5 text-xs sm:text-sm font-bold text-slate-900 dark:text-slate-100">
+                        <span class:list={['w-2 h-2 rounded-full', airStatusInfo.dotClass]}></span>
                         <span>{airStatusInfo.label}</span>
                       </div>
                       <button
                         type="button"
                         id="close-air-status-popover"
                         aria-label="Close guidance"
-                        class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5 rounded-lg -mr-1 -mt-1 text-xs cursor-pointer"
+                        class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 -mr-1 -mt-1 text-sm leading-none rounded-lg cursor-pointer transition-colors"
                       >
                         ✕
                       </button>
                     </div>
-                    <p class="text-xs text-slate-600 dark:text-slate-300 font-normal leading-relaxed">
+                    <p class="text-xs sm:text-sm text-slate-600 dark:text-slate-300 font-normal leading-relaxed">
                       {airStatusInfo.explanation}
                     </p>
                   </div>
@@ -445,10 +445,10 @@ if (anime.honestyStatus === 'watched' && anime.personalRating !== undefined && a
                 <div
                   id="age-rating-popover"
                   role="tooltip"
-                  class="hidden absolute z-50 right-0 left-auto top-full mt-2 w-[280px] max-w-[calc(100vw-2.5rem)] p-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl text-left transition-all duration-200"
+                  class="hidden absolute top-full mt-2 z-50 w-[280px] sm:w-[290px] p-3.5 sm:p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl text-left"
                 >
                   <div class="flex items-start justify-between gap-2 mb-2">
-                    <div class="flex items-center gap-1.5 text-xs font-bold text-slate-900 dark:text-slate-100">
+                    <div class="flex items-center gap-1.5 text-xs sm:text-sm font-bold text-slate-900 dark:text-slate-100">
                       <span class="w-2 h-2 rounded-full bg-indigo-500"></span>
                       <span>Age Ratings & Guidance</span>
                     </div>
@@ -456,12 +456,12 @@ if (anime.honestyStatus === 'watched' && anime.personalRating !== undefined && a
                       type="button"
                       id="close-age-popover"
                       aria-label="Close guidance"
-                      class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5 rounded-lg -mr-1 -mt-1 text-xs cursor-pointer"
+                      class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 -mr-1 -mt-1 text-sm leading-none rounded-lg cursor-pointer transition-colors"
                     >
                       ✕
                     </button>
                   </div>
-                  <div class="space-y-2 text-xs text-slate-600 dark:text-slate-300 leading-relaxed font-normal">
+                  <div class="space-y-2 text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed font-normal">
                     <p>
                       Age recommendations on Chitra Sampada reflect content maturity including violence, themes, language, and intensity.
                     </p>
@@ -796,114 +796,129 @@ if (anime.honestyStatus === 'watched' && anime.personalRating !== undefined && a
         }
       });
 
-      // Guidance Tooltips / Popovers (Air Status & Age Rating)
-      function setupTooltip(btn, popover, closeBtn, isLeftPreferred) {
+      // -------------------------------------------------------------
+      // Dynamic Guidance Popovers (Air Status & Age Rating)
+      // -------------------------------------------------------------
+      let currentOpenPopover = null;
+
+      function closeAllPopovers() {
+        if (currentOpenPopover) {
+          currentOpenPopover.close();
+          currentOpenPopover = null;
+        }
+      }
+
+      function setupPopover(btn, popover, closeBtn) {
         if (!btn || !popover) return;
 
-        let isOpen = false;
-        let isTouchInteraction = false;
-        let hoverTimer = null;
+        function updatePosition() {
+          const btnRect = btn.getBoundingClientRect();
+          const padding = 16;
+          const cardWidth = Math.min(290, window.innerWidth - (padding * 2));
+          popover.style.width = cardWidth + 'px';
 
-        function openPopover() {
-          isOpen = true;
+          // Clamp left position so the floating card stays strictly within viewport margins
+          const maxLeft = window.innerWidth - cardWidth - padding;
+          const minLeft = padding;
+          const clampedLeft = Math.max(minLeft, Math.min(btnRect.left, maxLeft));
+          const offsetX = clampedLeft - btnRect.left;
+
+          popover.style.left = offsetX + 'px';
+          popover.style.right = 'auto';
+        }
+
+        function open() {
+          if (currentOpenPopover && currentOpenPopover.popover === popover) return;
+
+          // Close any other open popover first
+          closeAllPopovers();
+
+          // Calculate bounds-safe position
+          updatePosition();
+
+          // Reveal card
           popover.classList.remove('hidden');
           btn.setAttribute('aria-expanded', 'true');
 
-          const rect = popover.getBoundingClientRect();
-          if (rect.right > window.innerWidth - 12) {
-            popover.classList.remove('sm:left-0', 'sm:right-auto');
-            popover.classList.add('right-0', 'left-auto');
-          } else if (isLeftPreferred && rect.left < 12) {
-            popover.classList.remove('right-0', 'left-auto');
-            popover.classList.add('left-0', 'right-auto');
-          }
+          currentOpenPopover = { btn, popover, close };
         }
 
-        function closePopover() {
-          isOpen = false;
+        function close() {
           popover.classList.add('hidden');
           btn.setAttribute('aria-expanded', 'false');
-        }
-
-        function togglePopover(e) {
-          if (e) e.stopPropagation();
-          if (isOpen) {
-            closePopover();
-          } else {
-            openPopover();
+          if (currentOpenPopover && currentOpenPopover.popover === popover) {
+            currentOpenPopover = null;
           }
         }
 
-        // Detect touch input so simulated mouseenter/hover does not close or conflict
-        btn.addEventListener('touchstart', function () {
-          isTouchInteraction = true;
-        }, { passive: true });
+        function toggle(e) {
+          if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+          }
+          if (!popover.classList.contains('hidden')) {
+            close();
+          } else {
+            open();
+          }
+        }
 
-        btn.addEventListener('click', function (e) {
-          togglePopover(e);
-        });
+        // Toggle on badge button click
+        btn.addEventListener('click', toggle);
 
-        // Mouse hover interaction for desktop pointers only
-        btn.addEventListener('mouseenter', function () {
-          if (isTouchInteraction) return;
-          clearTimeout(hoverTimer);
-          openPopover();
-        });
-
-        btn.addEventListener('mouseleave', function () {
-          if (isTouchInteraction) return;
-          hoverTimer = setTimeout(function () {
-            if (!popover.matches(':hover')) {
-              closePopover();
-            }
-          }, 150);
-        });
-
-        popover.addEventListener('mouseenter', function () {
-          if (isTouchInteraction) return;
-          clearTimeout(hoverTimer);
-          openPopover();
-        });
-
-        popover.addEventListener('mouseleave', function () {
-          if (isTouchInteraction) return;
-          closePopover();
-        });
-
+        // Immediate close on '✕' button click
         if (closeBtn) {
           closeBtn.addEventListener('click', function (e) {
+            e.preventDefault();
             e.stopPropagation();
-            closePopover();
+            close();
           });
         }
 
-        document.addEventListener('click', function (e) {
-          if (isOpen && !popover.contains(e.target) && !btn.contains(e.target)) {
-            closePopover();
-          }
-        });
-
-        document.addEventListener('keydown', function (e) {
-          if (e.key === 'Escape' && isOpen) {
-            closePopover();
-          }
+        // Prevent clicks inside the popover from bubbling up to document
+        popover.addEventListener('click', function (e) {
+          e.stopPropagation();
         });
       }
 
-      // Air Status Guidance Tooltip
-      setupTooltip(
+      // Close popover when clicking anywhere outside on the page
+      document.addEventListener('click', function (e) {
+        if (currentOpenPopover) {
+          if (!currentOpenPopover.btn.contains(e.target) && !currentOpenPopover.popover.contains(e.target)) {
+            closeAllPopovers();
+          }
+        }
+      });
+
+      // Close popover on Escape key
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') {
+          closeAllPopovers();
+        }
+      });
+
+      // Close on window resize / orientation change to prevent stale positions
+      window.addEventListener('resize', function () {
+        closeAllPopovers();
+      });
+
+      // Cleanup on Astro ViewTransitions navigation
+      document.addEventListener('astro:before-swap', function () {
+        closeAllPopovers();
+      });
+
+      // Initialize Air Status Popover
+      setupPopover(
         document.getElementById('air-status-info-btn'),
         document.getElementById('air-status-popover'),
-        document.getElementById('close-air-status-popover'),
-        true
+        document.getElementById('close-air-status-popover')
       );
 
-      // Age Rating Guidance Popover
-      setupTooltip(
+      // Initialize Age Rating Popover
+      setupPopover(
         document.getElementById('age-rating-info-btn'),
         document.getElementById('age-rating-popover'),
-        document.getElementById('close-age-popover'),
-        false
+        document.getElementById('close-age-popover')
       );
     }
 
