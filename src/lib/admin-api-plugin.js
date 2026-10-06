@@ -21,9 +21,11 @@ import {
   getAllAdminBlogPosts,
   getAdminBlogPostById,
   saveBlogPost,
-  deleteBlogPost
+  deleteBlogPost,
+  saveVibe,
+  toggleVibeActive
 } from './admin-db.js';
-import { getSqliteDb } from './d1.js';
+import { getSqliteDb, getAllAdminVibes } from './d1.js';
 import { vibes } from '../data/vibes.js';
 
 function parseJsonBody(req) {
@@ -76,11 +78,14 @@ export function adminApiPlugin() {
             const genreRows = db.prepare('SELECT DISTINCT genre FROM anime_genres ORDER BY genre ASC').all();
             const animeList = db.prepare('SELECT id, title, slug, year, status FROM anime ORDER BY title ASC').all();
             const franchiseList = db.prepare('SELECT id, name FROM franchises ORDER BY name ASC').all();
+            const vibesList = await getAllAdminVibes().catch(() => []);
 
             return sendJson(res, 200, {
               success: true,
               data: {
-                vibes: vibes.map(v => ({ id: v.id, title: v.title })),
+                vibes: vibesList.length > 0
+                  ? vibesList.map(v => ({ id: v.id, title: v.name, name: v.name, tagline: v.tagline, isActive: v.isActive }))
+                  : vibes.map(v => ({ id: v.id, title: v.title, name: v.title, tagline: v.tagline, isActive: true })),
                 existingGenres: genreRows.map(r => r.genre),
                 animeList,
                 franchises: franchiseList
@@ -143,13 +148,22 @@ export function adminApiPlugin() {
             const cleanId = id.trim().toLowerCase();
             const cleanSlug = slug.trim().toLowerCase();
 
+            // Slug format validation: lowercase alphanumeric with single hyphens
+            const slugRegex = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+            if (!slugRegex.test(cleanSlug)) {
+              return sendJson(res, 400, {
+                success: false,
+                error: 'Invalid slug format. Use lowercase letters, numbers, and hyphens (e.g. "frieren-beyond-journeys-end").'
+              });
+            }
+
             // Duplicate slug check for different ID
             const db = getSqliteDb();
-            const existingSlug = db.prepare('SELECT id FROM anime WHERE slug = ? AND id != ?').get(cleanSlug, cleanId);
+            const existingSlug = db.prepare('SELECT id, title FROM anime WHERE slug = ? AND id != ?').get(cleanSlug, cleanId);
             if (existingSlug) {
               return sendJson(res, 400, {
                 success: false,
-                error: `Slug "${cleanSlug}" is already used by anime with ID "${existingSlug.id}"`
+                error: `Slug "${cleanSlug}" is already used by anime "${existingSlug.title || existingSlug.id}"`
               });
             }
 
@@ -166,8 +180,12 @@ export function adminApiPlugin() {
               lastUpdated: new Date().toISOString().split('T')[0]
             };
 
-            const result = saveAnimeCore(cleanData);
-            return sendJson(res, 200, { success: true, message: 'Core details saved successfully', data: result });
+            try {
+              const result = await saveAnimeCore(cleanData);
+              return sendJson(res, 200, { success: true, message: 'Core details saved successfully', data: result });
+            } catch (err) {
+              return sendJson(res, 400, { success: false, error: err.message });
+            }
           }
 
           // Section 2: Review (My Take)
@@ -306,7 +324,7 @@ export function adminApiPlugin() {
               return sendJson(res, 400, { success: false, error: 'Valid anime payload is required' });
             }
             try {
-              const result = saveAllAnime(body);
+              const result = await saveAllAnime(body);
               return sendJson(res, 200, {
                 success: true,
                 message: 'All anime sections and visibility settings saved successfully!',
@@ -402,6 +420,38 @@ export function adminApiPlugin() {
               }
               deleteBlogPost(pid);
               return sendJson(res, 200, { success: true, message: `Blog post "${pid}" deleted successfully` });
+            }
+          }
+
+          // -------------------------------------------------------------
+          // Vibes Endpoints (Add, Edit, Visibility Toggle)
+          // Strictly ZERO Delete functionality per architecture design.
+          // -------------------------------------------------------------
+          if (pathname === '/api/admin/vibes' || pathname.startsWith('/api/admin/vibes/')) {
+            if (method === 'GET') {
+              const list = await getAllAdminVibes();
+              return sendJson(res, 200, { success: true, data: list });
+            }
+
+            if (method === 'POST' && pathname !== '/api/admin/vibes/visibility') {
+              const body = await parseJsonBody(req);
+              const result = await saveVibe(body);
+              return sendJson(res, 200, { success: true, message: 'Vibe saved successfully', data: result });
+            }
+
+            if (method === 'PATCH' || (method === 'POST' && pathname === '/api/admin/vibes/visibility')) {
+              const body = await parseJsonBody(req);
+              const vid = body.id || url.searchParams.get('id');
+              const isActive = body.isActive !== undefined ? body.isActive : body.is_active;
+              if (!vid) {
+                return sendJson(res, 400, { success: false, error: 'Vibe ID is required' });
+              }
+              const result = await toggleVibeActive(vid, isActive);
+              return sendJson(res, 200, { success: true, message: 'Vibe visibility updated', data: result });
+            }
+
+            if (method === 'DELETE') {
+              return sendJson(res, 405, { success: false, error: 'Vibes cannot be deleted.' });
             }
           }
 

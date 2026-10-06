@@ -2,11 +2,11 @@
 // src/pages/anime/catalog.astro
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import AnimeCard from '../../components/AnimeCard.astro';
-import { getAllAnime } from '../../lib/d1.js';
-import { vibes } from '../../data/vibes.js';
+import { getAllAnime, getAllVibes } from '../../lib/d1.js';
 import { siteConfig } from '../../config/site.js';
 
 const animeList = await getAllAnime(Astro.locals);
+const vibes = await getAllVibes(Astro.locals);
 
 // Metrics
 const watchedCount = animeList.filter((a) => a.honestyStatus === 'watched').length;

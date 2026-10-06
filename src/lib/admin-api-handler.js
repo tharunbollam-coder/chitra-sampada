@@ -23,9 +23,11 @@ import {
   getAllAdminBlogPosts,
   getAdminBlogPostById,
   saveBlogPost,
-  deleteBlogPost
+  deleteBlogPost,
+  saveVibe,
+  toggleVibeActive
 } from './admin-db.js';
-import { getDatabase, getSiteSetting, setSiteSetting } from './d1.js';
+import { getDatabase, getSiteSetting, setSiteSetting, getAllAdminVibes } from './d1.js';
 import { vibes } from '../data/vibes.js';
 
 function jsonResponse(data, status = 200) {
@@ -61,11 +63,14 @@ export async function handleAdminApi({ request, locals, url, params }) {
       const genreRows = await db.query('SELECT DISTINCT genre FROM anime_genres ORDER BY genre ASC');
       const animeList = await db.query('SELECT id, title, slug, year, status FROM anime ORDER BY title ASC');
       const franchiseList = await db.query('SELECT id, name FROM franchises ORDER BY name ASC');
+      const vibesList = await getAllAdminVibes(locals).catch(() => []);
 
       return jsonResponse({
         success: true,
         data: {
-          vibes: vibes.map(v => ({ id: v.id, title: v.title })),
+          vibes: vibesList.length > 0
+            ? vibesList.map(v => ({ id: v.id, title: v.name, name: v.name, tagline: v.tagline, isActive: v.isActive }))
+            : vibes.map(v => ({ id: v.id, title: v.title, name: v.title, tagline: v.tagline, isActive: true })),
           existingGenres: genreRows.map(r => r.genre),
           animeList,
           franchises: franchiseList
@@ -122,12 +127,21 @@ export async function handleAdminApi({ request, locals, url, params }) {
       const cleanId = id.trim().toLowerCase();
       const cleanSlug = slug.trim().toLowerCase();
 
+      // Slug format validation: lowercase alphanumeric with single hyphens
+      const slugRegex = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+      if (!slugRegex.test(cleanSlug)) {
+        return jsonResponse({
+          success: false,
+          error: 'Invalid slug format. Use lowercase letters, numbers, and hyphens (e.g. "frieren-beyond-journeys-end").'
+        }, 400);
+      }
+
       const db = await getDatabase(locals);
-      const existingSlug = await db.queryOne('SELECT id FROM anime WHERE slug = ? AND id != ?', cleanSlug, cleanId);
+      const existingSlug = await db.queryOne('SELECT id, title FROM anime WHERE slug = ? AND id != ?', cleanSlug, cleanId);
       if (existingSlug) {
         return jsonResponse({
           success: false,
-          error: `Slug "${cleanSlug}" is already used by anime with ID "${existingSlug.id}"`
+          error: `Slug "${cleanSlug}" is already used by anime "${existingSlug.title || existingSlug.id}"`
         }, 400);
       }
 
@@ -413,6 +427,38 @@ export async function handleAdminApi({ request, locals, url, params }) {
         }
         const result = await setSiteSetting(key.trim(), value ?? '', locals);
         return jsonResponse({ success: true, message: 'Setting saved successfully', data: result });
+      }
+    }
+
+    // -------------------------------------------------------------
+    // 6. Vibes Endpoints (Add, Edit, Visibility Toggle)
+    // Strictly ZERO Delete functionality per architecture design.
+    // -------------------------------------------------------------
+    if (route === 'vibes' || route.startsWith('vibes/')) {
+      if (method === 'GET') {
+        const list = await getAllAdminVibes(locals);
+        return jsonResponse({ success: true, data: list });
+      }
+
+      if (method === 'POST' && route !== 'vibes/visibility') {
+        const body = await parseJsonBody(request);
+        const result = await saveVibe(body, locals);
+        return jsonResponse({ success: true, message: 'Vibe saved successfully', data: result });
+      }
+
+      if (method === 'PATCH' || (method === 'POST' && route === 'vibes/visibility')) {
+        const body = await parseJsonBody(request);
+        const vid = body.id || url.searchParams.get('id');
+        const isActive = body.isActive !== undefined ? body.isActive : body.is_active;
+        if (!vid) {
+          return jsonResponse({ success: false, error: 'Vibe ID is required' }, 400);
+        }
+        const result = await toggleVibeActive(vid, isActive, locals);
+        return jsonResponse({ success: true, message: 'Vibe visibility updated', data: result });
+      }
+
+      if (method === 'DELETE') {
+        return jsonResponse({ success: false, error: 'Vibes cannot be deleted.' }, 405);
       }
     }
 

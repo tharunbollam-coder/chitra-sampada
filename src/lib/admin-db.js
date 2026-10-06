@@ -1,7 +1,7 @@
 // src/lib/admin-db.js
 // Server-side SQLite / D1 data mutations using parameterized queries.
 
-import { getDatabase, invalidateAnimeCache, invalidateBlogCache } from './d1.js';
+import { getDatabase, invalidateAnimeCache, invalidateBlogCache, invalidateVibesCache } from './d1.js';
 import { validateEpisodeString } from './filler-utils.js';
 
 /**
@@ -247,11 +247,31 @@ export async function saveAnimeCore(data, contextOrLocals = null) {
     vibes = []
   } = data;
 
-  if (!id || !slug || !title) {
+  const cleanId = String(id || '').trim().toLowerCase();
+  const cleanSlug = String(slug || '').trim().toLowerCase();
+  const cleanTitle = String(title || '').trim();
+
+  if (!cleanId || !cleanSlug || !cleanTitle) {
     throw new Error('ID, Slug, and Title are required.');
   }
 
-  const existing = await db.queryOne(`SELECT * FROM anime WHERE id = ?`, id);
+  // Slug format validation: lowercase alphanumeric with single hyphens
+  const slugRegex = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+  if (!slugRegex.test(cleanSlug)) {
+    throw new Error('Invalid slug format. Use lowercase letters, numbers, and hyphens (e.g. "frieren-beyond-journeys-end").');
+  }
+
+  // Slug uniqueness check against all other anime
+  const slugConflict = await db.queryOne(
+    `SELECT id, title FROM anime WHERE slug = ? AND id != ?`,
+    cleanSlug,
+    cleanId
+  );
+  if (slugConflict) {
+    throw new Error(`The slug "${cleanSlug}" is already in use by anime "${slugConflict.title}".`);
+  }
+
+  const existing = await db.queryOne(`SELECT * FROM anime WHERE id = ?`, cleanId);
 
   const finalType = type === 'movie' ? 'movie' : (existing?.type === 'movie' && type === undefined ? 'movie' : 'series');
   const finalRuntime = finalType === 'movie'
@@ -303,12 +323,12 @@ export async function saveAnimeCore(data, contextOrLocals = null) {
         filler_percentage = ?, trending = ?, synopsis = ?, community_suggested = ?
       WHERE id = ?
     `,
-      slug, title, finalOriginalTitle, parsedYear, parsedEpisodes,
+      cleanSlug, cleanTitle, finalOriginalTitle, parsedYear, parsedEpisodes,
       finalType, finalRuntime, finalMovieCanonType,
       finalStatus, parsedRating, parsedAgeRating, finalPoster, finalBackdrop,
       finalAddedDate, finalLastUpdated, finalHonestyStatus,
       parsedFiller, parsedTrending, finalSynopsis, parsedCommunitySuggested,
-      id
+      cleanId
     );
   } else {
     await db.run(`
@@ -320,7 +340,7 @@ export async function saveAnimeCore(data, contextOrLocals = null) {
         filler_percentage, trending, synopsis, community_suggested
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `,
-      id, slug, title, finalOriginalTitle, parsedYear, parsedEpisodes,
+      cleanId, cleanSlug, cleanTitle, finalOriginalTitle, parsedYear, parsedEpisodes,
       finalType, finalRuntime, finalMovieCanonType,
       finalStatus, parsedRating, parsedAgeRating, finalPoster, finalBackdrop,
       finalAddedDate, finalLastUpdated, finalHonestyStatus,
@@ -329,28 +349,28 @@ export async function saveAnimeCore(data, contextOrLocals = null) {
   }
 
   // Sync aliases
-  await db.run(`DELETE FROM anime_aliases WHERE anime_id = ?`, id);
+  await db.run(`DELETE FROM anime_aliases WHERE anime_id = ?`, cleanId);
   for (const a of aliases) {
     const trimmed = String(a).trim();
-    if (trimmed) await db.run(`INSERT INTO anime_aliases (anime_id, alias) VALUES (?, ?)`, id, trimmed);
+    if (trimmed) await db.run(`INSERT INTO anime_aliases (anime_id, alias) VALUES (?, ?)`, cleanId, trimmed);
   }
 
   // Sync genres
-  await db.run(`DELETE FROM anime_genres WHERE anime_id = ?`, id);
+  await db.run(`DELETE FROM anime_genres WHERE anime_id = ?`, cleanId);
   for (const g of genres) {
     const trimmed = String(g).trim();
-    if (trimmed) await db.run(`INSERT INTO anime_genres (anime_id, genre) VALUES (?, ?)`, id, trimmed);
+    if (trimmed) await db.run(`INSERT INTO anime_genres (anime_id, genre) VALUES (?, ?)`, cleanId, trimmed);
   }
 
   // Sync vibes
-  await db.run(`DELETE FROM anime_vibes WHERE anime_id = ?`, id);
+  await db.run(`DELETE FROM anime_vibes WHERE anime_id = ?`, cleanId);
   for (const v of vibes) {
     const trimmed = String(v).trim();
-    if (trimmed) await db.run(`INSERT INTO anime_vibes (anime_id, vibe_id) VALUES (?, ?)`, id, trimmed);
+    if (trimmed) await db.run(`INSERT INTO anime_vibes (anime_id, vibe_id) VALUES (?, ?)`, cleanId, trimmed);
   }
 
   invalidateAnimeCache();
-  return { success: true, id };
+  return { success: true, id: cleanId, slug: cleanSlug };
 }
 
 /**
@@ -1037,4 +1057,125 @@ export async function saveAnimeStreamingPlatforms(animeId, platforms = [], conte
   await db.run(`UPDATE anime SET last_updated = date('now') WHERE id = ?`, animeId);
   invalidateAnimeCache();
   return { success: true };
+}
+
+// -------------------------------------------------------------
+// Vibe Management Operations (Add, Edit, Visibility Toggle)
+// Strictly ZERO Delete functionality per architecture design.
+// -------------------------------------------------------------
+
+/**
+ * Save or update a vibe in D1.
+ * Validates slug format and ensures slug uniqueness across all other vibes.
+ */
+export async function saveVibe(vibeData = {}, contextOrLocals = null) {
+  const db = await getDatabase(contextOrLocals);
+  const {
+    id,
+    slug,
+    name,
+    tagline,
+    groupLabel,
+    group_label,
+    colorTheme,
+    color_theme,
+    seoIntro,
+    seo_intro,
+    metaDescription,
+    meta_description,
+    isActive,
+    is_active
+  } = vibeData;
+
+  const cleanName = String(name || '').trim();
+  if (!cleanName) {
+    throw new Error('Vibe name is required.');
+  }
+
+  const cleanSlug = String(slug || '').trim().toLowerCase();
+  if (!cleanSlug) {
+    throw new Error('Vibe slug is required.');
+  }
+
+  // Slug safety validation (lowercase alphanumeric with hyphens)
+  const slugRegex = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+  if (!slugRegex.test(cleanSlug)) {
+    throw new Error('Invalid slug format. Use lowercase letters, numbers, and hyphens (e.g. "op-mc", "hidden-gems").');
+  }
+
+  // ID determination: use provided id, or fallback to slug
+  const cleanId = String(id || cleanSlug).trim().toLowerCase();
+
+  // Check slug uniqueness against other vibes
+  const conflict = await db.queryOne(
+    `SELECT id, name FROM vibes WHERE slug = ? AND id != ?`,
+    cleanSlug,
+    cleanId
+  );
+  if (conflict) {
+    throw new Error(`The slug "${cleanSlug}" is already in use by vibe "${conflict.name}".`);
+  }
+
+  const cleanTagline = tagline ? String(tagline).trim() : null;
+  const cleanGroup = (groupLabel || group_label) ? String(groupLabel || group_label).trim() : null;
+  const cleanColor = (colorTheme || color_theme) ? String(colorTheme || color_theme).trim().toLowerCase() : 'indigo';
+  const cleanSeoIntro = (seoIntro || seo_intro) ? String(seoIntro || seo_intro).trim() : null;
+  const cleanMetaDesc = (metaDescription || meta_description) ? String(metaDescription || meta_description).trim() : null;
+
+  let cleanActive = 1;
+  if (isActive !== undefined) {
+    cleanActive = isActive ? 1 : 0;
+  } else if (is_active !== undefined) {
+    cleanActive = is_active ? 1 : 0;
+  }
+
+  await db.run(`
+    INSERT INTO vibes (
+      id, slug, name, tagline, group_label, color_theme, seo_intro, meta_description, is_active, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+    ON CONFLICT(id) DO UPDATE SET
+      slug = excluded.slug,
+      name = excluded.name,
+      tagline = excluded.tagline,
+      group_label = excluded.group_label,
+      color_theme = excluded.color_theme,
+      seo_intro = excluded.seo_intro,
+      meta_description = excluded.meta_description,
+      is_active = excluded.is_active,
+      updated_at = datetime('now')
+  `,
+    cleanId,
+    cleanSlug,
+    cleanName,
+    cleanTagline,
+    cleanGroup,
+    cleanColor,
+    cleanSeoIntro,
+    cleanMetaDesc,
+    cleanActive
+  );
+
+  invalidateVibesCache();
+  invalidateAnimeCache();
+  return { success: true, id: cleanId, slug: cleanSlug };
+}
+
+/**
+ * Toggle vibe visibility (is_active) without removing records or associations.
+ */
+export async function toggleVibeActive(id, isActive, contextOrLocals = null) {
+  if (!id) throw new Error('Vibe ID is required.');
+  const db = await getDatabase(contextOrLocals);
+  const cleanId = String(id).trim();
+  const activeVal = isActive ? 1 : 0;
+
+  await db.run(
+    `UPDATE vibes SET is_active = ?, updated_at = datetime('now') WHERE id = ?`,
+    activeVal,
+    cleanId
+  );
+
+  invalidateVibesCache();
+  invalidateAnimeCache();
+  return { success: true, id: cleanId, isActive: Boolean(activeVal) };
 }

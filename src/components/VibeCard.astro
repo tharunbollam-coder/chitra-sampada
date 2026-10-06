@@ -4,45 +4,92 @@ const { vibe, href } = Astro.props;
 
 // Light mode styling helpers
 const vibeStyles = {
+  purple: {
+    badge: 'bg-purple-50 text-purple-800 border-purple-200',
+    accent: 'text-purple-700',
+    hoverBorder: 'hover:border-purple-300',
+  },
+  cyan: {
+    badge: 'bg-cyan-50 text-cyan-800 border-cyan-200',
+    accent: 'text-cyan-700',
+    hoverBorder: 'hover:border-cyan-300',
+  },
+  indigo: {
+    badge: 'bg-[#EEF2FF] text-[#4F46E5] border-[#C7D2FE] font-bold',
+    accent: 'text-[#4F46E5]',
+    hoverBorder: 'hover:border-[#6366F1]',
+  },
+  pink: {
+    badge: 'bg-pink-50 text-pink-800 border-pink-200',
+    accent: 'text-pink-700',
+    hoverBorder: 'hover:border-pink-300',
+  },
+  amber: {
+    badge: 'bg-amber-50 text-amber-800 border-amber-200',
+    accent: 'text-amber-700',
+    hoverBorder: 'hover:border-amber-300',
+  },
+  fuchsia: {
+    badge: 'bg-fuchsia-50 text-fuchsia-800 border-fuchsia-200',
+    accent: 'text-fuchsia-700',
+    hoverBorder: 'hover:border-fuchsia-300',
+  },
+  emerald: {
+    badge: 'bg-emerald-50 text-emerald-800 border-emerald-200',
+    accent: 'text-emerald-700',
+    hoverBorder: 'hover:border-emerald-300',
+  },
+  sky: {
+    badge: 'bg-sky-50 text-sky-800 border-sky-200',
+    accent: 'text-sky-700',
+    hoverBorder: 'hover:border-sky-300',
+  },
+  rose: {
+    badge: 'bg-rose-50 text-rose-800 border-rose-200',
+    accent: 'text-rose-700',
+    hoverBorder: 'hover:border-rose-300',
+  },
+  slate: {
+    badge: 'bg-slate-100 text-slate-800 border-slate-200',
+    accent: 'text-slate-700',
+    hoverBorder: 'hover:border-slate-300',
+  },
   'op-mc': {
     badge: 'bg-purple-50 text-purple-800 border-purple-200',
-    iconBg: 'bg-purple-50 text-purple-700 border-purple-200',
     accent: 'text-purple-700',
     hoverBorder: 'hover:border-purple-300',
   },
   'slow-burn-romance': {
     badge: 'bg-pink-50 text-pink-800 border-pink-200',
-    iconBg: 'bg-pink-50 text-pink-700 border-pink-200',
     accent: 'text-pink-700',
     hoverBorder: 'hover:border-pink-300',
   },
   'zero-filler': {
     badge: 'bg-[#EEF2FF] text-[#4F46E5] border-[#C7D2FE] font-bold',
-    iconBg: 'bg-[#EEF2FF] text-[#4F46E5] border-[#C7D2FE]',
     accent: 'text-[#4F46E5]',
     hoverBorder: 'hover:border-[#6366F1]',
   },
   'like-naruto': {
     badge: 'bg-amber-50 text-amber-800 border-amber-200',
-    iconBg: 'bg-amber-50 text-amber-700 border-amber-200',
     accent: 'text-amber-700',
     hoverBorder: 'hover:border-amber-300',
   },
   'hidden-gems': {
     badge: 'bg-cyan-50 text-cyan-800 border-cyan-200',
-    iconBg: 'bg-cyan-50 text-cyan-700 border-cyan-200',
     accent: 'text-cyan-700',
     hoverBorder: 'hover:border-cyan-300',
   },
   'beginners': {
     badge: 'bg-fuchsia-50 text-fuchsia-800 border-fuchsia-200',
-    iconBg: 'bg-fuchsia-50 text-fuchsia-700 border-fuchsia-200',
     accent: 'text-fuchsia-700',
     hoverBorder: 'hover:border-fuchsia-300',
   }
 };
 
-const style = vibeStyles[vibe.id] || vibeStyles['op-mc'];
+const themeKey = vibe.color_theme || vibe.colorTheme || vibe.id;
+const style = vibeStyles[themeKey] || vibeStyles[vibe.id] || vibeStyles['indigo'];
+const displayTitle = vibe.title || vibe.name;
+const displayBadge = vibe.badge || vibe.group_label || vibe.groupLabel || 'CURATED';
 const Component = href ? 'a' : 'button';
 ---
 
@@ -57,50 +104,17 @@ const Component = href ? 'a' : 'button';
 >
   <div class="relative z-10 flex flex-col justify-between h-full space-y-4">
     
-    <!-- Top badge + Icon Header -->
-    <div class="flex items-center justify-between gap-2">
+    <!-- Top Category Badge -->
+    <div class="flex items-center">
       <span class:list={['text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full border', style.badge]}>
-        {vibe.badge}
+        {displayBadge}
       </span>
-
-      <div class:list={['w-8 h-8 rounded-xl border flex items-center justify-center group-hover:scale-105 transition-all', style.iconBg]}>
-        {vibe.icon === 'lightning' && (
-          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-          </svg>
-        )}
-        {vibe.icon === 'heart' && (
-          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-          </svg>
-        )}
-        {vibe.icon === 'shield-check' && (
-          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-          </svg>
-        )}
-        {vibe.icon === 'fire' && (
-          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z" />
-          </svg>
-        )}
-        {vibe.icon === 'sparkles' && (
-          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
-          </svg>
-        )}
-        {vibe.icon === 'rocket' && (
-          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" />
-          </svg>
-        )}
-      </div>
     </div>
 
     <!-- Title & Subtitle Tagline (Clean, Fast to Scan) -->
     <div class="space-y-1">
       <h4 class="font-heading text-lg sm:text-xl font-bold text-slate-900 group-hover:text-slate-950 tracking-tight leading-snug">
-        {vibe.title}
+        {displayTitle}
       </h4>
       <p class:list={['text-xs font-semibold tracking-wide', style.accent]}>
         {vibe.tagline}

@@ -2,8 +2,8 @@
 // src/components/admin/AnimeEditor.astro
 import AdminLayout from '../../layouts/AdminLayout.astro';
 import { getAllFranchises, getAllAdminBlogPosts } from '../../lib/admin-db.js';
-import { getDatabase } from '../../lib/d1.js';
-import { vibes } from '../../data/vibes.js';
+import { getDatabase, getAllAdminVibes } from '../../lib/d1.js';
+import { vibes as fallbackVibes } from '../../data/vibes.js';
 
 interface Props {
   initialAnime?: any;
@@ -16,6 +16,8 @@ const pageTitle = isNew ? 'Add New Anime' : `Edit Anime: ${anime.title}`;
 
 const franchises = await getAllFranchises(Astro.locals);
 const adminBlogPosts = await getAllAdminBlogPosts(Astro.locals);
+const dbVibes = await getAllAdminVibes(Astro.locals).catch(() => []);
+const editorVibes = dbVibes.length > 0 ? dbVibes : fallbackVibes;
 const db = await getDatabase(Astro.locals);
 const existingGenreRows = await db.query('SELECT DISTINCT genre FROM anime_genres ORDER BY genre ASC');
 const existingGenres = existingGenreRows.map(r => r.genre);
@@ -157,9 +159,23 @@ const sectionVisibility = anime?.sectionVisibility || {
 
             <!-- Slug -->
             <div>
-              <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5" for="core-slug">
-                URL Slug <span class="text-rose-400">*</span>
-              </label>
+              <div class="flex items-center justify-between mb-1.5">
+                <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider" for="core-slug">
+                  URL Slug <span class="text-rose-400">*</span>
+                </label>
+                <!-- Edit Slug Unlock Button -->
+                <button
+                  type="button"
+                  id="btn-unlock-anime-slug"
+                  class={`text-[11px] font-semibold text-amber-400 hover:text-amber-300 transition flex items-center gap-1 cursor-pointer ${isNew ? 'hidden' : ''}`}
+                  title="Unlock and edit slug"
+                >
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                  </svg>
+                  <span id="btn-unlock-anime-slug-label">Edit Slug</span>
+                </button>
+              </div>
               <input
                 type="text"
                 id="core-slug"
@@ -167,9 +183,14 @@ const sectionVisibility = anime?.sectionVisibility || {
                 value={anime?.slug || ''}
                 placeholder="e.g. frieren-beyond-journeys-end"
                 required
-                class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-sm font-mono text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                readonly={!isNew}
+                class={`w-full px-3.5 py-2.5 bg-slate-950 border rounded-xl text-sm font-mono placeholder-slate-500 focus:outline-none transition ${
+                  !isNew
+                    ? 'border-slate-800 text-slate-400 cursor-not-allowed opacity-75'
+                    : 'border-slate-700/80 text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500'
+                }`}
               />
-              <span class="text-[11px] text-slate-500 mt-1 block">Path on website: /anime/[slug]</span>
+              <span class="text-[11px] text-slate-500 mt-1 block" id="core-slug-help">Path on website: /anime/[slug]</span>
             </div>
 
             <!-- Title -->
@@ -453,7 +474,7 @@ const sectionVisibility = anime?.sectionVisibility || {
               Discovery Vibes
             </label>
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2" id="core-vibes-container">
-              {vibes.map(v => (
+              {editorVibes.map(v => (
                 <label class="flex items-start gap-2.5 p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs cursor-pointer hover:border-slate-700 transition">
                   <input
                     type="checkbox"
@@ -463,7 +484,14 @@ const sectionVisibility = anime?.sectionVisibility || {
                     class="mt-0.5 rounded text-indigo-600 focus:ring-indigo-500 bg-slate-900 border-slate-700"
                   />
                   <div>
-                    <div class="font-semibold text-white">{v.title}</div>
+                    <div class="font-semibold text-white flex items-center gap-1.5">
+                      <span>{v.name || v.title}</span>
+                      {(!v.isActive && v.is_active === 0) && (
+                        <span class="text-[10px] px-1.5 py-0.2 rounded bg-amber-950/60 text-amber-400 border border-amber-800/40 font-normal">
+                          (Hidden)
+                        </span>
+                      )}
+                    </div>
                     <div class="text-[11px] text-slate-400 leading-tight mt-0.5">{v.tagline}</div>
                   </div>
                 </label>
@@ -1972,6 +2000,40 @@ const sectionVisibility = anime?.sectionVisibility || {
     </div>
   </div>
 
+  <!-- ============================================================= -->
+  <!-- MODAL: ANIME SLUG UNLOCK WARNING CONFIRMATION -->
+  <!-- ============================================================= -->
+  <div id="modal-anime-slug-warning" class="fixed inset-0 z-60 hidden overflow-y-auto bg-slate-950/85 backdrop-blur-sm p-4 flex items-center justify-center">
+    <div class="relative w-full max-w-md bg-slate-900 border border-amber-500/60 rounded-2xl shadow-2xl p-6 text-left">
+      <div class="flex items-center gap-3 text-amber-400 mb-3">
+        <svg class="w-6 h-6 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+        </svg>
+        <h3 class="text-lg font-bold text-white font-heading">Change Public Anime Slug?</h3>
+      </div>
+      <p class="text-xs sm:text-sm text-slate-300 leading-relaxed">
+        ⚠️ Warning: Changing this anime slug will alter all public URLs for this show (including the main page, watch order, filler list, and character guides). Any external bookmarks or search engine rankings will break. Are you sure you want to edit it?
+      </p>
+
+      <div class="flex justify-end gap-3 mt-6">
+        <button
+          type="button"
+          id="btn-cancel-anime-slug-unlock"
+          class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs sm:text-sm font-medium transition cursor-pointer"
+        >
+          Keep Locked
+        </button>
+        <button
+          type="button"
+          id="btn-confirm-anime-slug-unlock"
+          class="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-xl text-xs sm:text-sm font-semibold transition cursor-pointer"
+        >
+          Yes, Unlock Slug
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Client JavaScript for Interactivity, Dynamic Rows, Hydration, and Section Saves -->
   <script is:inline define:vars={{ initialAnime: anime, isNewRecord: isNew, platformAnimeList }}>
     let currentAnimeId = initialAnime?.id || null;
@@ -2109,6 +2171,63 @@ const sectionVisibility = anime?.sectionVisibility || {
 
       slugInput.addEventListener('input', () => { slugInput.dataset.touched = 'true'; });
       idInput.addEventListener('input', () => { idInput.dataset.touched = 'true'; });
+    }
+
+    // Slug lock / unlock logic (guardrail for existing anime records)
+    let isAnimeSlugUnlocked = isNewRecord ? true : false;
+    const btnUnlockAnimeSlug = document.getElementById('btn-unlock-anime-slug');
+    const btnUnlockAnimeSlugLabel = document.getElementById('btn-unlock-anime-slug-label');
+    const modalAnimeSlugWarning = document.getElementById('modal-anime-slug-warning');
+    const btnCancelAnimeSlugUnlock = document.getElementById('btn-cancel-anime-slug-unlock');
+    const btnConfirmAnimeSlugUnlock = document.getElementById('btn-confirm-anime-slug-unlock');
+
+    function lockAnimeSlug() {
+      if (!slugInput) return;
+      isAnimeSlugUnlocked = false;
+      slugInput.readOnly = true;
+      slugInput.className = 'w-full px-3.5 py-2.5 bg-slate-950/60 border border-slate-800 rounded-xl text-sm font-mono text-slate-400 cursor-not-allowed focus:outline-none transition';
+      if (btnUnlockAnimeSlugLabel) btnUnlockAnimeSlugLabel.textContent = 'Edit Slug';
+      if (btnUnlockAnimeSlug) btnUnlockAnimeSlug.classList.remove('hidden');
+    }
+
+    function unlockAnimeSlug() {
+      if (!slugInput) return;
+      isAnimeSlugUnlocked = true;
+      slugInput.readOnly = false;
+      slugInput.className = 'w-full px-3.5 py-2.5 bg-slate-950 border border-amber-500 rounded-xl text-sm font-mono text-white focus:outline-none focus:border-amber-400 transition';
+      if (btnUnlockAnimeSlugLabel) btnUnlockAnimeSlugLabel.textContent = 'Unlocked';
+      if (btnUnlockAnimeSlug) btnUnlockAnimeSlug.classList.remove('hidden');
+      slugInput.focus();
+    }
+
+    if (btnUnlockAnimeSlug) {
+      btnUnlockAnimeSlug.addEventListener('click', () => {
+        if (!isAnimeSlugUnlocked) {
+          modalAnimeSlugWarning?.classList.remove('hidden');
+        }
+      });
+    }
+
+    btnCancelAnimeSlugUnlock?.addEventListener('click', () => {
+      modalAnimeSlugWarning?.classList.add('hidden');
+    });
+
+    btnConfirmAnimeSlugUnlock?.addEventListener('click', () => {
+      modalAnimeSlugWarning?.classList.add('hidden');
+      unlockAnimeSlug();
+    });
+
+    modalAnimeSlugWarning?.addEventListener('click', (e) => {
+      if (e.target === modalAnimeSlugWarning) {
+        modalAnimeSlugWarning.classList.add('hidden');
+      }
+    });
+
+    // Initialize slug lock state on page load
+    if (currentAnimeId) {
+      lockAnimeSlug();
+    } else {
+      if (btnUnlockAnimeSlug) btnUnlockAnimeSlug.classList.add('hidden');
     }
 
     // Dependent sections state: unlock if currentAnimeId is set
@@ -2538,7 +2657,10 @@ const sectionVisibility = anime?.sectionVisibility || {
       }
 
       const slugEl = document.getElementById('core-slug');
-      if (slugEl) slugEl.value = a.slug || '';
+      if (slugEl) {
+        slugEl.value = a.slug || '';
+        lockAnimeSlug();
+      }
 
       const titleEl = document.getElementById('core-title');
       if (titleEl) titleEl.value = a.title || '';
@@ -2838,9 +2960,17 @@ const sectionVisibility = anime?.sectionVisibility || {
         return;
       }
 
+      const slugVal = document.getElementById('core-slug').value.trim();
+      const slugRegex = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+      if (!slugRegex.test(slugVal)) {
+        setFeedback(coreFeedback, 'Invalid slug format. Use lowercase letters, numbers, and hyphens (e.g. "frieren-beyond-journeys-end").', 'error');
+        window.showAdminToast('Invalid slug format. Use lowercase letters, numbers, and hyphens.', 'error');
+        return;
+      }
+
       const payload = {
         id: document.getElementById('core-id').value.trim(),
-        slug: document.getElementById('core-slug').value.trim(),
+        slug: slugVal,
         title: document.getElementById('core-title').value.trim(),
         originalTitle: document.getElementById('core-original-title').value.trim(),
         type: typeVal,
@@ -2872,6 +3002,12 @@ const sectionVisibility = anime?.sectionVisibility || {
         const data = await res.json();
         if (data.success) {
           currentAnimeId = payload.id;
+          lockAnimeSlug();
+          const idEl = document.getElementById('core-id');
+          if (idEl) {
+            idEl.readOnly = true;
+            idEl.classList.add('opacity-70', 'cursor-not-allowed');
+          }
           setFeedback(coreFeedback, '✓ Core details saved successfully! All sections are unlocked.', 'success');
           coreBadge.classList.remove('hidden');
           window.showAdminToast(`Saved core details for "${payload.title}"`, 'success');
@@ -3573,6 +3709,17 @@ const sectionVisibility = anime?.sectionVisibility || {
         return;
       }
 
+      const slugRegex = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+      if (!slugRegex.test(slug)) {
+        alert('Invalid slug format in Section 1. Use lowercase letters, numbers, and hyphens (e.g. "frieren-beyond-journeys-end").');
+        const target = document.getElementById('section-core-body');
+        if (target && target.classList.contains('hidden')) {
+          target.classList.remove('hidden');
+        }
+        document.getElementById('core-slug')?.focus();
+        return;
+      }
+
       // 1. Gather Section 1 Core
       const checkedGenres = Array.from(formCore.querySelectorAll('input[name="genres"]:checked')).map(el => el.value);
       const customGenres = (document.getElementById('core-custom-genres').value || '')
@@ -3774,6 +3921,12 @@ const sectionVisibility = anime?.sectionVisibility || {
         }
 
         currentAnimeId = data.data?.animeId || corePayload.id;
+        lockAnimeSlug();
+        const idEl = document.getElementById('core-id');
+        if (idEl) {
+          idEl.readOnly = true;
+          idEl.classList.add('opacity-70', 'cursor-not-allowed');
+        }
 
         // Reveal all section badges
         [

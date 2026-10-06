@@ -2,15 +2,14 @@
 // src/pages/anime/tag/[slug].astro
 import BaseLayout from '../../../layouts/BaseLayout.astro';
 import AnimeCard from '../../../components/AnimeCard.astro';
-import { getAllAnime } from '../../../lib/d1.js';
-import { vibes } from '../../../data/vibes.js';
+import { getAllAnime, getVibeBySlug, getAllVibes } from '../../../lib/d1.js';
 import { siteConfig } from '../../../config/site.js';
 
 const { slug } = Astro.params;
-const vibe = vibes.find((v) => v.slug === slug);
+const vibe = await getVibeBySlug(slug, Astro.locals);
 
 if (!vibe) {
-  return new Response('Vibe not found', { status: 404 });
+  return new Response('Not Found', { status: 404 });
 }
 
 const animeList = await getAllAnime(Astro.locals);
@@ -18,14 +17,20 @@ const animeList = await getAllAnime(Astro.locals);
 // Filter matching anime for this vibe
 const matchingAnime = animeList.filter((a) => a.vibes && a.vibes.includes(vibe.id));
 
+// Public 404 Rule: Navigating directly to /anime/tag/[slug] with zero published anime assigned must return a clean HTTP 404 response
+if (matchingAnime.length === 0) {
+  return new Response('Not Found', { status: 404 });
+}
+
 // Sub-metrics
 const watchedCount = matchingAnime.filter((a) => a.honestyStatus === 'watched').length;
 const watchlistCount = matchingAnime.filter((a) => a.honestyStatus === 'watchlist').length;
 const referenceCount = matchingAnime.filter((a) => a.honestyStatus === 'reference').length;
 const zeroFillerCount = matchingAnime.filter((a) => a.fillerPercentage === 0).length;
 
-// Other vibes for quick browsing
-const otherVibes = vibes.filter((v) => v.slug !== vibe.slug);
+// Other vibes for quick browsing (only vibes that have at least one matching anime)
+const allVibes = await getAllVibes(Astro.locals);
+const otherVibes = allVibes.filter((v) => v.slug !== vibe.slug && animeList.some(a => a.vibes && a.vibes.includes(v.id)));
 
 const siteOrigin = (siteConfig.siteUrl || (Astro.site ? Astro.site.origin : 'https://chitrasampada.com')).replace(/\/+$/, '');
 const canonicalUrl = `${siteOrigin}/anime/tag/${vibe.slug}`;

@@ -229,6 +229,56 @@ async function ensureSchemaCompatibility(db) {
       } catch (err) {
         console.warn('[Schema Compatibility] anime_streaming_platforms note:', err?.message || err);
       }
+
+      try {
+        await db.run(`
+          CREATE TABLE IF NOT EXISTS vibes (
+            id TEXT PRIMARY KEY,
+            slug TEXT NOT NULL UNIQUE,
+            name TEXT NOT NULL,
+            tagline TEXT,
+            group_label TEXT,
+            color_theme TEXT NOT NULL DEFAULT 'indigo',
+            seo_intro TEXT,
+            meta_description TEXT,
+            is_active INTEGER NOT NULL DEFAULT 1,
+            created_at TEXT NOT NULL DEFAULT (datetime('now')),
+            updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+          )
+        `);
+        await db.run(`CREATE INDEX IF NOT EXISTS idx_vibes_slug ON vibes(slug)`);
+        await db.run(`CREATE INDEX IF NOT EXISTS idx_vibes_active ON vibes(is_active)`);
+
+        await db.run(`
+          INSERT OR IGNORE INTO vibes (
+            id, slug, name, tagline, group_label, color_theme, seo_intro, meta_description, is_active
+          ) VALUES 
+          (
+            'op-mc',
+            'overpowered-mc',
+            'Overpowered Main Character',
+            'Instant dominance & hype',
+            'HYPE & ACTION',
+            'purple',
+            'Protagonists who shatter power scales, outclass entire armies, and make absolute arrogance look effortless. This collection features anime where the lead possesses godlike strength, rare awakening abilities, or unmatched tactical supremacy. No endless filler training arcs — just pure kinetic satisfaction, high-stakes combat, and top-tier hype.',
+            'Discover the best overpowered main character (OP MC) anime with carefully researched chronological watch orders, filler percentages, and honest viewer insights.',
+            1
+          ),
+          (
+            'hidden-gems',
+            'hidden-gems',
+            'Hidden Gems',
+            'Overlooked masterpieces',
+            'CRITIC PICK',
+            'cyan',
+            'High-concept stories, razor-sharp dialogue, and exceptional character writing that never received the massive mainstream algorithm boost they deserved. From underground mystery thrillers to experimental psychological dramas, these are masterclass productions that reward viewers searching for something truly distinctive.',
+            'Discover overlooked anime masterpieces with exceptional writing and unique storytelling that flew under the mainstream radar, complete with watch guides.',
+            1
+          )
+        `);
+      } catch (err) {
+        console.warn('[Schema Compatibility] vibes note:', err?.message || err);
+      }
     })();
   }
   await schemaEnsuredPromise;
@@ -325,6 +375,11 @@ let siteSettingsCache = {
   timestamp: 0
 };
 
+let vibesCache = {
+  data: null,
+  timestamp: 0
+};
+
 export function invalidateAnimeCache() {
   animeCache.data = null;
   animeCache.timestamp = 0;
@@ -338,6 +393,11 @@ export function invalidateBlogCache() {
 export function invalidateSiteSettingsCache() {
   siteSettingsCache.data.clear();
   siteSettingsCache.timestamp = 0;
+}
+
+export function invalidateVibesCache() {
+  vibesCache.data = null;
+  vibesCache.timestamp = 0;
 }
 
 /**
@@ -964,4 +1024,89 @@ export async function setSiteSetting(key, value, contextOrLocals = null) {
   `, key, cleanVal);
   invalidateSiteSettingsCache();
   return { key, value: cleanVal };
+}
+
+/**
+ * Fetch all vibes from D1 with in-memory caching (30s TTL).
+ * Formatted with camelCase and UI compatibility fields.
+ */
+export async function getAllVibes(contextOrLocals = null) {
+  const now = Date.now();
+  if (vibesCache.data && (now - vibesCache.timestamp < 30000)) {
+    return vibesCache.data;
+  }
+
+  const db = await getDatabase(contextOrLocals);
+  const rows = await db.query(`SELECT * FROM vibes ORDER BY name ASC`);
+  const formatted = rows.map(r => ({
+    id: r.id,
+    slug: r.slug,
+    name: r.name,
+    title: r.name,
+    fullName: `${r.name} Anime`,
+    h1: `${r.name} Anime`,
+    tagline: r.tagline || '',
+    groupLabel: r.group_label || '',
+    group_label: r.group_label || '',
+    badge: r.group_label || 'CURATED',
+    colorTheme: r.color_theme || 'indigo',
+    color_theme: r.color_theme || 'indigo',
+    seoIntro: r.seo_intro || '',
+    intro: r.seo_intro || '',
+    metaDescription: r.meta_description || '',
+    pageTitle: `${r.name} Anime — Honest Watch Orders & Episode Guides`,
+    isActive: Boolean(r.is_active),
+    is_active: r.is_active,
+    createdAt: r.created_at,
+    updatedAt: r.updated_at
+  }));
+
+  vibesCache.data = formatted;
+  vibesCache.timestamp = now;
+  return formatted;
+}
+
+/**
+ * Look up a vibe by slug or ID
+ */
+export async function getVibeBySlug(slugOrId, contextOrLocals = null) {
+  if (!slugOrId) return null;
+  const list = await getAllVibes(contextOrLocals);
+  return list.find(v => v.slug === slugOrId || v.id === slugOrId) || null;
+}
+
+/**
+ * Fetch all vibes with assigned anime count for admin management
+ */
+export async function getAllAdminVibes(contextOrLocals = null) {
+  const db = await getDatabase(contextOrLocals);
+  const rows = await db.query(`
+    SELECT v.*, COUNT(av.anime_id) as anime_count
+    FROM vibes v
+    LEFT JOIN anime_vibes av ON v.id = av.vibe_id
+    GROUP BY v.id
+    ORDER BY v.name ASC
+  `);
+
+  return rows.map(r => ({
+    id: r.id,
+    slug: r.slug,
+    name: r.name,
+    title: r.name,
+    tagline: r.tagline || '',
+    groupLabel: r.group_label || '',
+    group_label: r.group_label || '',
+    badge: r.group_label || 'CURATED',
+    colorTheme: r.color_theme || 'indigo',
+    color_theme: r.color_theme || 'indigo',
+    seoIntro: r.seo_intro || '',
+    intro: r.seo_intro || '',
+    metaDescription: r.meta_description || '',
+    pageTitle: `${r.name} Anime — Honest Watch Orders & Episode Guides`,
+    isActive: Boolean(r.is_active),
+    is_active: r.is_active,
+    animeCount: Number(r.anime_count || 0),
+    createdAt: r.created_at,
+    updatedAt: r.updated_at
+  }));
 }

@@ -142,16 +142,20 @@ const totalTrending = animeList.filter(a => a.trending).length;
               </td>
               <td class="py-4 px-4">
                 <div class="flex flex-wrap gap-1.5 items-center">
-                  <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-800 text-slate-300 border border-slate-700">
-                    {anime.status}
-                  </span>
-                  <span class={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border ${
-                    anime.honestyStatus === 'watched' ? 'bg-emerald-950/60 text-emerald-400 border-emerald-800/60' :
-                    anime.honestyStatus === 'dropped' ? 'bg-rose-950/60 text-rose-400 border-rose-800/60' :
-                    'bg-amber-950/60 text-amber-400 border-amber-800/60'
-                  }`}>
-                    {anime.honestyStatus}
-                  </span>
+                  {anime.status && anime.status.trim() !== '' && (
+                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-800 text-slate-300 border border-slate-700">
+                      {anime.status}
+                    </span>
+                  )}
+                  {anime.honestyStatus && anime.honestyStatus.trim() !== '' && (
+                    <span class={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border ${
+                      anime.honestyStatus === 'watched' ? 'bg-emerald-950/60 text-emerald-400 border-emerald-800/60' :
+                      anime.honestyStatus === 'dropped' ? 'bg-rose-950/60 text-rose-400 border-rose-800/60' :
+                      'bg-amber-950/60 text-amber-400 border-amber-800/60'
+                    }`}>
+                      {anime.honestyStatus}
+                    </span>
+                  )}
                 </div>
               </td>
               <td class="py-4 px-4 hidden md:table-cell">

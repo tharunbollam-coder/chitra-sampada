@@ -1,14 +1,14 @@
-import { getAllAnime, getAvailableTabs, getAllBlogPosts } from '../lib/d1.js';
-import { vibes } from '../data/vibes.js';
+import { getAllAnime, getAvailableTabs, getAllBlogPosts, getAllVibes } from '../lib/d1.js';
 import { siteConfig } from '../config/site.js';
 
 export async function GET(context) {
   const siteUrl = (siteConfig.siteUrl || 'https://chitrasampada.com').replace(/\/+$/, '');
 
   // Fetch live records from D1
-  const [animeList, blogPosts] = await Promise.all([
+  const [animeList, blogPosts, allVibes] = await Promise.all([
     getAllAnime(context?.locals).catch(() => []),
-    getAllBlogPosts({ includeDrafts: false }, context?.locals).catch(() => [])
+    getAllBlogPosts({ includeDrafts: false }, context?.locals).catch(() => []),
+    getAllVibes(context?.locals).catch(() => [])
   ]);
 
   const urls = [];
@@ -49,13 +49,15 @@ export async function GET(context) {
     priority: '0.8'
   });
 
-  // 2. Curated vibes & tag pages
-  for (const vibe of vibes) {
-    urls.push({
-      loc: `${siteUrl}/anime/tag/${vibe.slug}`,
-      changefreq: 'weekly',
-      priority: '0.7'
-    });
+  // 2. Curated vibes & tag pages (only include if active and at least 1 published anime is assigned)
+  for (const vibe of allVibes) {
+    if (vibe.isActive && animeList.some(a => a.vibes && a.vibes.includes(vibe.id))) {
+      urls.push({
+        loc: `${siteUrl}/anime/tag/${vibe.slug}`,
+        changefreq: 'weekly',
+        priority: '0.7'
+      });
+    }
   }
 
   // 3. Dynamic Anime Detail Pages and their active tabs
