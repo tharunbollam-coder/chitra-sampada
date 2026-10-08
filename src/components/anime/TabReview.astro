@@ -3,15 +3,10 @@
 const { anime } = Astro.props;
 const review = anime.review || {};
 
-// Normalize paragraphs whether array, string, or legacy summary
-let paragraphs = [];
-if (Array.isArray(review.paragraphs) && review.paragraphs.length > 0) {
-  paragraphs = review.paragraphs.filter((p) => typeof p === 'string' && p.trim().length > 0);
-} else if (typeof review === 'string' && review.trim().length > 0) {
-  paragraphs = [review.trim()];
-} else if (review.summary && typeof review.summary === 'string' && review.summary.trim().length > 0) {
-  paragraphs = [review.summary.trim()];
-}
+const rawReviewSource = anime.review_paragraphs || anime.review?.paragraphs || anime.review?.text || (typeof review === 'string' ? review : review.summary) || '';
+const paragraphs = typeof rawReviewSource === 'string'
+  ? rawReviewSource.split(/\n\s*\n/).map(p => p.trim()).filter(Boolean)
+  : [];
 
 const isWatched = anime.honestyStatus === 'watched';
 const score = anime.personalRating;

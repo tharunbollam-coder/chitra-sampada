@@ -112,10 +112,9 @@ const airStatusInfo = getAirStatusDetails(anime.status);
 const isQuickReview = activeTab?.key === 'review' && anime.review?.type === 'quick';
 
 const isWatched = anime.honestyStatus === 'watched';
-const lessonText = isWatched
-  ? (typeof anime.lessons === 'string'
-      ? anime.lessons
-      : (anime.lessons?.takeaway || (Array.isArray(anime.lessons?.paragraphs) && anime.lessons.paragraphs[0] ? anime.lessons.paragraphs[0] : null)))
+const rawLesson = anime.what_i_learned_paragraphs || anime.lesson_takeaway || (typeof anime.lessons === 'string' ? anime.lessons : (anime.lessons?.takeaway || (typeof anime.lessons?.paragraphs === 'string' ? anime.lessons.paragraphs : null)));
+const lessonText = isWatched && rawLesson
+  ? (rawLesson.split(/\n\s*\n/)[0]?.trim() || rawLesson.trim())
   : null;
 
 // Dynamic Title & Description based on active tab
@@ -188,7 +187,7 @@ const breadcrumbSchema = {
   "itemListElement": breadcrumbItems
 };
 
-const reviewBodyText = anime.review?.paragraphs?.join('\n\n') || anime.review?.heading || (anime.synopsis ? `${anime.title}: ${anime.synopsis}` : `${anime.title} guide`);
+const reviewBodyText = anime.review_paragraphs || (typeof anime.review?.paragraphs === 'string' ? anime.review.paragraphs : (anime.review?.text || '')) || anime.review?.heading || (anime.synopsis ? `${anime.title}: ${anime.synopsis}` : `${anime.title} guide`);
 
 let entitySchema;
 if (anime.honestyStatus === 'watched' && anime.personalRating !== undefined && anime.personalRating !== null) {

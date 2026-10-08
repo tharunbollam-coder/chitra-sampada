@@ -2,9 +2,10 @@
 // src/components/anime/TabPowerSystem.astro
 const { anime } = Astro.props;
 const power = anime.powerSystem || {};
-const paragraphs = Array.isArray(power.paragraphs)
-  ? power.paragraphs
-  : (typeof power === 'string' ? [power] : []);
+const rawPowerSource = anime.power_system_paragraphs || anime.powerSystem?.paragraphs || anime.powerSystem?.text || (typeof power === 'string' ? power : '') || '';
+const paragraphs = typeof rawPowerSource === 'string'
+  ? rawPowerSource.split(/\n\s*\n/).map(p => p.trim()).filter(Boolean)
+  : [];
 ---
 
 <div class="space-y-6">

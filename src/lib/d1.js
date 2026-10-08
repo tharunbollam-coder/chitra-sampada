@@ -558,18 +558,12 @@ export async function getAllAnime(contextOrLocals) {
   return animeRows.map((row) => {
     // Reconstruct review object if heading or paragraphs exist
     let review = null;
-    let paragraphs = [];
-    if (row.review_paragraphs) {
-      try {
-        paragraphs = JSON.parse(row.review_paragraphs);
-      } catch (e) {
-        paragraphs = [row.review_paragraphs];
-      }
-    }
-    if (row.review_heading || paragraphs.length > 0) {
+    const reviewText = row.review_paragraphs || '';
+    if (row.review_heading || reviewText.trim().length > 0) {
       review = {
         heading: row.review_heading,
-        paragraphs,
+        paragraphs: reviewText,
+        text: reviewText,
         type: (row.review_type === 'quick' || row.review_type === 'quick_take') ? 'quick' : 'full',
         spoilerLevel: row.review_spoiler_level || 'none'
       };
@@ -653,26 +647,23 @@ export async function getAllAnime(contextOrLocals) {
 
     // Reconstruct powerSystem
     let powerSystem = null;
-    if (row.power_system_name || row.power_system_paragraphs) {
-      let powerParagraphs = [];
-      if (row.power_system_paragraphs) {
-        try {
-          powerParagraphs = JSON.parse(row.power_system_paragraphs);
-        } catch (e) {
-          powerParagraphs = [row.power_system_paragraphs];
-        }
-      }
+    const powerText = row.power_system_paragraphs || '';
+    if (row.power_system_name || powerText.trim().length > 0) {
       powerSystem = {
         name: row.power_system_name,
-        paragraphs: powerParagraphs
+        paragraphs: powerText,
+        text: powerText
       };
     }
 
     // Reconstruct lessons
     let lessons = null;
-    if (row.lesson_takeaway) {
+    const lessonTakeaway = row.lesson_takeaway || '';
+    if (lessonTakeaway.trim().length > 0) {
       lessons = {
-        takeaway: row.lesson_takeaway
+        takeaway: lessonTakeaway,
+        paragraphs: lessonTakeaway,
+        text: lessonTakeaway
       };
     }
 
@@ -751,6 +742,10 @@ export async function getAllAnime(contextOrLocals) {
       source,
       powerSystem,
       lessons,
+      review_paragraphs: reviewText,
+      power_system_paragraphs: powerText,
+      lesson_takeaway: lessonTakeaway,
+      what_i_learned_paragraphs: lessonTakeaway,
       universe: universeMap.get(row.id) || [],
       recommendations,
       streamingPlatforms: streamingMap.get(row.id) || [],
@@ -778,7 +773,9 @@ export function getAvailableTabs(anime) {
   const hasReviewContent = isWatched && Boolean(
     anime.review && (
       (anime.review.heading && anime.review.heading.trim().length > 0) ||
-      (Array.isArray(anime.review.paragraphs) && anime.review.paragraphs.some((p) => typeof p === 'string' && p.trim().length > 0))
+      (typeof anime.review.paragraphs === 'string' && anime.review.paragraphs.trim().length > 0) ||
+      (typeof anime.review.text === 'string' && anime.review.text.trim().length > 0) ||
+      (typeof anime.review_paragraphs === 'string' && anime.review_paragraphs.trim().length > 0)
     )
   );
 
@@ -792,7 +789,9 @@ export function getAvailableTabs(anime) {
     anime.lessons && (
       (typeof anime.lessons === 'string' && anime.lessons.trim().length > 0) ||
       (anime.lessons.takeaway && anime.lessons.takeaway.trim().length > 0) ||
-      (Array.isArray(anime.lessons.paragraphs) && anime.lessons.paragraphs.length > 0)
+      (typeof anime.lessons.paragraphs === 'string' && anime.lessons.paragraphs.trim().length > 0) ||
+      (typeof anime.lesson_takeaway === 'string' && anime.lesson_takeaway.trim().length > 0) ||
+      (typeof anime.what_i_learned_paragraphs === 'string' && anime.what_i_learned_paragraphs.trim().length > 0)
     )
   );
   if (hasLessonsContent && vis.lessons !== false) {
@@ -837,7 +836,15 @@ export function getAvailableTabs(anime) {
   }
 
   // 6. Power System
-  if (anime.powerSystem && (anime.powerSystem.paragraphs?.length > 0 || anime.powerSystem.name) && vis.powerSystem !== false) {
+  const hasPowerContent = Boolean(
+    anime.powerSystem && (
+      (anime.powerSystem.name && anime.powerSystem.name.trim().length > 0) ||
+      (typeof anime.powerSystem.paragraphs === 'string' && anime.powerSystem.paragraphs.trim().length > 0) ||
+      (typeof anime.powerSystem.text === 'string' && anime.powerSystem.text.trim().length > 0) ||
+      (typeof anime.power_system_paragraphs === 'string' && anime.power_system_paragraphs.trim().length > 0)
+    )
+  );
+  if (hasPowerContent && vis.powerSystem !== false) {
     tabs.push({ key: 'power-system', label: 'Power System' });
   }
 

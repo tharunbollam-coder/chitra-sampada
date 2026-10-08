@@ -42,6 +42,28 @@ const sectionVisibility = anime?.sectionVisibility || {
   universe: true,
   recommendations: true
 };
+
+const initialReviewText = anime?.review_paragraphs ?? (typeof anime?.review?.paragraphs === 'string' ? anime.review.paragraphs : (anime?.review?.text || ''));
+const initialLessonsText = anime?.what_i_learned_paragraphs ?? anime?.lesson_takeaway ?? (typeof anime?.lessons?.takeaway === 'string' ? anime.lessons.takeaway : (anime?.lessons?.text || ''));
+const initialPowerText = anime?.power_system_paragraphs ?? (typeof anime?.powerSystem?.paragraphs === 'string' ? anime.powerSystem.paragraphs : (anime?.powerSystem?.text || ''));
+
+const rawSourceType = anime?.source?.type || 'Manga';
+const standardSourceTypes = ['Manga', 'Manhwa', 'Light Novel', 'Web Novel', 'Anime Original', 'Visual Novel / Game'];
+let initialSourceSelectValue = 'Manga';
+let isCustomSource = false;
+let customSourceValue = '';
+
+if (standardSourceTypes.includes(rawSourceType)) {
+  initialSourceSelectValue = rawSourceType;
+} else if (rawSourceType === 'Original') {
+  initialSourceSelectValue = 'Anime Original';
+} else if (rawSourceType === 'Visual Novel') {
+  initialSourceSelectValue = 'Visual Novel / Game';
+} else if (rawSourceType) {
+  initialSourceSelectValue = 'Custom';
+  isCustomSource = true;
+  customSourceValue = rawSourceType;
+}
 ---
 
 <AdminLayout title={pageTitle} activeSection="anime">
@@ -688,39 +710,19 @@ const sectionVisibility = anime?.sectionVisibility || {
           </div>
 
           <div>
-            <div class="flex items-center justify-between mb-2">
-              <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider">
-                Review Paragraphs
-              </label>
-              <button
-                type="button"
-                id="btn-add-review-p"
-                class="text-xs text-indigo-400 hover:text-indigo-300 font-medium flex items-center gap-1 cursor-pointer"
-              >
-                + Add Paragraph
-              </button>
-            </div>
-
-            <div id="review-paragraphs-container" class="space-y-3">
-              {(anime?.review?.paragraphs?.length ? anime.review.paragraphs : ['']).map((p, idx) => (
-                <div class="flex items-start gap-2 paragraph-row">
-                  <textarea
-                    rows="4"
-                    class="flex-1 px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 min-h-[130px] review-paragraph-input"
-                    placeholder={`Paragraph ${idx + 1}...`}
-                  >{p}</textarea>
-                  <button
-                    type="button"
-                    class="btn-remove-p p-2 text-slate-500 hover:text-rose-400 rounded-lg hover:bg-slate-800 transition cursor-pointer"
-                    title="Remove paragraph"
-                  >
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                  </button>
-                </div>
-              ))}
-            </div>
+            <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5" for="review-text">
+              Review / Editorial Take
+            </label>
+            <p class="text-xs text-slate-400 mb-2">
+              Write or paste full text freely. Paragraphs separated by blank lines will format automatically on the public site.
+            </p>
+            <textarea
+              id="review-text"
+              name="review_paragraphs"
+              rows="8"
+              class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 min-h-[180px] leading-relaxed font-normal"
+              placeholder="Write or paste full text freely. Paragraphs separated by blank lines will format automatically on the public site."
+            >{initialReviewText || ''}</textarea>
           </div>
 
           <div class="pt-4 border-t border-slate-800 flex justify-end">
@@ -794,12 +796,16 @@ const sectionVisibility = anime?.sectionVisibility || {
             <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5" for="lesson-takeaway">
               Takeaway Content / Reflection
             </label>
+            <p class="text-xs text-slate-400 mb-2">
+              Write or paste full text freely. Paragraphs separated by blank lines will format automatically on the public site.
+            </p>
             <textarea
               id="lesson-takeaway"
-              rows="4"
-              placeholder="What this show taught about life, perspective, or empathy..."
-              class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 min-h-[130px]"
-            >{anime?.lessons?.takeaway || ''}</textarea>
+              name="what_i_learned_paragraphs"
+              rows="8"
+              placeholder="Write or paste full text freely. Paragraphs separated by blank lines will format automatically on the public site."
+              class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 min-h-[180px] leading-relaxed font-normal"
+            >{initialLessonsText || ''}</textarea>
           </div>
 
           <div class="pt-4 border-t border-slate-800 flex justify-end">
@@ -1381,17 +1387,32 @@ const sectionVisibility = anime?.sectionVisibility || {
 
             <div>
               <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5" for="source-type">
-                Source Type
+                Source Type / Original Work
               </label>
               <select
                 id="source-type"
                 class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-sm text-white focus:outline-none focus:border-indigo-500"
               >
-                <option value="Manga" selected={anime?.source?.type === 'Manga'}>Manga</option>
-                <option value="Light Novel" selected={anime?.source?.type === 'Light Novel'}>Light Novel</option>
-                <option value="Visual Novel" selected={anime?.source?.type === 'Visual Novel'}>Visual Novel</option>
-                <option value="Original" selected={anime?.source?.type === 'Original'}>Original (Anime Original)</option>
+                <option value="Manga" selected={initialSourceSelectValue === 'Manga'}>Manga</option>
+                <option value="Manhwa" selected={initialSourceSelectValue === 'Manhwa'}>Manhwa (Korean Webtoon/Comic)</option>
+                <option value="Light Novel" selected={initialSourceSelectValue === 'Light Novel'}>Light Novel</option>
+                <option value="Web Novel" selected={initialSourceSelectValue === 'Web Novel'}>Web Novel</option>
+                <option value="Anime Original" selected={initialSourceSelectValue === 'Anime Original'}>Anime Original</option>
+                <option value="Visual Novel / Game" selected={initialSourceSelectValue === 'Visual Novel / Game'}>Visual Novel / Game</option>
+                <option value="Custom" selected={initialSourceSelectValue === 'Custom'}>Custom / Other</option>
               </select>
+              <div id="source-type-custom-container" class={`mt-2 ${isCustomSource ? '' : 'hidden'}`}>
+                <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1" for="source-type-custom">
+                  Custom Source Type Name
+                </label>
+                <input
+                  type="text"
+                  id="source-type-custom"
+                  value={customSourceValue}
+                  placeholder="e.g. Multimedia Project, Stage Play, Radio Drama..."
+                  class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                />
+              </div>
             </div>
 
             <div>
@@ -1529,36 +1550,20 @@ const sectionVisibility = anime?.sectionVisibility || {
 
           <div>
             <div class="flex items-center justify-between mb-2">
-              <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider">
-                Explanatory Paragraphs
+              <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider" for="power-text">
+                Power System Explanatory Paragraphs
               </label>
-              <button
-                type="button"
-                id="btn-add-power-p"
-                class="text-xs text-indigo-400 hover:text-indigo-300 font-medium flex items-center gap-1 cursor-pointer"
-              >
-                + Add Paragraph
-              </button>
             </div>
-
-            <div id="power-paragraphs-container" class="space-y-3">
-              {(anime?.powerSystem?.paragraphs?.length ? anime.powerSystem.paragraphs : ['']).map((p, idx) => (
-                <div class="flex items-start gap-2 power-paragraph-row">
-                  <textarea
-                    rows="4"
-                    class="flex-1 px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 min-h-[130px] power-paragraph-input"
-                    placeholder={`Power mechanic paragraph ${idx + 1}...`}
-                  >{p}</textarea>
-                  <button
-                    type="button"
-                    class="btn-remove-power-p p-2 text-slate-500 hover:text-rose-400 rounded-lg hover:bg-slate-800 transition cursor-pointer"
-                    title="Remove paragraph"
-                  >
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                  </button>
-                </div>
-              ))}
-            </div>
+            <p class="text-xs text-slate-400 mb-2">
+              Write or paste full text freely. Paragraphs separated by blank lines will format automatically on the public site.
+            </p>
+            <textarea
+              id="power-text"
+              name="power_system_paragraphs"
+              rows="8"
+              class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 min-h-[180px] leading-relaxed font-normal"
+              placeholder="Write or paste full text freely. Paragraphs separated by blank lines will format automatically on the public site."
+            >{initialPowerText || ''}</textarea>
           </div>
 
           <div class="pt-4 border-t border-slate-800 flex justify-end">
@@ -2243,38 +2248,60 @@ const sectionVisibility = anime?.sectionVisibility || {
       });
     }
 
-    // Helper: add a review paragraph row to Section 2
-    function addReviewParagraph(content = '', index = 1) {
-      const container = document.getElementById('review-paragraphs-container');
-      const div = document.createElement('div');
-      div.className = 'flex items-start gap-2 paragraph-row';
-      div.innerHTML = `
-        <textarea rows="4" class="flex-1 px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 min-h-[130px] review-paragraph-input" placeholder="Paragraph ${index}..."></textarea>
-        <button type="button" class="btn-remove-p p-2 text-slate-500 hover:text-rose-400 rounded-lg hover:bg-slate-800 transition cursor-pointer" title="Remove paragraph">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-        </button>
-      `;
-      const textarea = div.querySelector('textarea');
-      textarea.value = content;
-      div.querySelector('.btn-remove-p').addEventListener('click', () => div.remove());
-      container.appendChild(div);
+    // Helper: get and set source material type with custom format support
+    function setSourceTypeValue(val) {
+      const select = document.getElementById('source-type');
+      const customInput = document.getElementById('source-type-custom');
+      const customContainer = document.getElementById('source-type-custom-container');
+      if (!select) return;
+
+      const standardSourceTypes = ['Manga', 'Manhwa', 'Light Novel', 'Web Novel', 'Anime Original', 'Visual Novel / Game'];
+      if (standardSourceTypes.includes(val)) {
+        select.value = val;
+        if (customContainer) customContainer.classList.add('hidden');
+        if (customInput) customInput.value = '';
+      } else if (val === 'Original') {
+        select.value = 'Anime Original';
+        if (customContainer) customContainer.classList.add('hidden');
+        if (customInput) customInput.value = '';
+      } else if (val === 'Visual Novel') {
+        select.value = 'Visual Novel / Game';
+        if (customContainer) customContainer.classList.add('hidden');
+        if (customInput) customInput.value = '';
+      } else if (val) {
+        select.value = 'Custom';
+        if (customContainer) customContainer.classList.remove('hidden');
+        if (customInput) customInput.value = val;
+      } else {
+        select.value = 'Manga';
+        if (customContainer) customContainer.classList.add('hidden');
+        if (customInput) customInput.value = '';
+      }
     }
 
-    // Helper: add a power paragraph row to Section 8
-    function addPowerParagraph(content = '', index = 1) {
-      const container = document.getElementById('power-paragraphs-container');
-      const div = document.createElement('div');
-      div.className = 'flex items-start gap-2 power-paragraph-row';
-      div.innerHTML = `
-        <textarea rows="4" class="flex-1 px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 min-h-[130px] power-paragraph-input" placeholder="Power mechanic paragraph ${index}..."></textarea>
-        <button type="button" class="btn-remove-power-p p-2 text-slate-500 hover:text-rose-400 rounded-lg hover:bg-slate-800 transition cursor-pointer" title="Remove paragraph">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-        </button>
-      `;
-      const textarea = div.querySelector('textarea');
-      textarea.value = content;
-      div.querySelector('.btn-remove-power-p').addEventListener('click', () => div.remove());
-      container.appendChild(div);
+    function getSourceTypeValue() {
+      const select = document.getElementById('source-type');
+      const customInput = document.getElementById('source-type-custom');
+      if (!select) return 'Manga';
+      if (select.value === 'Custom') {
+        return customInput?.value?.trim() || 'Custom';
+      }
+      return select.value;
+    }
+
+    // Source type change listener for custom input visibility
+    const sourceTypeSelect = document.getElementById('source-type');
+    const sourceTypeCustomContainer = document.getElementById('source-type-custom-container');
+    const sourceTypeCustomInput = document.getElementById('source-type-custom');
+    if (sourceTypeSelect) {
+      sourceTypeSelect.addEventListener('change', (e) => {
+        if (e.target.value === 'Custom') {
+          if (sourceTypeCustomContainer) sourceTypeCustomContainer.classList.remove('hidden');
+          if (sourceTypeCustomInput) sourceTypeCustomInput.focus();
+        } else {
+          if (sourceTypeCustomContainer) sourceTypeCustomContainer.classList.add('hidden');
+        }
+      });
     }
 
     // Helper: update rank indicators for Universe Media
@@ -2754,18 +2781,16 @@ const sectionVisibility = anime?.sectionVisibility || {
         radio.checked = radio.value === currentSpoilerLevel;
       });
 
-      const revContainer = document.getElementById('review-paragraphs-container');
-      if (revContainer) {
-        revContainer.innerHTML = '';
-        const paragraphs = a.review?.paragraphs?.length ? a.review.paragraphs : [''];
-        paragraphs.forEach((p, idx) => {
-          addReviewParagraph(p, idx + 1);
-        });
+      const reviewTextEl = document.getElementById('review-text');
+      if (reviewTextEl) {
+        reviewTextEl.value = a.review_paragraphs ?? (typeof a.review?.paragraphs === 'string' ? a.review.paragraphs : (a.review?.text || ''));
       }
 
       // 5. Populate Section 3: Lessons
       const lessonTakeaway = document.getElementById('lesson-takeaway');
-      if (lessonTakeaway) lessonTakeaway.value = a.lessons?.takeaway || '';
+      if (lessonTakeaway) {
+        lessonTakeaway.value = a.what_i_learned_paragraphs ?? a.lesson_takeaway ?? (typeof a.lessons?.takeaway === 'string' ? a.lessons.takeaway : (a.lessons?.text || ''));
+      }
 
       // 6. Populate Section 4: Watch Order
       const woFranchise = document.getElementById('wo-franchise');
@@ -2850,8 +2875,7 @@ const sectionVisibility = anime?.sectionVisibility || {
       const srcAuthor = document.getElementById('source-author');
       if (srcAuthor) srcAuthor.value = a.source?.author || '';
 
-      const srcType = document.getElementById('source-type');
-      if (srcType && a.source?.type) srcType.value = a.source.type;
+      setSourceTypeValue(a.source?.type);
 
       const srcVols = document.getElementById('source-volumes');
       if (srcVols) srcVols.value = a.source?.volumes || '';
@@ -2869,13 +2893,9 @@ const sectionVisibility = anime?.sectionVisibility || {
       const powerName = document.getElementById('power-name');
       if (powerName) powerName.value = a.powerSystem?.name || '';
 
-      const powerContainer = document.getElementById('power-paragraphs-container');
-      if (powerContainer) {
-        powerContainer.innerHTML = '';
-        const powerPars = a.powerSystem?.paragraphs?.length ? a.powerSystem.paragraphs : [''];
-        powerPars.forEach((p, idx) => {
-          addPowerParagraph(p, idx + 1);
-        });
+      const powerTextEl = document.getElementById('power-text');
+      if (powerTextEl) {
+        powerTextEl.value = a.power_system_paragraphs ?? (typeof a.powerSystem?.paragraphs === 'string' ? a.powerSystem.paragraphs : (a.powerSystem?.text || ''));
       }
 
       // 11. Populate Section 9: Related & Universe Media
@@ -3049,19 +3069,6 @@ const sectionVisibility = anime?.sectionVisibility || {
     const reviewFeedback = document.getElementById('review-feedback');
     const reviewBadge = document.getElementById('review-badge');
 
-    // Add paragraph handler
-    document.getElementById('btn-add-review-p').addEventListener('click', () => {
-      const container = document.getElementById('review-paragraphs-container');
-      const count = container.children.length + 1;
-      addReviewParagraph('', count);
-    });
-
-    // Remove paragraph delegate
-    document.getElementById('review-paragraphs-container').addEventListener('click', (e) => {
-      const btn = e.target.closest('.btn-remove-p');
-      if (btn) btn.closest('.paragraph-row').remove();
-    });
-
     formReview.addEventListener('submit', async (e) => {
       e.preventDefault();
       if (!currentAnimeId) {
@@ -3070,8 +3077,7 @@ const sectionVisibility = anime?.sectionVisibility || {
       }
 
       const heading = document.getElementById('review-heading').value.trim();
-      const textareas = document.querySelectorAll('#review-paragraphs-container textarea');
-      const paragraphs = Array.from(textareas).map(t => t.value.trim()).filter(Boolean);
+      const text = document.getElementById('review-text').value.trim();
       const reviewType = document.querySelector('input[name="review-type"]:checked')?.value || 'full';
       const spoilerLevel = document.querySelector('input[name="review-spoiler-level"]:checked')?.value || 'none';
 
@@ -3079,7 +3085,7 @@ const sectionVisibility = anime?.sectionVisibility || {
         const res = await fetch('/api/admin/anime/review', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ animeId: currentAnimeId, heading, paragraphs, type: reviewType, spoilerLevel })
+          body: JSON.stringify({ animeId: currentAnimeId, heading, review_paragraphs: text, text, paragraphs: text, type: reviewType, spoilerLevel })
         });
         const data = await res.json();
         if (data.success) {
@@ -3114,7 +3120,7 @@ const sectionVisibility = anime?.sectionVisibility || {
         const res = await fetch('/api/admin/anime/lessons', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ animeId: currentAnimeId, takeaway })
+          body: JSON.stringify({ animeId: currentAnimeId, takeaway, lesson_takeaway: takeaway, what_i_learned_paragraphs: takeaway })
         });
         const data = await res.json();
         if (data.success) {
@@ -3438,7 +3444,7 @@ const sectionVisibility = anime?.sectionVisibility || {
       const source = {
         title: document.getElementById('source-title').value.trim(),
         author: document.getElementById('source-author').value.trim(),
-        type: document.getElementById('source-type').value,
+        type: getSourceTypeValue(),
         volumes: document.getElementById('source-volumes').value.trim(),
         publicationStatus: document.getElementById('source-pub-status').value,
         coverage: document.getElementById('source-coverage').value.trim(),
@@ -3471,17 +3477,6 @@ const sectionVisibility = anime?.sectionVisibility || {
     const powerFeedback = document.getElementById('power-feedback');
     const powerBadge = document.getElementById('power-badge');
 
-    document.getElementById('btn-add-power-p').addEventListener('click', () => {
-      const container = document.getElementById('power-paragraphs-container');
-      const count = container.children.length + 1;
-      addPowerParagraph('', count);
-    });
-
-    document.getElementById('power-paragraphs-container').addEventListener('click', (e) => {
-      const btn = e.target.closest('.btn-remove-power-p');
-      if (btn) btn.closest('.power-paragraph-row').remove();
-    });
-
     formPower.addEventListener('submit', async (e) => {
       e.preventDefault();
       if (!currentAnimeId) {
@@ -3490,14 +3485,13 @@ const sectionVisibility = anime?.sectionVisibility || {
       }
 
       const name = document.getElementById('power-name').value.trim();
-      const textareas = document.querySelectorAll('#power-paragraphs-container textarea');
-      const paragraphs = Array.from(textareas).map(t => t.value.trim()).filter(Boolean);
+      const text = document.getElementById('power-text').value.trim();
 
       try {
         const res = await fetch('/api/admin/anime/power-system', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ animeId: currentAnimeId, name, paragraphs })
+          body: JSON.stringify({ animeId: currentAnimeId, name, text, paragraphs: text, power_system_paragraphs: text })
         });
         const data = await res.json();
         if (data.success) {
@@ -3759,15 +3753,14 @@ const sectionVisibility = anime?.sectionVisibility || {
 
       // 2. Section 2 Review
       const reviewHeading = document.getElementById('review-heading')?.value.trim() || '';
-      const reviewTextareas = document.querySelectorAll('#review-paragraphs-container textarea');
-      const reviewParagraphs = Array.from(reviewTextareas).map(t => t.value.trim()).filter(Boolean);
+      const reviewText = document.getElementById('review-text')?.value.trim() || '';
       const reviewType = document.querySelector('input[name="review-type"]:checked')?.value || 'full';
       const reviewSpoilerLevel = document.querySelector('input[name="review-spoiler-level"]:checked')?.value || 'none';
-      const reviewPayload = { heading: reviewHeading, paragraphs: reviewParagraphs, type: reviewType, spoilerLevel: reviewSpoilerLevel };
+      const reviewPayload = { heading: reviewHeading, text: reviewText, paragraphs: reviewText, review_paragraphs: reviewText, type: reviewType, spoilerLevel: reviewSpoilerLevel };
 
       // 3. Section 3 Lessons
       const lessonTakeaway = document.getElementById('lesson-takeaway')?.value.trim() || '';
-      const lessonsPayload = { takeaway: lessonTakeaway };
+      const lessonsPayload = { takeaway: lessonTakeaway, lesson_takeaway: lessonTakeaway, what_i_learned_paragraphs: lessonTakeaway };
 
       // 4. Section 4 Watch Order
       const franchiseId = document.getElementById('wo-franchise')?.value || null;
@@ -3814,7 +3807,7 @@ const sectionVisibility = anime?.sectionVisibility || {
       const sourcePayload = {
         title: document.getElementById('source-title')?.value.trim() || '',
         author: document.getElementById('source-author')?.value.trim() || '',
-        type: document.getElementById('source-type')?.value || 'Manga',
+        type: getSourceTypeValue(),
         volumes: document.getElementById('source-volumes')?.value.trim() || '',
         publicationStatus: document.getElementById('source-pub-status')?.value || 'Ongoing',
         coverage: document.getElementById('source-coverage')?.value.trim() || '',
@@ -3823,9 +3816,8 @@ const sectionVisibility = anime?.sectionVisibility || {
 
       // 8. Section 8 Power System
       const powerName = document.getElementById('power-name')?.value.trim() || '';
-      const powerTextareas = document.querySelectorAll('#power-paragraphs-container textarea');
-      const powerParagraphs = Array.from(powerTextareas).map(t => t.value.trim()).filter(Boolean);
-      const powerPayload = { name: powerName, paragraphs: powerParagraphs };
+      const powerText = document.getElementById('power-text')?.value.trim() || '';
+      const powerPayload = { name: powerName, text: powerText, paragraphs: powerText, power_system_paragraphs: powerText };
 
       // 9. Section 9 Universe Media
       const universeRows = document.querySelectorAll('#universe-container .universe-row');

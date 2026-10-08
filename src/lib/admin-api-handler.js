@@ -175,18 +175,20 @@ export async function handleAdminApi({ request, locals, url, params }) {
     // Section 2: Review (My Take)
     if (route === 'anime/review' && method === 'POST') {
       const body = await parseJsonBody(request);
-      const { animeId, heading, paragraphs, type, spoilerLevel } = body;
+      const { animeId, heading, paragraphs, text, review_paragraphs, type, spoilerLevel } = body;
       if (!animeId) return jsonResponse({ success: false, error: 'Anime ID is required' }, 400);
-      await saveAnimeReview(animeId, { heading, paragraphs, type, spoilerLevel }, locals);
+      const content = review_paragraphs !== undefined ? review_paragraphs : (paragraphs !== undefined ? paragraphs : text);
+      await saveAnimeReview(animeId, { heading, review_paragraphs: content, type, spoilerLevel }, locals);
       return jsonResponse({ success: true, message: 'Review / My Take saved successfully' });
     }
 
     // Section 3: Lessons (What I Learned)
     if (route === 'anime/lessons' && method === 'POST') {
       const body = await parseJsonBody(request);
-      const { animeId, takeaway } = body;
+      const { animeId, takeaway, text, paragraphs, what_i_learned_paragraphs, lesson_takeaway } = body;
       if (!animeId) return jsonResponse({ success: false, error: 'Anime ID is required' }, 400);
-      await saveAnimeLessons(animeId, { takeaway }, locals);
+      const content = what_i_learned_paragraphs !== undefined ? what_i_learned_paragraphs : (lesson_takeaway !== undefined ? lesson_takeaway : (takeaway !== undefined ? takeaway : (text || paragraphs)));
+      await saveAnimeLessons(animeId, { lesson_takeaway: content }, locals);
       return jsonResponse({ success: true, message: 'What I Learned section saved successfully' });
     }
 
@@ -242,9 +244,10 @@ export async function handleAdminApi({ request, locals, url, params }) {
     // Section 8: Power System
     if (route === 'anime/power-system' && method === 'POST') {
       const body = await parseJsonBody(request);
-      const { animeId, name, paragraphs } = body;
+      const { animeId, name, paragraphs, text, power_system_paragraphs } = body;
       if (!animeId) return jsonResponse({ success: false, error: 'Anime ID is required' }, 400);
-      await saveAnimePowerSystem(animeId, { name, paragraphs }, locals);
+      const content = power_system_paragraphs !== undefined ? power_system_paragraphs : (paragraphs !== undefined ? paragraphs : text);
+      await saveAnimePowerSystem(animeId, { name, power_system_paragraphs: content }, locals);
       return jsonResponse({ success: true, message: 'Power system details saved successfully' });
     }
 

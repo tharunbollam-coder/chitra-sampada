@@ -104,23 +104,9 @@ export async function getAnimeById(idOrSlug, contextOrLocals = null) {
     console.warn("Failed to query anime_streaming_platforms in getAnimeById:", err?.message || err);
   }
 
-  let reviewParagraphs = [];
-  if (animeRow.review_paragraphs) {
-    try {
-      reviewParagraphs = JSON.parse(animeRow.review_paragraphs);
-    } catch {
-      reviewParagraphs = [animeRow.review_paragraphs];
-    }
-  }
-
-  let powerParagraphs = [];
-  if (animeRow.power_system_paragraphs) {
-    try {
-      powerParagraphs = JSON.parse(animeRow.power_system_paragraphs);
-    } catch {
-      powerParagraphs = [animeRow.power_system_paragraphs];
-    }
-  }
+  const reviewText = animeRow.review_paragraphs || '';
+  const powerText = animeRow.power_system_paragraphs || '';
+  const lessonTakeaway = animeRow.lesson_takeaway || '';
 
   let sectionVisibility = {
     review: true,
@@ -171,14 +157,21 @@ export async function getAnimeById(idOrSlug, contextOrLocals = null) {
     aliases,
     genres,
     vibes,
+    review_paragraphs: reviewText,
+    power_system_paragraphs: powerText,
+    lesson_takeaway: lessonTakeaway,
+    what_i_learned_paragraphs: lessonTakeaway,
     review: {
       heading: animeRow.review_heading || '',
-      paragraphs: reviewParagraphs,
+      paragraphs: reviewText,
+      text: reviewText,
       type: (animeRow.review_type === 'quick' || animeRow.review_type === 'quick_take') ? 'quick' : 'full',
       spoilerLevel: animeRow.review_spoiler_level || 'none'
     },
     lessons: {
-      takeaway: animeRow.lesson_takeaway || ''
+      takeaway: lessonTakeaway,
+      paragraphs: lessonTakeaway,
+      text: lessonTakeaway
     },
     source: {
       title: animeRow.source_title || '',
@@ -193,7 +186,8 @@ export async function getAnimeById(idOrSlug, contextOrLocals = null) {
     },
     powerSystem: {
       name: animeRow.power_system_name || '',
-      paragraphs: powerParagraphs
+      paragraphs: powerText,
+      text: powerText
     },
     fillerBreakdown: {
       ...fillerBreakdown,
@@ -504,11 +498,12 @@ export async function saveAllAnime(payload, contextOrLocals = null) {
 
 /**
  * Save My Take / Review section.
+ * Saves trimmed raw text string directly to review_paragraphs without JSON wrapping.
  */
-export async function saveAnimeReview(animeId, { heading = '', paragraphs = [], type = 'full', spoilerLevel = 'none' } = {}, contextOrLocals = null) {
+export async function saveAnimeReview(animeId, { heading = '', paragraphs = '', text = '', review_paragraphs = '', type = 'full', spoilerLevel = 'none' } = {}, contextOrLocals = null) {
   const db = await getDatabase(contextOrLocals);
-  const cleanParagraphs = Array.isArray(paragraphs) ? paragraphs.map(p => String(p).trim()).filter(Boolean) : [];
-  const jsonParagraphs = cleanParagraphs.length > 0 ? JSON.stringify(cleanParagraphs) : null;
+  const rawInput = review_paragraphs || paragraphs || text || '';
+  const reviewContent = typeof rawInput === 'string' ? (rawInput.trim() || null) : (rawInput ? String(rawInput).trim() : null);
   const cleanType = (type === 'quick' || type === 'quick_take') ? 'quick' : 'full';
   const cleanSpoilerLevel = ['none', 'light', 'major'].includes(spoilerLevel) ? spoilerLevel : 'none';
 
@@ -517,20 +512,20 @@ export async function saveAnimeReview(animeId, { heading = '', paragraphs = [], 
       UPDATE anime 
       SET review_heading = ?, review_paragraphs = ?, review_type = ?, review_spoiler_level = ?, last_updated = date('now') 
       WHERE id = ?
-    `, heading.trim() || null, jsonParagraphs, cleanType, cleanSpoilerLevel, animeId);
+    `, heading.trim() || null, reviewContent, cleanType, cleanSpoilerLevel, animeId);
   } catch (err) {
     try {
       await db.run(`
         UPDATE anime 
         SET review_heading = ?, review_paragraphs = ?, review_type = ?, last_updated = date('now') 
         WHERE id = ?
-      `, heading.trim() || null, jsonParagraphs, cleanType, animeId);
+      `, heading.trim() || null, reviewContent, cleanType, animeId);
     } catch {
       await db.run(`
         UPDATE anime 
         SET review_heading = ?, review_paragraphs = ?, last_updated = date('now') 
         WHERE id = ?
-      `, heading.trim() || null, jsonParagraphs, animeId);
+      `, heading.trim() || null, reviewContent, animeId);
     }
   }
 
@@ -540,14 +535,18 @@ export async function saveAnimeReview(animeId, { heading = '', paragraphs = [], 
 
 /**
  * Save What I Learned / Reflection section.
+ * Saves trimmed raw text string directly to lesson_takeaway without JSON wrapping.
  */
-export async function saveAnimeLessons(animeId, { takeaway = '' } = {}, contextOrLocals = null) {
+export async function saveAnimeLessons(animeId, { takeaway = '', paragraphs = '', text = '', what_i_learned_paragraphs = '', lesson_takeaway = '' } = {}, contextOrLocals = null) {
   const db = await getDatabase(contextOrLocals);
+  const rawInput = what_i_learned_paragraphs || lesson_takeaway || takeaway || text || paragraphs || '';
+  const lessonContent = typeof rawInput === 'string' ? (rawInput.trim() || null) : (rawInput ? String(rawInput).trim() : null);
+
   await db.run(`
     UPDATE anime 
     SET lesson_takeaway = ?, last_updated = date('now') 
     WHERE id = ?
-  `, takeaway.trim() || null, animeId);
+  `, lessonContent, animeId);
 
   invalidateAnimeCache();
   return { success: true };
@@ -780,17 +779,18 @@ export async function saveAnimeSource(animeId, source = {}, contextOrLocals = nu
 
 /**
  * Save Power System.
+ * Saves trimmed raw text string directly to power_system_paragraphs without JSON wrapping.
  */
-export async function saveAnimePowerSystem(animeId, { name = '', paragraphs = [] } = {}, contextOrLocals = null) {
+export async function saveAnimePowerSystem(animeId, { name = '', paragraphs = '', text = '', power_system_paragraphs = '' } = {}, contextOrLocals = null) {
   const db = await getDatabase(contextOrLocals);
-  const cleanParagraphs = Array.isArray(paragraphs) ? paragraphs.map(p => String(p).trim()).filter(Boolean) : [];
-  const jsonParagraphs = cleanParagraphs.length > 0 ? JSON.stringify(cleanParagraphs) : null;
+  const rawInput = power_system_paragraphs || paragraphs || text || '';
+  const powerContent = typeof rawInput === 'string' ? (rawInput.trim() || null) : (rawInput ? String(rawInput).trim() : null);
 
   await db.run(`
     UPDATE anime 
     SET power_system_name = ?, power_system_paragraphs = ?, last_updated = date('now') 
     WHERE id = ?
-  `, name.trim() || null, jsonParagraphs, animeId);
+  `, name?.trim() || null, powerContent, animeId);
 
   invalidateAnimeCache();
   return { success: true };

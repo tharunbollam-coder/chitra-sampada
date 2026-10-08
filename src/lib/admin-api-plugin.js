@@ -191,22 +191,24 @@ export function adminApiPlugin() {
           // Section 2: Review (My Take)
           if (pathname === '/api/admin/anime/review' && method === 'POST') {
             const body = await parseJsonBody(req);
-            const { animeId, heading, paragraphs, type } = body;
+            const { animeId, heading, paragraphs, text, review_paragraphs, type } = body;
             if (!animeId) {
               return sendJson(res, 400, { success: false, error: 'Anime ID is required' });
             }
-            saveAnimeReview(animeId, { heading, paragraphs, type });
+            const content = review_paragraphs !== undefined ? review_paragraphs : (paragraphs !== undefined ? paragraphs : text);
+            saveAnimeReview(animeId, { heading, review_paragraphs: content, type });
             return sendJson(res, 200, { success: true, message: 'Review / My Take saved successfully' });
           }
 
           // Section 3: Lessons (What I Learned)
           if (pathname === '/api/admin/anime/lessons' && method === 'POST') {
             const body = await parseJsonBody(req);
-            const { animeId, takeaway } = body;
+            const { animeId, takeaway, text, paragraphs, what_i_learned_paragraphs, lesson_takeaway } = body;
             if (!animeId) {
               return sendJson(res, 400, { success: false, error: 'Anime ID is required' });
             }
-            saveAnimeLessons(animeId, { takeaway });
+            const content = what_i_learned_paragraphs !== undefined ? what_i_learned_paragraphs : (lesson_takeaway !== undefined ? lesson_takeaway : (takeaway !== undefined ? takeaway : (text || paragraphs)));
+            saveAnimeLessons(animeId, { lesson_takeaway: content });
             return sendJson(res, 200, { success: true, message: 'What I Learned section saved successfully' });
           }
 
@@ -277,11 +279,12 @@ export function adminApiPlugin() {
           // Section 8: Power System
           if (pathname === '/api/admin/anime/power-system' && method === 'POST') {
             const body = await parseJsonBody(req);
-            const { animeId, name, paragraphs } = body;
+            const { animeId, name, paragraphs, text, power_system_paragraphs } = body;
             if (!animeId) {
               return sendJson(res, 400, { success: false, error: 'Anime ID is required' });
             }
-            saveAnimePowerSystem(animeId, { name, paragraphs });
+            const content = power_system_paragraphs !== undefined ? power_system_paragraphs : (paragraphs !== undefined ? paragraphs : text);
+            saveAnimePowerSystem(animeId, { name, power_system_paragraphs: content });
             return sendJson(res, 200, { success: true, message: 'Power system details saved successfully' });
           }
 

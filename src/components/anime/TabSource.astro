@@ -52,18 +52,24 @@ const normalizedType = (sourceType || '').trim().toLowerCase();
 let adaptationHeadline = 'Adapted from Manga';
 let adaptationExplainer = 'Manga is a Japanese comic book or graphic novel, traditionally read from right to left.';
 
-if (normalizedType.includes('light novel') || normalizedType.includes('novel')) {
+if (normalizedType.includes('manhwa') || normalizedType.includes('webtoon')) {
+  adaptationHeadline = `Adapted from ${sourceType}`;
+  adaptationExplainer = 'A Korean digital comic format originally produced in full color and read in a continuous vertical scroll.';
+} else if (normalizedType.includes('light novel')) {
   adaptationHeadline = 'Adapted from Light Novel';
-  adaptationExplainer = 'A Light Novel is a Japanese novella format featuring anime-style character illustrations.';
+  adaptationExplainer = 'A Light Novel is a Japanese novella format featuring anime-style character illustrations and fast-paced narratives.';
+} else if (normalizedType.includes('web novel')) {
+  adaptationHeadline = 'Adapted from Web Novel';
+  adaptationExplainer = 'A serialized digital novel originally published online on web fiction platforms before official book publication.';
+} else if (normalizedType.includes('visual novel') || normalizedType.includes('game')) {
+  adaptationHeadline = `Adapted from ${sourceType}`;
+  adaptationExplainer = 'An interactive story or video game adapted into an animated television format.';
 } else if (normalizedType.includes('original')) {
   adaptationHeadline = 'Original Anime Production';
-  adaptationExplainer = 'This is an original anime production not adapted from a pre-existing book or comic.';
-} else if (normalizedType.includes('webtoon') || normalizedType.includes('manhwa')) {
-  adaptationHeadline = `Adapted from ${sourceType}`;
-  adaptationExplainer = 'A digital comic format originally produced and read in a continuous vertical scroll.';
+  adaptationExplainer = 'This is an original anime production written specifically for the screen, not adapted from a pre-existing book or comic.';
 } else if (sourceType && sourceType.trim().length > 0) {
   adaptationHeadline = `Adapted from ${sourceType}`;
-  adaptationExplainer = 'Manga is a Japanese comic book or graphic novel, traditionally read from right to left.';
+  adaptationExplainer = `Original work and published source material for ${anime.title}.`;
 }
 
 const displaySourceTitle = sourceTitle || anime.title || 'Original Source';
