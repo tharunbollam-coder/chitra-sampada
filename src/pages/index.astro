@@ -167,7 +167,7 @@ const spotlightAnime = animeList.filter((a: any) => a.trending).slice(0, 4);
               <div class:list={['relative aspect-[2/3] mb-2.5', item.personalRating ? 'mt-1.5' : '']}>
                 {item.personalRating && Number(item.personalRating) > 0 && (
                   <div
-                    class="absolute left-0 bottom-full translate-y-[2px] z-10 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-t-md rounded-b-none bg-slate-900/95 backdrop-blur-xs border border-b-0 border-white/20 text-white text-[10px] font-bold leading-none shadow-xs pointer-events-none tracking-tight select-none"
+                    class="absolute left-2 bottom-full translate-y-[2px] z-10 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-t-md rounded-b-none bg-slate-900/95 backdrop-blur-xs border border-b-0 border-white/20 text-white text-[10px] font-bold leading-none shadow-xs pointer-events-none tracking-tight select-none"
                     title={`Personal Rating: ${Number(item.personalRating) % 1 === 0 ? Number(item.personalRating) : Number(item.personalRating).toFixed(1)} / 10`}
                   >
                     <span class="text-amber-400 text-[9px]">★</span>
