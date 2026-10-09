@@ -640,6 +640,24 @@ if (anime.honestyStatus === 'watched' && anime.personalRating !== undefined && a
   <script>
     // @ts-nocheck
     function setupAnimeDetailInteractions() {
+      window.__animeDetailInteractionCleanup?.();
+
+      const listeners = [];
+      const nativeAddEventListener = EventTarget.prototype.addEventListener;
+
+      EventTarget.prototype.addEventListener = function (type, listener, options) {
+        listeners.push([this, type, listener, options]);
+        return nativeAddEventListener.call(this, type, listener, options);
+      };
+
+      queueMicrotask(() => {
+        EventTarget.prototype.addEventListener = nativeAddEventListener;
+        window.__animeDetailInteractionCleanup = () => {
+          for (const [target, type, listener, options] of listeners) {
+            target.removeEventListener(type, listener, options);
+          }
+        };
+      });
       // 1. DYNAMIC CONTEXT-AWARE BACK NAVIGATION
       const backButtons = document.querySelectorAll('[data-back-link]');
       let sourcePage = null;
@@ -819,6 +837,9 @@ if (anime.honestyStatus === 'watched' && anime.personalRating !== undefined && a
     }
 
     // Attach to Astro ViewTransitions lifecycle event
-    document.addEventListener('astro:page-load', setupAnimeDetailInteractions);
+    if (!window.__animeDetailInteractionsInitialized) {
+      document.addEventListener('astro:page-load', setupAnimeDetailInteractions);
+      window.__animeDetailInteractionsInitialized = true;
+    }
   </script>
 </BaseLayout>
