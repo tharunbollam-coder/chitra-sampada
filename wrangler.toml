@@ -1,6 +1,9 @@
 ﻿name = "chitra-sampada"
 compatibility_date = "2026-09-18"
 
+[cache]
+enabled = true
+
 # Cloudflare D1 Database Binding
 [[d1_databases]]
 binding = "DB"

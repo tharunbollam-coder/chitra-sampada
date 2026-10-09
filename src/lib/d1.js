@@ -49,25 +49,56 @@ export function getSqliteDb() {
   return cachedDb;
 }
 
-function wrapD1(cfDb) {
+function getDiagnosticsContext(contextOrLocals) {
+  if (!contextOrLocals || typeof contextOrLocals !== 'object') return null;
+  return contextOrLocals.locals || contextOrLocals;
+}
+
+function recordD1Timing(contextOrLocals, startedAt) {
+  const context = getDiagnosticsContext(contextOrLocals);
+  if (!context) return;
+
+  const metrics = context.__chitraPerformance || (context.__chitraPerformance = {
+    d1Duration: 0,
+    d1Queries: 0
+  });
+  metrics.d1Duration += performance.now() - startedAt;
+  metrics.d1Queries += 1;
+}
+
+function wrapD1(cfDb, contextOrLocals = null) {
   return {
     isD1: true,
     async query(sql, ...params) {
+      const startedAt = performance.now();
       let stmt = cfDb.prepare(sql);
       if (params.length > 0) stmt = stmt.bind(...params);
-      const res = await stmt.all();
-      return res.results || [];
+      try {
+        const res = await stmt.all();
+        return res.results || [];
+      } finally {
+        recordD1Timing(contextOrLocals, startedAt);
+      }
     },
     async queryOne(sql, ...params) {
+      const startedAt = performance.now();
       let stmt = cfDb.prepare(sql);
       if (params.length > 0) stmt = stmt.bind(...params);
-      const res = await stmt.all();
-      return res.results?.[0] || null;
+      try {
+        return await stmt.first() || null;
+      } finally {
+        recordD1Timing(contextOrLocals, startedAt);
+      }
     },
     async run(sql, ...params) {
+      const startedAt = performance.now();
       let stmt = cfDb.prepare(sql);
       if (params.length > 0) stmt = stmt.bind(...params);
-      return await stmt.run();
+      try {
+        return await stmt.run();
+      } finally {
+        recordD1Timing(contextOrLocals, startedAt);
+      }
     }
   };
 }
@@ -77,213 +108,6 @@ function wrapD1(cfDb) {
  * Uses Cloudflare D1 binding (DB or chitra_sampada_db) when running in Cloudflare Workers / workerd,
  * and falls back to Node.js DatabaseSync when running in Node.js build or CLI tools.
  */
-let schemaEnsuredPromise = null;
-
-/**
- * Non-destructive schema compatibility check:
- * Ensures missing columns (such as 'episodes' / 'episode_count' on anime_filler_ranges
- * or 'section_visibility' on anime) are safely created if earlier migrations were not run
- * on remote D1. Preserves 100% of all existing table data without dropping or clearing.
- */
-async function ensureSchemaCompatibility(db) {
-  if (!schemaEnsuredPromise) {
-    schemaEnsuredPromise = (async () => {
-      try {
-        const fillerInfo = await db.query(`PRAGMA table_info(anime_filler_ranges)`);
-        const fillerCols = new Set(fillerInfo.map(c => c.name));
-        if (fillerCols.size > 0) {
-          if (!fillerCols.has('episodes')) {
-            await db.run(`ALTER TABLE anime_filler_ranges ADD COLUMN episodes TEXT`);
-          }
-          if (!fillerCols.has('episode_count')) {
-            await db.run(`ALTER TABLE anime_filler_ranges ADD COLUMN episode_count INTEGER DEFAULT 0`);
-          }
-          if (fillerCols.has('range')) {
-            await db.run(`UPDATE anime_filler_ranges SET episodes = range WHERE (episodes IS NULL OR episodes = '') AND range IS NOT NULL`);
-          }
-        }
-      } catch (err) {
-        console.warn('[Schema Compatibility] anime_filler_ranges note:', err?.message || err);
-      }
-
-      try {
-        const animeInfo = await db.query(`PRAGMA table_info(anime)`);
-        const animeCols = new Set(animeInfo.map(c => c.name));
-        if (animeCols.size > 0) {
-          if (!animeCols.has('section_visibility')) {
-            await db.run(`ALTER TABLE anime ADD COLUMN section_visibility TEXT`);
-          }
-          if (!animeCols.has('type')) {
-            await db.run(`ALTER TABLE anime ADD COLUMN type TEXT NOT NULL DEFAULT 'series'`);
-          }
-          if (!animeCols.has('runtime')) {
-            await db.run(`ALTER TABLE anime ADD COLUMN runtime INTEGER DEFAULT NULL`);
-          }
-          if (!animeCols.has('movie_canon_type')) {
-            await db.run(`ALTER TABLE anime ADD COLUMN movie_canon_type TEXT DEFAULT NULL`);
-          }
-          if (!animeCols.has('review_type')) {
-            await db.run(`ALTER TABLE anime ADD COLUMN review_type TEXT DEFAULT 'full'`);
-          }
-          if (!animeCols.has('age_rating')) {
-            await db.run(`ALTER TABLE anime ADD COLUMN age_rating INTEGER DEFAULT NULL`);
-          }
-          if (!animeCols.has('review_spoiler_level')) {
-            await db.run(`ALTER TABLE anime ADD COLUMN review_spoiler_level TEXT DEFAULT 'none'`);
-          }
-          if (!animeCols.has('community_suggested')) {
-            await db.run(`ALTER TABLE anime ADD COLUMN community_suggested INTEGER DEFAULT 0`);
-          }
-          if (!animeCols.has('watch_order_note')) {
-            await db.run(`ALTER TABLE anime ADD COLUMN watch_order_note TEXT DEFAULT NULL`);
-          }
-          if (!animeCols.has('filler_note')) {
-            await db.run(`ALTER TABLE anime ADD COLUMN filler_note TEXT DEFAULT NULL`);
-          }
-          if (!animeCols.has('character_related_post_slug')) {
-            await db.run(`ALTER TABLE anime ADD COLUMN character_related_post_slug TEXT DEFAULT NULL`);
-          }
-          if (animeCols.has('lesson_heading')) {
-            try {
-              await db.run(`ALTER TABLE anime DROP COLUMN lesson_heading`);
-            } catch (dropErr) {
-              console.warn('[Schema Compatibility] drop lesson_heading note:', dropErr?.message || dropErr);
-            }
-          }
-        }
-      } catch (err) {
-        console.warn('[Schema Compatibility] anime table note:', err?.message || err);
-      }
-
-      try {
-        await db.run(`
-          CREATE TABLE IF NOT EXISTS site_settings (
-            key TEXT PRIMARY KEY,
-            value TEXT NOT NULL,
-            updated_at TEXT DEFAULT (datetime('now'))
-          )
-        `);
-        await db.run(`
-          INSERT OR IGNORE INTO site_settings (key, value) VALUES (
-            'thought_of_the_week',
-            'Plant a tree if you get the chance — future you will thank present you.'
-          )
-        `);
-      } catch (err) {
-        console.warn('[Schema Compatibility] site_settings note:', err?.message || err);
-      }
-
-      try {
-        await db.run(`
-          CREATE TABLE IF NOT EXISTS anime_related_media (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            anime_id TEXT NOT NULL,
-            section TEXT NOT NULL CHECK(section IN ('canon', 'non_canon')),
-            title TEXT NOT NULL,
-            badge TEXT NOT NULL,
-            link_slug TEXT DEFAULT NULL,
-            editorial_note TEXT DEFAULT NULL,
-            item_order INTEGER NOT NULL DEFAULT 1,
-            FOREIGN KEY (anime_id) REFERENCES anime(id) ON DELETE CASCADE
-          )
-        `);
-      } catch (err) {
-        console.warn('[Schema Compatibility] anime_related_media note:', err?.message || err);
-      }
-
-      try {
-        await db.run(`
-          CREATE TABLE IF NOT EXISTS anime_recommendations (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            anime_id TEXT NOT NULL,
-            target_anime_id TEXT NOT NULL,
-            category_badge TEXT NOT NULL,
-            editorial_note TEXT DEFAULT NULL,
-            item_order INTEGER NOT NULL DEFAULT 1,
-            FOREIGN KEY (anime_id) REFERENCES anime(id) ON DELETE CASCADE,
-            FOREIGN KEY (target_anime_id) REFERENCES anime(id) ON DELETE CASCADE
-          )
-        `);
-      } catch (err) {
-        console.warn('[Schema Compatibility] anime_recommendations note:', err?.message || err);
-      }
-
-      try {
-        await db.run(`
-          CREATE TABLE IF NOT EXISTS anime_streaming_platforms (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            anime_id TEXT NOT NULL,
-            platform_name TEXT NOT NULL,
-            stream_url TEXT,
-            logo_url TEXT,
-            note TEXT,
-            display_order INTEGER NOT NULL DEFAULT 0,
-            is_active INTEGER NOT NULL DEFAULT 1,
-            FOREIGN KEY (anime_id) REFERENCES anime(id) ON DELETE CASCADE
-          )
-        `);
-        await db.run(`
-          CREATE INDEX IF NOT EXISTS idx_anime_streaming_platforms_anime_id 
-          ON anime_streaming_platforms(anime_id, display_order)
-        `);
-      } catch (err) {
-        console.warn('[Schema Compatibility] anime_streaming_platforms note:', err?.message || err);
-      }
-
-      try {
-        await db.run(`
-          CREATE TABLE IF NOT EXISTS vibes (
-            id TEXT PRIMARY KEY,
-            slug TEXT NOT NULL UNIQUE,
-            name TEXT NOT NULL,
-            tagline TEXT,
-            group_label TEXT,
-            color_theme TEXT NOT NULL DEFAULT 'indigo',
-            seo_intro TEXT,
-            meta_description TEXT,
-            is_active INTEGER NOT NULL DEFAULT 1,
-            created_at TEXT NOT NULL DEFAULT (datetime('now')),
-            updated_at TEXT NOT NULL DEFAULT (datetime('now'))
-          )
-        `);
-        await db.run(`CREATE INDEX IF NOT EXISTS idx_vibes_slug ON vibes(slug)`);
-        await db.run(`CREATE INDEX IF NOT EXISTS idx_vibes_active ON vibes(is_active)`);
-
-        await db.run(`
-          INSERT OR IGNORE INTO vibes (
-            id, slug, name, tagline, group_label, color_theme, seo_intro, meta_description, is_active
-          ) VALUES 
-          (
-            'op-mc',
-            'overpowered-mc',
-            'Overpowered Main Character',
-            'Instant dominance & hype',
-            'HYPE & ACTION',
-            'purple',
-            'Protagonists who shatter power scales, outclass entire armies, and make absolute arrogance look effortless. This collection features anime where the lead possesses godlike strength, rare awakening abilities, or unmatched tactical supremacy. No endless filler training arcs — just pure kinetic satisfaction, high-stakes combat, and top-tier hype.',
-            'Discover the best overpowered main character (OP MC) anime with carefully researched chronological watch orders, filler percentages, and honest viewer insights.',
-            1
-          ),
-          (
-            'hidden-gems',
-            'hidden-gems',
-            'Hidden Gems',
-            'Overlooked masterpieces',
-            'CRITIC PICK',
-            'cyan',
-            'High-concept stories, razor-sharp dialogue, and exceptional character writing that never received the massive mainstream algorithm boost they deserved. From underground mystery thrillers to experimental psychological dramas, these are masterclass productions that reward viewers searching for something truly distinctive.',
-            'Discover overlooked anime masterpieces with exceptional writing and unique storytelling that flew under the mainstream radar, complete with watch guides.',
-            1
-          )
-        `);
-      } catch (err) {
-        console.warn('[Schema Compatibility] vibes note:', err?.message || err);
-      }
-    })();
-  }
-  await schemaEnsuredPromise;
-}
-
 /**
  * @param {any} [contextOrLocals]
  */
@@ -329,9 +153,7 @@ export async function getDatabase(contextOrLocals = null) {
   }
 
   if (cfDb && typeof cfDb.prepare === 'function') {
-    const wrapped = wrapD1(cfDb);
-    await ensureSchemaCompatibility(wrapped);
-    return wrapped;
+    return wrapD1(cfDb, contextOrLocals);
   }
 
   // 4. Check if running in Cloudflare Workers runtime where Node SQLite is completely unavailable
@@ -350,16 +172,30 @@ export async function getDatabase(contextOrLocals = null) {
   const wrapped = {
     isD1: false,
     async query(sql, ...params) {
-      return sqlite.prepare(sql).all(...params);
+      const startedAt = performance.now();
+      try {
+        return sqlite.prepare(sql).all(...params);
+      } finally {
+        recordD1Timing(contextOrLocals, startedAt);
+      }
     },
     async queryOne(sql, ...params) {
-      return sqlite.prepare(sql).get(...params) || null;
+      const startedAt = performance.now();
+      try {
+        return sqlite.prepare(sql).get(...params) || null;
+      } finally {
+        recordD1Timing(contextOrLocals, startedAt);
+      }
     },
     async run(sql, ...params) {
-      return sqlite.prepare(sql).run(...params);
+      const startedAt = performance.now();
+      try {
+        return sqlite.prepare(sql).run(...params);
+      } finally {
+        recordD1Timing(contextOrLocals, startedAt);
+      }
     }
   };
-  await ensureSchemaCompatibility(wrapped);
   return wrapped;
 }
 
@@ -868,6 +704,267 @@ export async function getAllAnime(contextOrLocals = null) {
 }
 
 /**
+ * Fetch exactly one anime detail record and its displayed relations.
+ * This is intentionally read-only and avoids loading the full catalogue for a detail page.
+ * @param {string} slugOrId
+ * @param {any} [contextOrLocals]
+ */
+export async function getAnimeDetailBySlugOrId(slugOrId, contextOrLocals = null) {
+  if (!slugOrId) return null;
+
+  const db = await getDatabase(contextOrLocals);
+  const anime = await db.queryOne(`
+    SELECT
+      a.id, a.slug, a.title, a.original_title, a.year, a.type, a.runtime,
+      a.movie_canon_type, a.episodes, a.status, a.personal_rating,
+      a.age_rating, a.poster, a.backdrop, a.added_date, a.last_updated,
+      a.honesty_status, a.filler_percentage, a.trending, a.community_suggested,
+      a.synopsis, a.franchise_id, a.franchise_step_order, a.review_heading,
+      a.review_paragraphs, a.review_type, a.review_spoiler_level,
+      a.source_title, a.source_original_title, a.source_author, a.source_type,
+      a.source_volumes, a.source_publication_status, a.source_adaptation_status,
+      a.source_coverage, a.source_notes, a.power_system_name,
+      a.power_system_paragraphs, a.lesson_takeaway, a.watch_order_note,
+      a.filler_note, a.character_related_post_slug, a.section_visibility
+    FROM anime a
+    LEFT JOIN anime_aliases aa ON aa.anime_id = a.id
+    WHERE a.slug = ? OR a.id = ? OR aa.alias = ?
+    LIMIT 1
+  `, slugOrId, slugOrId, slugOrId);
+
+  if (!anime) return null;
+
+  const [
+    aliases,
+    genres,
+    vibes,
+    fillerRows,
+    characters,
+    watchOrder,
+    universe,
+    recommendations,
+    streamingPlatforms,
+    relatedPost
+  ] = await Promise.all([
+    db.query(`SELECT alias FROM anime_aliases WHERE anime_id = ?`, anime.id),
+    db.query(`SELECT genre FROM anime_genres WHERE anime_id = ?`, anime.id),
+    db.query(`SELECT vibe_id FROM anime_vibes WHERE anime_id = ?`, anime.id),
+    db.query(`
+      SELECT type, episodes, episode_count
+      FROM anime_filler_ranges
+      WHERE anime_id = ?
+      ORDER BY range_order ASC
+    `, anime.id),
+    db.query(`
+      SELECT rank, name, category, role, commentary
+      FROM anime_characters
+      WHERE anime_id = ?
+      ORDER BY rank ASC
+    `, anime.id),
+    anime.franchise_id
+      ? db.query(`
+          SELECT fwo.step_order, fwo.title, fwo.type, fwo.episodes, fwo.anime_id, fwo.note,
+                 target.slug AS target_slug
+          FROM franchise_watch_order fwo
+          LEFT JOIN anime target ON target.id = fwo.anime_id
+            OR LOWER(TRIM(target.title)) = LOWER(TRIM(fwo.title))
+          WHERE fwo.franchise_id = ?
+          ORDER BY fwo.step_order ASC
+        `, anime.franchise_id)
+      : Promise.resolve([]),
+    db.query(`
+      SELECT id, section, title, badge, link_slug, editorial_note, item_order
+      FROM anime_related_media
+      WHERE anime_id = ?
+      ORDER BY item_order ASC, id ASC
+    `, anime.id),
+    db.query(`
+      SELECT
+        r.id, r.target_anime_id, r.category_badge, r.editorial_note, r.item_order,
+        target.title AS target_title, target.slug AS target_slug, target.poster AS target_poster,
+        target.year AS target_year, target.status AS target_status,
+        target.personal_rating AS target_rating
+      FROM anime_recommendations r
+      JOIN anime target ON target.id = r.target_anime_id
+      WHERE r.anime_id = ?
+      ORDER BY r.item_order ASC, r.id ASC
+    `, anime.id),
+    db.query(`
+      SELECT id, platform_name, stream_url, logo_url, note, display_order, is_active
+      FROM anime_streaming_platforms
+      WHERE anime_id = ?
+      ORDER BY display_order ASC, id ASC
+    `, anime.id),
+    anime.character_related_post_slug
+      ? db.queryOne(`
+          SELECT id, slug, title, status
+          FROM blog_posts
+          WHERE slug = ?
+          LIMIT 1
+        `, anime.character_related_post_slug)
+      : Promise.resolve(null)
+  ]);
+
+  const fillerEntries = fillerRows.map((row) => {
+    const episodes = row.episodes || '';
+    return {
+      type: row.type,
+      episodes,
+      count: typeof row.episode_count === 'number' && row.episode_count >= 0
+        ? row.episode_count
+        : (episodes ? episodes.split(',').length : 0)
+    };
+  }).filter((row) => row.episodes.trim().length > 0);
+
+  const countFor = (type) => fillerEntries.find((entry) => entry.type === type)?.count || 0;
+  const mangaCanonEpisodes = countFor('Manga Canon');
+  const animeCanonEpisodes = countFor('Anime Canon');
+  const mixedEpisodes = countFor('Mixed Canon/Filler');
+  const fillerEpisodes = countFor('Filler');
+  const totalEpisodes = mangaCanonEpisodes + animeCanonEpisodes + mixedEpisodes + fillerEpisodes;
+  const fillerList = fillerEntries.length > 0 ? {
+    totalEpisodes,
+    fillerEpisodes,
+    canonEpisodes: mangaCanonEpisodes + animeCanonEpisodes,
+    mangaCanonEpisodes,
+    animeCanonEpisodes,
+    mixedEpisodes,
+    fillerPercentage: totalEpisodes > 0 ? Math.round((fillerEpisodes / totalEpisodes) * 100) : 0,
+    types: fillerEntries
+  } : null;
+
+  let sectionVisibility = {
+    review: true,
+    lessons: true,
+    watchOrder: true,
+    fillerList: true,
+    characters: true,
+    source: true,
+    powerSystem: true,
+    universe: true,
+    recommendations: true,
+    streaming: true
+  };
+  if (anime.section_visibility) {
+    try {
+      sectionVisibility = { ...sectionVisibility, ...JSON.parse(anime.section_visibility) };
+    } catch {}
+  }
+
+  const reviewText = anime.review_paragraphs || '';
+  const powerText = anime.power_system_paragraphs || '';
+  const lessonTakeaway = anime.lesson_takeaway || '';
+
+  return {
+    id: anime.id,
+    slug: anime.slug,
+    aliases: aliases.length > 0 ? aliases.map((row) => row.alias) : [anime.id, anime.slug],
+    title: anime.title,
+    originalTitle: anime.original_title,
+    year: anime.year,
+    type: anime.type || 'series',
+    runtime: anime.runtime !== null && anime.runtime !== undefined && anime.runtime !== '' ? Number(anime.runtime) : null,
+    movieCanonType: anime.movie_canon_type || null,
+    episodes: anime.episodes || fillerList?.totalEpisodes || 0,
+    status: anime.status,
+    personalRating: anime.personal_rating !== null && anime.personal_rating !== undefined && anime.personal_rating !== '' ? Number(anime.personal_rating) : undefined,
+    personal_rating: anime.personal_rating !== null && anime.personal_rating !== undefined && anime.personal_rating !== '' ? Number(anime.personal_rating) : undefined,
+    ageRating: anime.age_rating !== null && anime.age_rating !== undefined && anime.age_rating !== '' ? Number(anime.age_rating) : null,
+    poster: anime.poster,
+    backdrop: anime.backdrop,
+    addedDate: anime.added_date,
+    lastUpdated: anime.last_updated,
+    honestyStatus: anime.honesty_status,
+    fillerPercentage: fillerList?.totalEpisodes > 0 ? fillerList.fillerPercentage : anime.filler_percentage,
+    genres: genres.map((row) => row.genre),
+    vibes: vibes.map((row) => row.vibe_id),
+    trending: Boolean(anime.trending),
+    communitySuggested: Boolean(anime.community_suggested),
+    synopsis: anime.synopsis,
+    review: reviewText.trim().length > 0 || anime.review_heading ? {
+      heading: anime.review_heading,
+      paragraphs: reviewText,
+      text: reviewText,
+      type: anime.review_type === 'quick' || anime.review_type === 'quick_take' ? 'quick' : 'full',
+      spoilerLevel: anime.review_spoiler_level || 'none'
+    } : null,
+    watchOrder: watchOrder.map((step) => ({
+      order: step.step_order,
+      title: step.title,
+      type: step.type,
+      episodes: step.episodes,
+      animeId: step.anime_id,
+      slug: step.target_slug || step.anime_id || null,
+      isCurrent: step.anime_id === anime.id || step.step_order === anime.franchise_step_order,
+      note: step.note
+    })),
+    watchOrderNote: anime.watch_order_note || null,
+    fillerList,
+    fillerNote: anime.filler_note || null,
+    characters,
+    characterRelatedPostSlug: anime.character_related_post_slug || null,
+    characterRelatedPost: relatedPost || (anime.character_related_post_slug ? { slug: anime.character_related_post_slug, title: 'Related Article' } : null),
+    source: anime.source_title || anime.source_type ? {
+      title: anime.source_title,
+      originalTitle: anime.source_original_title,
+      author: anime.source_author,
+      type: anime.source_type,
+      volumes: anime.source_volumes,
+      publicationStatus: anime.source_publication_status,
+      adaptationStatus: anime.source_adaptation_status,
+      coverage: anime.source_coverage,
+      notes: anime.source_notes
+    } : null,
+    powerSystem: anime.power_system_name || powerText.trim().length > 0 ? {
+      name: anime.power_system_name,
+      paragraphs: powerText,
+      text: powerText
+    } : null,
+    lessons: lessonTakeaway.trim().length > 0 ? {
+      takeaway: lessonTakeaway,
+      paragraphs: lessonTakeaway,
+      text: lessonTakeaway
+    } : null,
+    review_paragraphs: reviewText,
+    power_system_paragraphs: powerText,
+    lesson_takeaway: lessonTakeaway,
+    what_i_learned_paragraphs: lessonTakeaway,
+    universe: universe.map((row) => ({
+      id: row.id,
+      section: row.section,
+      title: row.title,
+      badge: row.badge,
+      linkSlug: row.link_slug,
+      editorialNote: row.editorial_note,
+      itemOrder: row.item_order
+    })),
+    recommendations: recommendations.map((row) => ({
+      id: row.id,
+      targetAnimeId: row.target_anime_id,
+      targetTitle: row.target_title || '',
+      targetSlug: row.target_slug || '',
+      targetPoster: row.target_poster || '',
+      targetYear: row.target_year || null,
+      targetStatus: row.target_status || '',
+      targetRating: row.target_rating !== null && row.target_rating !== undefined ? row.target_rating : undefined,
+      categoryBadge: row.category_badge,
+      editorialNote: row.editorial_note,
+      itemOrder: row.item_order
+    })),
+    streamingPlatforms: streamingPlatforms.map((row) => ({
+      id: row.id,
+      platformName: row.platform_name,
+      streamUrl: row.stream_url,
+      logoUrl: row.logo_url,
+      note: row.note,
+      displayOrder: row.display_order,
+      isActive: row.is_active !== 0
+    })),
+    sectionVisibility
+  };
+}
+
+/**
  * Helper function to retrieve all available section tabs for an anime object.
  * Returns only tabs that have actual data AND have their Admin visibility toggle set to "Show".
  * "My Take" ('review') is placed in the FIRST position when present.
@@ -1000,8 +1097,19 @@ export async function getAllBlogPosts(optionsOrContext = {}, contextOrLocals = n
 
   const db = await getDatabase(ctx);
   const query = includeDrafts
-    ? `SELECT * FROM blog_posts ORDER BY published_date DESC`
-    : `SELECT * FROM blog_posts WHERE status = 'published' ORDER BY published_date DESC`;
+    ? `
+        SELECT id, slug, title, excerpt, published_date, last_updated, status,
+               MAX(1, CAST((LENGTH(TRIM(content)) - LENGTH(REPLACE(TRIM(content), ' ', '')) + 200) / 200 AS INTEGER)) AS read_time_minutes
+        FROM blog_posts
+        ORDER BY published_date DESC
+      `
+    : `
+        SELECT id, slug, title, excerpt, published_date, last_updated, status,
+               MAX(1, CAST((LENGTH(TRIM(content)) - LENGTH(REPLACE(TRIM(content), ' ', '')) + 200) / 200 AS INTEGER)) AS read_time_minutes
+        FROM blog_posts
+        WHERE status = 'published'
+        ORDER BY published_date DESC
+      `;
 
   // Parallelize blog post query and linked anime query
   const [postsRes, linksRes] = await Promise.allSettled([
@@ -1030,19 +1138,15 @@ export async function getAllBlogPosts(optionsOrContext = {}, contextOrLocals = n
   }
 
   const formattedPosts = postRows.map((row) => {
-    const wordCount = row.content ? row.content.trim().split(/\s+/).length : 0;
-    const readTimeMinutes = Math.max(1, Math.ceil(wordCount / 200));
-
     return {
       id: row.id,
       slug: row.slug,
       title: row.title,
       excerpt: row.excerpt,
-      content: row.content,
       publishedDate: row.published_date,
       lastUpdated: row.last_updated,
       status: row.status,
-      readTime: `${readTimeMinutes} min read`,
+      readTime: `${Math.max(1, Number(row.read_time_minutes) || 1)} min read`,
       linkedAnime: linksMap.get(row.id) || []
     };
   });
@@ -1062,8 +1166,52 @@ export async function getAllBlogPosts(optionsOrContext = {}, contextOrLocals = n
  * @param {any} [contextOrLocals]
  */
 export async function getBlogPostBySlug(slug, optionsOrContext = {}, contextOrLocals = null) {
-  const posts = await getAllBlogPosts(optionsOrContext, contextOrLocals);
-  return posts.find((p) => p.slug === slug) || null;
+  if (!slug) return null;
+
+  let includeDrafts = false;
+  let ctx = contextOrLocals;
+  if (optionsOrContext?.runtime || optionsOrContext?.locals || optionsOrContext?.env || optionsOrContext?.DB || optionsOrContext?.prepare) {
+    ctx = optionsOrContext;
+  } else if (typeof optionsOrContext?.includeDrafts === 'boolean') {
+    includeDrafts = optionsOrContext.includeDrafts;
+  }
+
+  const db = await getDatabase(ctx);
+  const post = await db.queryOne(
+    includeDrafts
+      ? `SELECT id, slug, title, excerpt, content, published_date, last_updated, status FROM blog_posts WHERE slug = ? LIMIT 1`
+      : `SELECT id, slug, title, excerpt, content, published_date, last_updated, status FROM blog_posts WHERE slug = ? AND status = 'published' LIMIT 1`,
+    slug
+  );
+  if (!post) return null;
+
+  const linkedAnimeRows = await db.query(`
+    SELECT a.id, a.slug, a.title, a.year, a.honesty_status
+    FROM blog_post_anime bpa
+    JOIN anime a ON a.id = bpa.anime_id
+    WHERE bpa.post_id = ?
+    ORDER BY a.title ASC
+  `, post.id);
+
+  const wordCount = post.content ? post.content.trim().split(/\s+/).length : 0;
+  return {
+    id: post.id,
+    slug: post.slug,
+    title: post.title,
+    excerpt: post.excerpt,
+    content: post.content,
+    publishedDate: post.published_date,
+    lastUpdated: post.last_updated,
+    status: post.status,
+    readTime: `${Math.max(1, Math.ceil(wordCount / 200))} min read`,
+    linkedAnime: linkedAnimeRows.map((row) => ({
+      id: row.id,
+      slug: row.slug,
+      title: row.title,
+      year: row.year,
+      honestyStatus: row.honesty_status
+    }))
+  };
 }
 
 /**
@@ -1073,21 +1221,29 @@ export async function getBlogPostBySlug(slug, optionsOrContext = {}, contextOrLo
  */
 export async function getBlogPostsForAnime(animeId, contextOrLocals = null) {
   if (!animeId) return [];
-  // Use cached blog posts from getAllBlogPosts when available to avoid waterfall queries
-  const posts = await getAllBlogPosts({ includeDrafts: false }, contextOrLocals);
-  return posts
-    .filter((p) => p.linkedAnime && p.linkedAnime.some((a) => a.id === animeId || a.slug === animeId))
-    .map((p) => ({
-      id: p.id,
-      slug: p.slug,
-      title: p.title,
-      excerpt: p.excerpt,
-      content: p.content,
-      publishedDate: p.publishedDate,
-      lastUpdated: p.lastUpdated,
-      status: p.status,
-      readTime: p.readTime
-    }));
+  const db = await getDatabase(contextOrLocals);
+  const rows = await db.query(`
+    SELECT bp.id, bp.slug, bp.title, bp.excerpt, bp.content, bp.published_date, bp.last_updated, bp.status
+    FROM blog_post_anime bpa
+    JOIN blog_posts bp ON bp.id = bpa.post_id
+    WHERE bpa.anime_id = ? AND bp.status = 'published'
+    ORDER BY bp.published_date DESC
+    LIMIT 6
+  `, animeId);
+
+  return rows.map((row) => {
+    const wordCount = row.content ? row.content.trim().split(/\s+/).length : 0;
+    return {
+      id: row.id,
+      slug: row.slug,
+      title: row.title,
+      excerpt: row.excerpt,
+      publishedDate: row.published_date,
+      lastUpdated: row.last_updated,
+      status: row.status,
+      readTime: `${Math.max(1, Math.ceil(wordCount / 200))} min read`
+    };
+  });
 }
 
 /**
@@ -1208,8 +1364,36 @@ export async function getAllVibes(contextOrLocals = null) {
  */
 export async function getVibeBySlug(slugOrId, contextOrLocals = null) {
   if (!slugOrId) return null;
-  const list = await getAllVibes(contextOrLocals);
-  return list.find(v => v.slug === slugOrId || v.id === slugOrId) || null;
+  const db = await getDatabase(contextOrLocals);
+  const row = await db.queryOne(`
+    SELECT id, slug, name, tagline, group_label, color_theme, seo_intro, meta_description, is_active, created_at, updated_at
+    FROM vibes
+    WHERE slug = ? OR id = ?
+    LIMIT 1
+  `, slugOrId, slugOrId);
+  if (!row) return null;
+  return {
+    id: row.id,
+    slug: row.slug,
+    name: row.name,
+    title: row.name,
+    fullName: `${row.name} Anime`,
+    h1: `${row.name} Anime`,
+    tagline: row.tagline || '',
+    groupLabel: row.group_label || '',
+    group_label: row.group_label || '',
+    badge: row.group_label || 'CURATED',
+    colorTheme: row.color_theme || 'indigo',
+    color_theme: row.color_theme || 'indigo',
+    seoIntro: row.seo_intro || '',
+    intro: row.seo_intro || '',
+    metaDescription: row.meta_description || '',
+    pageTitle: `${row.name} Anime — Honest Watch Orders & Episode Guides`,
+    isActive: Boolean(row.is_active),
+    is_active: row.is_active,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at
+  };
 }
 
 /**

@@ -13,16 +13,12 @@ import TabUniverse from '../../../components/anime/TabUniverse.astro';
 import TabRecommendations from '../../../components/anime/TabRecommendations.astro';
 import StreamingAvailability from '../../../components/anime/StreamingAvailability.astro';
 import RelatedBlogPosts from '../../../components/RelatedBlogPosts.astro';
-import { getAllAnime, getAvailableTabs, getDefaultTabKey, optimizeTmdbPoster } from '../../../lib/d1.js';
+import { getAnimeDetailBySlugOrId, getAvailableTabs, getDefaultTabKey, optimizeTmdbPoster } from '../../../lib/d1.js';
 import { siteConfig } from '../../../config/site.js';
 
 const { slug, tab } = Astro.params;
 
-// Query D1 directly on each request so newly added anime entries appear immediately
-const animeList = await getAllAnime(Astro.locals);
-const anime = animeList.find(
-  (a: any) => a.slug === slug || a.id === slug || (a.aliases && a.aliases.includes(slug))
-);
+const anime = await getAnimeDetailBySlugOrId(slug || '', Astro.locals);
 
 if (!anime) {
   return new Response('Anime Not Found', { status: 404 });
@@ -43,7 +39,7 @@ const isMovie = anime.type === 'movie';
 const isAiring = (anime.status || '').toLowerCase().includes('airing');
 const isUpcoming = (anime.status || '').toLowerCase().includes('upcoming');
 const yearLabel = isAiring ? 'Since' : (isUpcoming ? 'Premieres' : 'Premiered');
-const hasAgeRating = anime.ageRating !== null && anime.ageRating !== undefined && anime.ageRating !== '';
+const hasAgeRating = anime.ageRating !== null && anime.ageRating !== undefined;
 const ageRatingDisplay = hasAgeRating
   ? (Number(anime.ageRating) === 0 ? 'General' : `${anime.ageRating}+`)
   : null;
