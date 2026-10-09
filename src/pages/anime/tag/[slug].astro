@@ -2,20 +2,23 @@
 // src/pages/anime/tag/[slug].astro
 import BaseLayout from '../../../layouts/BaseLayout.astro';
 import AnimeCard from '../../../components/AnimeCard.astro';
-import { getAllAnime, getVibeBySlug, getAllVibes } from '../../../lib/d1.js';
+import { getCompactAnimeList, getVibeBySlug, getAllVibes } from '../../../lib/d1.js';
 import { siteConfig } from '../../../config/site.js';
 
 const { slug } = Astro.params;
+if (!slug) {
+  return new Response('Not Found', { status: 404 });
+}
 const vibe = await getVibeBySlug(slug, Astro.locals);
 
 if (!vibe) {
   return new Response('Not Found', { status: 404 });
 }
 
-const animeList = await getAllAnime(Astro.locals);
+const animeList = await getCompactAnimeList(Astro.locals);
 
 // Filter matching anime for this vibe
-const matchingAnime = animeList.filter((a) => a.vibes && a.vibes.includes(vibe.id));
+const matchingAnime = animeList.filter((a: any) => a.vibes && a.vibes.includes(vibe.id));
 
 // Public 404 Rule: Navigating directly to /anime/tag/[slug] with zero published anime assigned must return a clean HTTP 404 response
 if (matchingAnime.length === 0) {
@@ -23,14 +26,14 @@ if (matchingAnime.length === 0) {
 }
 
 // Sub-metrics
-const watchedCount = matchingAnime.filter((a) => a.honestyStatus === 'watched').length;
-const watchlistCount = matchingAnime.filter((a) => a.honestyStatus === 'watchlist').length;
-const referenceCount = matchingAnime.filter((a) => a.honestyStatus === 'reference').length;
-const zeroFillerCount = matchingAnime.filter((a) => a.fillerPercentage === 0).length;
+const watchedCount = matchingAnime.filter((a: any) => a.honestyStatus === 'watched').length;
+const watchlistCount = matchingAnime.filter((a: any) => a.honestyStatus === 'watchlist').length;
+const referenceCount = matchingAnime.filter((a: any) => a.honestyStatus === 'reference').length;
+const zeroFillerCount = matchingAnime.filter((a: any) => a.fillerPercentage === 0).length;
 
 // Other vibes for quick browsing (only vibes that have at least one matching anime)
 const allVibes = await getAllVibes(Astro.locals);
-const otherVibes = allVibes.filter((v) => v.slug !== vibe.slug && animeList.some(a => a.vibes && a.vibes.includes(v.id)));
+const otherVibes = allVibes.filter((v: any) => v.slug !== vibe.slug && animeList.some((a: any) => a.vibes && a.vibes.includes(v.id)));
 
 const siteOrigin = (siteConfig.siteUrl || (Astro.site ? Astro.site.origin : 'https://chitrasampada.com')).replace(/\/+$/, '');
 const canonicalUrl = `${siteOrigin}/anime/tag/${vibe.slug}`;
@@ -190,7 +193,7 @@ const breadcrumbSchema = {
   <!-- 2. FILTERED CARD GRID -->
   <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
     <div id="anime-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3.5 sm:gap-4 md:gap-7">
-      {matchingAnime.map((anime) => (
+      {matchingAnime.map((anime: any) => (
         <AnimeCard anime={anime} />
       ))}
     </div>
@@ -224,7 +227,7 @@ const breadcrumbSchema = {
       </h3>
 
       <div class="flex items-center gap-2.5 overflow-x-auto no-scrollbar py-1">
-        {otherVibes.map((other) => (
+        {otherVibes.map((other: any) => (
           <a
             href={`/anime/tag/${other.slug}`}
             class="px-4 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 border border-slate-200/90 text-xs font-semibold whitespace-nowrap shadow-2xs hover:shadow-xs transition-all shrink-0 flex items-center gap-1.5"
@@ -265,6 +268,7 @@ const breadcrumbSchema = {
 </BaseLayout>
 
 <script>
+  // @ts-nocheck
   function setupVibeFiltering() {
     const grid = document.getElementById('anime-grid');
     if (!grid) return;

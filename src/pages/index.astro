@@ -4,13 +4,13 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import AnimeCard from '../components/AnimeCard.astro';
 import HonestyBadge from '../components/HonestyBadge.astro';
 import PositivityNote from '../components/PositivityNote.astro';
-import { getAllAnime } from '../lib/d1.js';
+import { getCompactAnimeList, optimizeTmdbPoster } from '../lib/d1.js';
 import { siteConfig } from '../config/site.js';
 
-const animeList = await getAllAnime(Astro.locals);
+const animeList = await getCompactAnimeList(Astro.locals);
 
 // Top titles for the homepage spotlight
-const spotlightAnime = animeList.filter((a) => a.trending).slice(0, 4);
+const spotlightAnime = animeList.filter((a: any) => a.trending).slice(0, 4);
 ---
 
 <BaseLayout title={siteConfig.name} description={siteConfig.description} showWellnessNote={true}>
@@ -41,10 +41,10 @@ const spotlightAnime = animeList.filter((a) => a.trending).slice(0, 4);
 
     <!-- Subtle Faint Floating Poster Accents (Left & Right desktop depth) -->
     <div class="hidden lg:block absolute left-8 xl:left-16 top-28 w-44 rounded-2xl overflow-hidden border border-slate-200/80 opacity-40 -rotate-6 pointer-events-none -z-10 shadow-lg bg-white p-1">
-      <img src="https://image.tmdb.org/t/p/w780/dqZENchTd7lp5zht7BdlqM7RBhD.jpg" alt="Jujutsu Kaisen anime poster background illustration" width="176" height="264" loading="lazy" decoding="async" class="w-full aspect-[2/3] object-cover rounded-xl" />
+      <img src="https://image.tmdb.org/t/p/w342/dqZENchTd7lp5zht7BdlqM7RBhD.jpg" alt="Jujutsu Kaisen anime poster background illustration" width="176" height="264" loading="lazy" decoding="async" class="w-full aspect-[2/3] object-cover rounded-xl" />
     </div>
     <div class="hidden lg:block absolute right-8 xl:right-16 top-28 w-44 rounded-2xl overflow-hidden border border-slate-200/80 opacity-40 rotate-6 pointer-events-none -z-10 shadow-lg bg-white p-1">
-      <img src="https://image.tmdb.org/t/p/w780/geCRueV3ElhRTr0xtJuPxJ8HGQH.jpg" alt="Frieren: Beyond Journey's End anime poster background illustration" width="176" height="264" loading="lazy" decoding="async" class="w-full aspect-[2/3] object-cover rounded-xl" />
+      <img src="https://image.tmdb.org/t/p/w342/geCRueV3ElhRTr0xtJuPxJ8HGQH.jpg" alt="Frieren: Beyond Journey's End anime poster background illustration" width="176" height="264" loading="lazy" decoding="async" class="w-full aspect-[2/3] object-cover rounded-xl" />
     </div>
     
     <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
@@ -162,18 +162,29 @@ const spotlightAnime = animeList.filter((a) => a.trending).slice(0, 4);
 
         <!-- Visual Preview of a couple titles -->
         <div class="lg:col-span-5 grid grid-cols-2 gap-4">
-          {spotlightAnime.slice(0, 2).map((item) => (
-            <div class="relative rounded-2xl overflow-hidden border border-slate-200 bg-white p-3 shadow-xs group">
-              <div class="relative aspect-[2/3] rounded-xl overflow-hidden bg-slate-100 border border-slate-200/80 mb-2.5">
-                <img
-                  src={item.poster}
-                  alt={`${item.title} anime poster`}
-                  width="200"
-                  height="300"
-                  loading="lazy"
-                  decoding="async"
-                  class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                />
+          {spotlightAnime.slice(0, 2).map((item: any) => (
+            <div class="relative rounded-2xl border border-slate-200 bg-white p-3 shadow-xs group">
+              <div class:list={['relative aspect-[2/3] mb-2.5', item.personalRating ? 'mt-1.5' : '']}>
+                {item.personalRating && Number(item.personalRating) > 0 && (
+                  <div
+                    class="absolute left-0 bottom-full translate-y-[2px] z-10 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-t-md rounded-b-none bg-slate-900/95 backdrop-blur-xs border border-b-0 border-white/20 text-white text-[10px] font-bold leading-none shadow-xs pointer-events-none tracking-tight select-none"
+                    title={`Personal Rating: ${Number(item.personalRating) % 1 === 0 ? Number(item.personalRating) : Number(item.personalRating).toFixed(1)} / 10`}
+                  >
+                    <span class="text-amber-400 text-[9px]">★</span>
+                    <span>{Number(item.personalRating) % 1 === 0 ? Number(item.personalRating) : Number(item.personalRating).toFixed(1)}</span>
+                  </div>
+                )}
+                <div class="w-full h-full rounded-xl overflow-hidden bg-slate-100 border border-slate-200/80">
+                  <img
+                    src={optimizeTmdbPoster(item.poster, 'w342')}
+                    alt={`${item.title} anime poster`}
+                    width="200"
+                    height="300"
+                    loading="lazy"
+                    decoding="async"
+                    class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  />
+                </div>
               </div>
               <div class="space-y-1">
                 <HonestyBadge status={item.honestyStatus} size="sm" />
@@ -212,7 +223,7 @@ const spotlightAnime = animeList.filter((a) => a.trending).slice(0, 4);
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4 md:gap-7">
-      {spotlightAnime.map((anime, idx) => (
+      {spotlightAnime.map((anime: any, idx: number) => (
         <AnimeCard anime={anime} priority={idx < 2} />
       ))}
     </div>

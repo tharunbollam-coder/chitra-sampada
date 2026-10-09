@@ -2,20 +2,20 @@
 // src/pages/anime/catalog.astro
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import AnimeCard from '../../components/AnimeCard.astro';
-import { getAllAnime, getAllVibes } from '../../lib/d1.js';
+import { getCompactAnimeList, getAllVibes } from '../../lib/d1.js';
 import { siteConfig } from '../../config/site.js';
 
-const animeList = await getAllAnime(Astro.locals);
+const animeList = await getCompactAnimeList(Astro.locals);
 const vibes = await getAllVibes(Astro.locals);
 
 // Metrics
-const watchedCount = animeList.filter((a) => a.honestyStatus === 'watched').length;
-const watchlistCount = animeList.filter((a) => a.honestyStatus === 'watchlist').length;
-const referenceCount = animeList.filter((a) => a.honestyStatus === 'reference').length;
-const zeroFillerCount = animeList.filter((a) => a.fillerPercentage === 0).length;
-const communityCount = animeList.filter((a) => a.communitySuggested).length;
-const seriesCount = animeList.filter((a) => (a.type || 'series') === 'series').length;
-const movieCount = animeList.filter((a) => a.type === 'movie').length;
+const watchedCount = animeList.filter((a: any) => a.honestyStatus === 'watched').length;
+const watchlistCount = animeList.filter((a: any) => a.honestyStatus === 'watchlist').length;
+const referenceCount = animeList.filter((a: any) => a.honestyStatus === 'reference').length;
+const zeroFillerCount = animeList.filter((a: any) => a.fillerPercentage === 0).length;
+const communityCount = animeList.filter((a: any) => a.communitySuggested).length;
+const seriesCount = animeList.filter((a: any) => (a.type || 'series') === 'series').length;
+const movieCount = animeList.filter((a: any) => a.type === 'movie').length;
 
 const siteOrigin = (siteConfig.siteUrl || (Astro.site ? Astro.site.origin : 'https://chitrasampada.com')).replace(/\/+$/, '');
 const canonicalUrl = `${siteOrigin}/anime/catalog`;
@@ -210,7 +210,7 @@ const breadcrumbSchema = {
   <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
     <!-- The Grid of All Anime Cards -->
     <div id="anime-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3.5 sm:gap-4 md:gap-7">
-      {animeList.map((anime) => (
+      {animeList.map((anime: any) => (
         <AnimeCard anime={anime} />
       ))}
     </div>
@@ -237,11 +237,30 @@ const breadcrumbSchema = {
   </section>
 </BaseLayout>
 
-<!-- CLIENT-SIDE FILTERING SCRIPT -->
-<script is:inline define:vars={{ vibes, totalCount: animeList.length }}>
-  function setupCatalogFiltering() {
-    const grid = document.getElementById('anime-grid');
-    if (!grid) return;
+  <script type="application/json" id="catalog-vibes-data" set:html={JSON.stringify(vibes.map((v: any) => ({
+    id: v.id,
+    slug: v.slug,
+    h1: v.h1,
+    intro: v.intro,
+    badge: v.badge,
+    title: v.title,
+    pageTitle: v.pageTitle
+  })))} />
+
+  <!-- CLIENT-SIDE FILTERING SCRIPT -->
+  <script>
+    // @ts-nocheck
+    function setupCatalogFiltering() {
+      const grid = document.getElementById('anime-grid');
+      if (!grid) return;
+
+      const vibesEl = document.getElementById('catalog-vibes-data');
+      let vibes = [];
+      if (vibesEl && vibesEl.textContent) {
+        try {
+          vibes = JSON.parse(vibesEl.textContent);
+        } catch (e) {}
+      }
 
     const cards = Array.from(document.querySelectorAll('#anime-grid > article'));
     const tabBtns = Array.from(document.querySelectorAll('.filter-tab-btn'));

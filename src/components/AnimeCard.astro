@@ -1,6 +1,7 @@
 ---
 // src/components/AnimeCard.astro
 import HonestyBadge from './HonestyBadge.astro';
+import { optimizeTmdbPoster } from '../lib/image-utils.js';
 
 interface Props {
   anime: any;
@@ -42,6 +43,12 @@ const genreList = Array.isArray(rawGenres)
     ? rawGenres.split(',').map((g) => g.trim()).filter(Boolean)
     : [];
 const mobileGenres = genreList.slice(0, 3);
+
+// Rating formatting: e.g. ★ 8.5, ★ 9, ★ 10
+const rawRating = anime.personalRating ?? anime.personal_rating ?? anime.rating;
+const numRating = (rawRating !== null && rawRating !== undefined && rawRating !== '') ? Number(rawRating) : NaN;
+const hasRating = !isNaN(numRating) && numRating > 0;
+const formattedRating = hasRating ? (numRating % 1 === 0 ? numRating.toFixed(0) : numRating.toFixed(1)) : null;
 ---
 
 <article
@@ -53,21 +60,36 @@ const mobileGenres = genreList.slice(0, 3);
   data-community={anime.communitySuggested ? 'true' : 'false'}
   data-title={anime.title.toLowerCase()}
 >
-  <!-- Poster Image Container -->
+  <!-- Poster Image Container with Attached Top-Edge Rating Tab -->
   <a
     href={`/anime/${anime.slug}`}
-    class="relative w-24 sm:w-28 md:w-full aspect-[2/3] rounded-lg md:rounded-xl overflow-hidden bg-slate-100 border border-slate-200/80 shadow-2xs mb-0 md:mb-3.5 shrink-0 block group/poster"
+    class:list={[
+      'relative w-24 sm:w-28 md:w-full aspect-[2/3] mb-0 md:mb-3.5 shrink-0 block group/poster focus:outline-hidden',
+      formattedRating ? 'mt-1.5 md:mt-2' : ''
+    ]}
+    aria-label={`View ${anime.title} details`}
   >
-    <img
-      src={anime.poster}
-      alt={`${anime.title} poster`}
-      width="300"
-      height="450"
-      loading={priority ? 'eager' : 'lazy'}
-      decoding="async"
-      fetchpriority={priority ? 'high' : 'auto'}
-      class="w-full h-full object-cover object-center group-hover/poster:scale-[1.03] transition-transform duration-300 ease-out"
-    />
+    {formattedRating && (
+      <div
+        class="absolute left-2 bottom-full translate-y-[2px] z-10 inline-flex items-center gap-1 px-2 py-0.5 rounded-t-md rounded-b-none bg-slate-900/95 backdrop-blur-xs border border-b-0 border-white/20 text-white text-[10px] sm:text-[11px] font-bold leading-none shadow-xs pointer-events-none tracking-tight select-none"
+        title={`Personal Rating: ${formattedRating} / 10`}
+      >
+        <span class="text-amber-400 text-[10px]">★</span>
+        <span>{formattedRating}</span>
+      </div>
+    )}
+    <div class="w-full h-full rounded-lg md:rounded-xl overflow-hidden bg-slate-100 border border-slate-200/80 shadow-2xs">
+      <img
+        src={optimizeTmdbPoster(anime.poster, 'w342')}
+        alt={`${anime.title} poster`}
+        width="300"
+        height="450"
+        loading={priority ? 'eager' : 'lazy'}
+        decoding="async"
+        fetchpriority={priority ? 'high' : 'auto'}
+        class="w-full h-full object-cover object-center group-hover/poster:scale-[1.03] transition-transform duration-300 ease-out"
+      />
+    </div>
   </a>
 
   <!-- Mobile Content Section (< md viewports) -->
@@ -194,8 +216,12 @@ const mobileGenres = genreList.slice(0, 3);
         <span>{anime.year}</span>
         <span class="text-slate-300">•</span>
         <span>{isMovie ? (anime.runtime ? `${anime.runtime}m` : 'Movie') : `${anime.episodes} eps`}</span>
-        <span class="text-slate-300">•</span>
-        <span class="truncate">{anime.genres.slice(0, 2).join(', ')}</span>
+        {anime.genres && anime.genres.length > 0 && (
+          <>
+            <span class="text-slate-300">•</span>
+            <span class="truncate">{anime.genres.slice(0, 2).join(', ')}</span>
+          </>
+        )}
       </div>
     </div>
 

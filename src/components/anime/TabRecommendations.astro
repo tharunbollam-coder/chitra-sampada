@@ -1,5 +1,7 @@
 ---
 // src/components/anime/TabRecommendations.astro
+import { optimizeTmdbPoster } from '../../lib/image-utils.js';
+
 interface Props {
   anime: any;
 }
@@ -28,17 +30,20 @@ const recommendations = Array.isArray(anime.recommendations) ? anime.recommendat
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mt-6">
-        {recommendations.map((rec) => (
+        {recommendations.map((rec: any) => (
           <div class="bg-slate-50/70 hover:bg-slate-50 border border-slate-200/90 rounded-2xl p-5 flex flex-col justify-between gap-4 transition-all duration-200 shadow-2xs">
             <div class="space-y-3.5">
               <!-- Top Anime Summary -->
               <div class="flex items-start gap-3.5">
                 {rec.targetPoster ? (
                   <img
-                    src={rec.targetPoster}
+                    src={optimizeTmdbPoster(rec.targetPoster, 'w185')}
                     alt={rec.targetTitle || 'Anime Poster'}
-                    class="w-14 h-20 rounded-xl object-cover shrink-0 shadow-2xs border border-slate-200 bg-slate-200"
+                    width="56"
+                    height="80"
                     loading="lazy"
+                    decoding="async"
+                    class="w-14 h-20 rounded-xl object-cover shrink-0 shadow-2xs border border-slate-200 bg-slate-200"
                   />
                 ) : (
                   <div class="w-14 h-20 rounded-xl bg-slate-200 text-slate-400 flex items-center justify-center shrink-0 border border-slate-300">

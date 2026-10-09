@@ -13,7 +13,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
   // 2. For public-facing dynamic pages, inject Cache-Control header
   // Instructs browser to cache for 60s and Cloudflare shared edge network for 5 min (s-maxage=300)
   if (response.status === 200) {
-    response.headers.set('Cache-Control', 'public, max-age=60, s-maxage=300');
+    response.headers.set('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=86400');
   }
 
   return response;

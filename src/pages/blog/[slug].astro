@@ -6,6 +6,9 @@ import { siteConfig } from '../../config/site.js';
 import { marked } from 'marked';
 
 const { slug } = Astro.params;
+if (!slug) {
+  return new Response('Blog post not found', { status: 404 });
+}
 const post = await getBlogPostBySlug(slug, { includeDrafts: false }, Astro.locals);
 
 if (!post) {
@@ -70,7 +73,7 @@ const articleSchema = {
     "url": siteOrigin,
     "logo": {
       "@type": "ImageObject",
-      "url": `${siteOrigin}/cs.png`
+      "url": `${siteOrigin}/cs.webp`
     }
   },
   "mainEntityOfPage": {
@@ -131,7 +134,7 @@ const articleSchema = {
         {post.linkedAnime && post.linkedAnime.length > 0 && (
           <p class="text-xs text-slate-400 font-normal pt-1">
             <span>Discussed in this post:</span>{' '}
-            {post.linkedAnime.map((anime, idx) => (
+            {post.linkedAnime.map((anime: any, idx: number) => (
               <>
                 <a
                   href={`/anime/${anime.slug}`}

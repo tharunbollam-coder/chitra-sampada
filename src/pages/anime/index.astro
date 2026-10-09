@@ -3,17 +3,17 @@
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import AnimeCard from '../../components/AnimeCard.astro';
 import VibeCard from '../../components/VibeCard.astro';
-import { getAllAnime, getAllVibes } from '../../lib/d1.js';
+import { getCompactAnimeList, getAllVibes } from '../../lib/d1.js';
 import { siteConfig } from '../../config/site.js';
 
-const animeList = await getAllAnime(Astro.locals);
+const animeList = await getCompactAnimeList(Astro.locals);
 const allVibes = await getAllVibes(Astro.locals);
 
 // Public Card Display Rule: Show card in "Browse by Vibe" ONLY if is_active = 1 AND at least one published anime is assigned to it.
-const activeVibes = allVibes.filter(v => v.isActive && animeList.some(a => a.vibes && a.vibes.includes(v.id)));
+const activeVibes = allVibes.filter((v: any) => v.isActive && animeList.some((a: any) => a.vibes && a.vibes.includes(v.id)));
 
 // Featured selection for the static grid (top 4 titles to reduce mobile scroll fatigue)
-const featuredAnime = animeList.filter((a) => a.trending).slice(0, 4);
+const featuredAnime = animeList.filter((a: any) => a.trending).slice(0, 4);
 
 const siteOrigin = (siteConfig.siteUrl || (Astro.site ? Astro.site.origin : 'https://chitrasampada.com')).replace(/\/+$/, '');
 const canonicalUrl = `${siteOrigin}/anime`;
@@ -127,7 +127,7 @@ const breadcrumbSchema = {
 
     <!-- Static Grid of Anime Cards -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4 md:gap-7">
-      {featuredAnime.map((anime, idx) => (
+      {featuredAnime.map((anime: any, idx: number) => (
         <AnimeCard anime={anime} priority={idx < 2} />
       ))}
     </div>
@@ -151,7 +151,7 @@ const breadcrumbSchema = {
 
     <!-- Interactive Clickable Vibe Cards linking to dedicated /anime/tag/[slug] pages -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
-      {activeVibes.map((vibe) => (
+      {activeVibes.map((vibe: any) => (
         <VibeCard vibe={vibe} href={`/anime/tag/${vibe.slug}`} />
       ))}
     </div>

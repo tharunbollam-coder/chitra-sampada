@@ -284,7 +284,10 @@ async function ensureSchemaCompatibility(db) {
   await schemaEnsuredPromise;
 }
 
-export async function getDatabase(contextOrLocals) {
+/**
+ * @param {any} [contextOrLocals]
+ */
+export async function getDatabase(contextOrLocals = null) {
   let cfDb = null;
 
   // 1. Direct binding or context object passed
@@ -365,6 +368,11 @@ let animeCache = {
   timestamp: 0
 };
 
+let compactAnimeCache = {
+  data: null,
+  timestamp: 0
+};
+
 let blogCache = {
   data: null,
   timestamp: 0
@@ -380,9 +388,108 @@ let vibesCache = {
   timestamp: 0
 };
 
+export { optimizeTmdbPoster } from './image-utils.js';
+
 export function invalidateAnimeCache() {
   animeCache.data = null;
   animeCache.timestamp = 0;
+  compactAnimeCache.data = null;
+  compactAnimeCache.timestamp = 0;
+}
+
+/**
+ * Fetch lightweight compact anime list for card grids, catalog listings, and vibe pages.
+ * Queries ONLY essential card columns (omits heavy reviews, lore, character lists,
+ * watch orders, related universe media, blog linkages, and streaming platform records).
+ * @param {any} [contextOrLocals]
+ */
+export async function getCompactAnimeList(contextOrLocals = null) {
+  const now = Date.now();
+  if (compactAnimeCache.data && (now - compactAnimeCache.timestamp < 30000)) {
+    return compactAnimeCache.data;
+  }
+
+  const db = await getDatabase(contextOrLocals);
+
+  const [animeRes, genresRes, vibesRes, fillerRes] = await Promise.allSettled([
+    db.query(`SELECT id, slug, title, year, type, runtime, episodes, status, poster, honesty_status, filler_percentage, trending, community_suggested, personal_rating FROM anime ORDER BY year DESC, title ASC`),
+    db.query(`SELECT anime_id, genre FROM anime_genres`),
+    db.query(`SELECT anime_id, vibe_id FROM anime_vibes`),
+    db.query(`SELECT anime_id, type, episodes, episode_count FROM anime_filler_ranges`)
+  ]);
+
+  const animeRows = animeRes.status === 'fulfilled' ? animeRes.value : [];
+  const genresRows = genresRes.status === 'fulfilled' ? genresRes.value : [];
+  const vibesRows = vibesRes.status === 'fulfilled' ? vibesRes.value : [];
+  const fillerRows = fillerRes.status === 'fulfilled' ? fillerRes.value : [];
+
+  if (animeRes.status === 'rejected') {
+    console.error("Failed to query compact anime list:", animeRes.reason);
+    return [];
+  }
+
+  const genresMap = new Map();
+  for (const row of genresRows) {
+    if (!genresMap.has(row.anime_id)) genresMap.set(row.anime_id, []);
+    genresMap.get(row.anime_id).push(row.genre);
+  }
+
+  const vibesMap = new Map();
+  for (const row of vibesRows) {
+    if (!vibesMap.has(row.anime_id)) vibesMap.set(row.anime_id, []);
+    vibesMap.get(row.anime_id).push(row.vibe_id);
+  }
+
+  const fillerMap = new Map();
+  for (const row of fillerRows) {
+    if (!fillerMap.has(row.anime_id)) fillerMap.set(row.anime_id, { fillerCount: 0, totalCount: 0 });
+    const stat = fillerMap.get(row.anime_id);
+    const epVal = row.episodes || '';
+    const epCount = typeof row.episode_count === 'number' && row.episode_count > 0
+      ? row.episode_count
+      : (epVal ? epVal.split(',').length : 0);
+    if (epVal && epVal.trim().length > 0) {
+      stat.totalCount += epCount;
+      if (row.type === 'Filler') {
+        stat.fillerCount += epCount;
+      }
+    }
+  }
+
+  const formatted = animeRows.map((row) => {
+    const fillerInfo = fillerMap.get(row.id);
+    let fillerPercentage = row.filler_percentage;
+    let episodes = row.episodes || 0;
+
+    if (fillerInfo && fillerInfo.totalCount > 0) {
+      fillerPercentage = Math.round((fillerInfo.fillerCount / fillerInfo.totalCount) * 100);
+      episodes = episodes || fillerInfo.totalCount;
+    }
+
+    return {
+      id: row.id,
+      slug: row.slug,
+      title: row.title,
+      year: row.year,
+      type: row.type || 'series',
+      runtime: (row.runtime !== null && row.runtime !== undefined && row.runtime !== '') ? Number(row.runtime) : null,
+      episodes,
+      status: row.status,
+      personalRating: (row.personal_rating !== null && row.personal_rating !== undefined && row.personal_rating !== '') ? Number(row.personal_rating) : undefined,
+      personal_rating: (row.personal_rating !== null && row.personal_rating !== undefined && row.personal_rating !== '') ? Number(row.personal_rating) : undefined,
+      poster: row.poster,
+      honestyStatus: row.honesty_status,
+      fillerPercentage,
+      genres: genresMap.get(row.id) || [],
+      vibes: vibesMap.get(row.id) || [],
+      trending: Boolean(row.trending),
+      communitySuggested: Boolean(row.community_suggested)
+    };
+  });
+
+  compactAnimeCache.data = formatted;
+  compactAnimeCache.timestamp = Date.now();
+  return formatted;
 }
 
 export function invalidateBlogCache() {
@@ -403,8 +510,9 @@ export function invalidateVibesCache() {
 /**
  * Fetch all anime from D1 (or local D1 SQLite during build/prerender)
  * Formatted with camelCase properties matching the UI expectations.
+ * @param {any} [contextOrLocals]
  */
-export async function getAllAnime(contextOrLocals) {
+export async function getAllAnime(contextOrLocals = null) {
   const now = Date.now();
   if (animeCache.data && (now - animeCache.timestamp < 30000)) {
     return animeCache.data;
@@ -555,7 +663,7 @@ export async function getAllAnime(contextOrLocals) {
     if (a.title) animeTitleMap.set(a.title.trim().toLowerCase(), a.slug);
   }
 
-  return animeRows.map((row) => {
+  const formattedAnime = animeRows.map((row) => {
     // Reconstruct review object if heading or paragraphs exist
     let review = null;
     const reviewText = row.review_paragraphs || '';
@@ -716,7 +824,8 @@ export async function getAllAnime(contextOrLocals) {
       movieCanonType: row.movie_canon_type || null,
       episodes: row.episodes || fillerList?.totalEpisodes || 0,
       status: row.status,
-      personalRating: row.personal_rating !== null ? row.personal_rating : undefined,
+      personalRating: (row.personal_rating !== null && row.personal_rating !== undefined && row.personal_rating !== '') ? Number(row.personal_rating) : undefined,
+      personal_rating: (row.personal_rating !== null && row.personal_rating !== undefined && row.personal_rating !== '') ? Number(row.personal_rating) : undefined,
       ageRating: (row.age_rating !== null && row.age_rating !== undefined && row.age_rating !== '') ? Number(row.age_rating) : null,
       poster: row.poster,
       backdrop: row.backdrop,
@@ -863,6 +972,9 @@ export function getAvailableTabs(anime) {
 
 /**
  * Fetch all blog posts from D1 SQLite (optionally including drafts)
+/**
+ * @param {any} [optionsOrContext]
+ * @param {any} [contextOrLocals]
  */
 export async function getAllBlogPosts(optionsOrContext = {}, contextOrLocals = null) {
   let includeDrafts = false;
@@ -945,6 +1057,9 @@ export async function getAllBlogPosts(optionsOrContext = {}, contextOrLocals = n
 
 /**
  * Fetch a single blog post by slug
+ * @param {string} slug
+ * @param {any} [optionsOrContext]
+ * @param {any} [contextOrLocals]
  */
 export async function getBlogPostBySlug(slug, optionsOrContext = {}, contextOrLocals = null) {
   const posts = await getAllBlogPosts(optionsOrContext, contextOrLocals);
@@ -953,6 +1068,8 @@ export async function getBlogPostBySlug(slug, optionsOrContext = {}, contextOrLo
 
 /**
  * Fetch all published blog posts linked to a specific anime ID
+ * @param {string} animeId
+ * @param {any} [contextOrLocals]
  */
 export async function getBlogPostsForAnime(animeId, contextOrLocals = null) {
   if (!animeId) return [];
@@ -975,6 +1092,8 @@ export async function getBlogPostsForAnime(animeId, contextOrLocals = null) {
 
 /**
  * Fetch single anime by slug, ID, or alias
+ * @param {string} slugOrId
+ * @param {any} [contextOrLocals]
  */
 export async function getAnimeBySlugOrId(slugOrId, contextOrLocals = null) {
   if (!slugOrId) return null;
@@ -985,8 +1104,10 @@ export async function getAnimeBySlugOrId(slugOrId, contextOrLocals = null) {
 /**
  * Helper function to determine the preferred default tab.
  * Prefers "My Take" ('review') if available; otherwise falls back to the first available tab.
+ * @param {any} [_anime]
+ * @param {any} [availableTabs]
  */
-export function getDefaultTabKey(anime, availableTabs) {
+export function getDefaultTabKey(_anime, availableTabs) {
   if (!availableTabs || availableTabs.length === 0) return null;
   const reviewTab = availableTabs.find((t) => t.key === 'review');
   if (reviewTab) {
@@ -997,6 +1118,9 @@ export function getDefaultTabKey(anime, availableTabs) {
 
 /**
  * Fetch a site-wide setting value from D1 with in-memory caching (60s TTL)
+ * @param {string} key
+ * @param {any} [defaultValue]
+ * @param {any} [contextOrLocals]
  */
 export async function getSiteSetting(key, defaultValue = null, contextOrLocals = null) {
   if (!key) return defaultValue;
@@ -1019,6 +1143,9 @@ export async function getSiteSetting(key, defaultValue = null, contextOrLocals =
 
 /**
  * Update or insert a site-wide setting in D1
+ * @param {string} key
+ * @param {any} value
+ * @param {any} [contextOrLocals]
  */
 export async function setSiteSetting(key, value, contextOrLocals = null) {
   if (!key) throw new Error('Setting key is required');
@@ -1036,6 +1163,7 @@ export async function setSiteSetting(key, value, contextOrLocals = null) {
 /**
  * Fetch all vibes from D1 with in-memory caching (30s TTL).
  * Formatted with camelCase and UI compatibility fields.
+ * @param {any} [contextOrLocals]
  */
 export async function getAllVibes(contextOrLocals = null) {
   const now = Date.now();
@@ -1075,6 +1203,8 @@ export async function getAllVibes(contextOrLocals = null) {
 
 /**
  * Look up a vibe by slug or ID
+ * @param {string} slugOrId
+ * @param {any} [contextOrLocals]
  */
 export async function getVibeBySlug(slugOrId, contextOrLocals = null) {
   if (!slugOrId) return null;
@@ -1084,6 +1214,7 @@ export async function getVibeBySlug(slugOrId, contextOrLocals = null) {
 
 /**
  * Fetch all vibes with assigned anime count for admin management
+ * @param {any} [contextOrLocals]
  */
 export async function getAllAdminVibes(contextOrLocals = null) {
   const db = await getDatabase(contextOrLocals);

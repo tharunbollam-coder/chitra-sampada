@@ -10,18 +10,20 @@ interface Props {
 }
 
 const { initialAnime = null } = Astro.props;
-const anime = initialAnime;
+const anime: any = initialAnime;
 const isNew = !anime;
-const pageTitle = isNew ? 'Add New Anime' : `Edit Anime: ${anime.title}`;
+const pageTitle = isNew ? 'Add New Anime' : `Edit Anime: ${anime?.title || ''}`;
 
-const franchises = await getAllFranchises(Astro.locals);
-const adminBlogPosts = await getAllAdminBlogPosts(Astro.locals);
-const dbVibes = await getAllAdminVibes(Astro.locals).catch(() => []);
-const editorVibes = dbVibes.length > 0 ? dbVibes : fallbackVibes;
-const db = await getDatabase(Astro.locals);
-const existingGenreRows = await db.query('SELECT DISTINCT genre FROM anime_genres ORDER BY genre ASC');
-const existingGenres = existingGenreRows.map(r => r.genre);
-const platformAnimeList = await db.query('SELECT id, title, slug FROM anime ORDER BY title ASC');
+const franchises: any[] = (await getAllFranchises(Astro.locals)) || [];
+const adminBlogPosts: any[] = (await getAllAdminBlogPosts(Astro.locals)) || [];
+const dbVibes: any[] = (await getAllAdminVibes(Astro.locals).catch(() => [])) || [];
+const editorVibes: any[] = dbVibes.length > 0 ? dbVibes : fallbackVibes;
+const db: any = await getDatabase(Astro.locals);
+const existingGenreRows: any[] = (await db.query('SELECT DISTINCT genre FROM anime_genres ORDER BY genre ASC')) || [];
+const existingGenres: string[] = Array.isArray(existingGenreRows) ? existingGenreRows.map((r: any) => r.genre).filter(Boolean) : [];
+const defaultGenres = ['Adventure', 'Fantasy', 'Action', 'Drama', 'Comedy', 'Romance', 'Mystery', 'Sci-Fi', 'Slice of Life', 'Supernatural', 'Thriller'];
+const availableGenres: string[] = Array.from(new Set([...defaultGenres, ...existingGenres]));
+const platformAnimeList: any[] = (await db.query('SELECT id, title, slug FROM anime ORDER BY title ASC')) || [];
 
 const fillerBreakdown = anime?.fillerBreakdown || {};
 const initCounts = fillerBreakdown.counts || { mangaCanon: 0, animeCanon: 0, mixedCanon: 0, filler: 0 };
@@ -469,7 +471,7 @@ if (standardSourceTypes.includes(rawSourceType)) {
               Genres
             </label>
             <div class="flex flex-wrap gap-2 mb-2" id="core-genres-container">
-              {['Adventure', 'Fantasy', 'Action', 'Drama', 'Comedy', 'Romance', 'Mystery', 'Sci-Fi', 'Slice of Life', 'Supernatural', 'Thriller'].map(genre => (
+              {availableGenres.map((genre: any) => (
                 <label class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-950 border border-slate-800 rounded-lg text-xs font-medium cursor-pointer hover:border-slate-700 transition">
                   <input
                     type="checkbox"
@@ -496,7 +498,7 @@ if (standardSourceTypes.includes(rawSourceType)) {
               Discovery Vibes
             </label>
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2" id="core-vibes-container">
-              {editorVibes.map(v => (
+              {editorVibes.map((v: any) => (
                 <label class="flex items-start gap-2.5 p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs cursor-pointer hover:border-slate-700 transition">
                   <input
                     type="checkbox"
@@ -591,7 +593,6 @@ if (standardSourceTypes.includes(rawSourceType)) {
           <label
             class="no-section-toggle relative inline-flex items-center gap-2 cursor-pointer select-none px-2.5 py-1 rounded-lg bg-slate-800/90 border border-slate-700/70 hover:border-slate-600 transition"
             title="Toggle visibility of My Take on public anime page"
-            onclick="event.stopPropagation()"
           >
             <span class="text-[11px] font-medium text-slate-300 visibility-label">
               {sectionVisibility.review ? 'Public: Show' : 'Public: Hide'}
@@ -760,7 +761,6 @@ if (standardSourceTypes.includes(rawSourceType)) {
           <label
             class="no-section-toggle relative inline-flex items-center gap-2 cursor-pointer select-none px-2.5 py-1 rounded-lg bg-slate-800/90 border border-slate-700/70 hover:border-slate-600 transition"
             title="Toggle visibility of What I Learned on public anime page"
-            onclick="event.stopPropagation()"
           >
             <span class="text-[11px] font-medium text-slate-300 visibility-label">
               {sectionVisibility.lessons ? 'Public: Show' : 'Public: Hide'}
@@ -843,7 +843,6 @@ if (standardSourceTypes.includes(rawSourceType)) {
           <label
             class="no-section-toggle relative inline-flex items-center gap-2 cursor-pointer select-none px-2.5 py-1 rounded-lg bg-slate-800/90 border border-slate-700/70 hover:border-slate-600 transition"
             title="Toggle visibility of Watch Order on public anime page"
-            onclick="event.stopPropagation()"
           >
             <span class="text-[11px] font-medium text-slate-300 visibility-label">
               {sectionVisibility.watchOrder ? 'Public: Show' : 'Public: Hide'}
@@ -885,7 +884,7 @@ if (standardSourceTypes.includes(rawSourceType)) {
                 class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-sm text-white focus:outline-none focus:border-indigo-500"
               >
                 <option value="">None / Standalone</option>
-                {franchises.map(f => (
+                {franchises.map((f: any) => (
                   <option value={f.id} selected={anime?.franchiseId === f.id}>
                     {f.name} ({f.id})
                   </option>
@@ -970,7 +969,6 @@ if (standardSourceTypes.includes(rawSourceType)) {
           <label
             class="no-section-toggle relative inline-flex items-center gap-2 cursor-pointer select-none px-2.5 py-1 rounded-lg bg-slate-800/90 border border-slate-700/70 hover:border-slate-600 transition"
             title="Toggle visibility of Filler List on public anime page"
-            onclick="event.stopPropagation()"
           >
             <span class="text-[11px] font-medium text-slate-300 visibility-label">
               {sectionVisibility.fillerList ? 'Public: Show' : 'Public: Hide'}
@@ -1166,7 +1164,6 @@ if (standardSourceTypes.includes(rawSourceType)) {
           <label
             class="no-section-toggle relative inline-flex items-center gap-2 cursor-pointer select-none px-2.5 py-1 rounded-lg bg-slate-800/90 border border-slate-700/70 hover:border-slate-600 transition"
             title="Toggle visibility of Characters on public anime page"
-            onclick="event.stopPropagation()"
           >
             <span class="text-[11px] font-medium text-slate-300 visibility-label">
               {sectionVisibility.characters ? 'Public: Show' : 'Public: Hide'}
@@ -1205,7 +1202,7 @@ if (standardSourceTypes.includes(rawSourceType)) {
           </div>
 
           <div id="chars-container" class="space-y-3">
-            {(anime?.characters?.length ? anime.characters : []).map((c, i) => (
+            {(anime?.characters?.length ? anime.characters : []).map((c: any, i: number) => (
               <div class="p-3 sm:p-3.5 bg-slate-950 border border-slate-800 rounded-xl space-y-2.5 character-row">
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
                   <div class="flex items-center gap-2 flex-1 min-w-0">
@@ -1282,7 +1279,7 @@ if (standardSourceTypes.includes(rawSourceType)) {
               class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-sm text-white focus:outline-none focus:border-indigo-500"
             >
               <option value="">None / No Related Article</option>
-              {adminBlogPosts.map((p) => (
+              {adminBlogPosts.map((p: any) => (
                 <option value={p.slug} selected={anime?.characterRelatedPostSlug === p.slug}>
                   {p.title} ({p.status === 'published' ? 'Published' : 'Draft'})
                 </option>
@@ -1326,7 +1323,6 @@ if (standardSourceTypes.includes(rawSourceType)) {
           <label
             class="no-section-toggle relative inline-flex items-center gap-2 cursor-pointer select-none px-2.5 py-1 rounded-lg bg-slate-800/90 border border-slate-700/70 hover:border-slate-600 transition"
             title="Toggle visibility of Manga & Light Novel on public anime page"
-            onclick="event.stopPropagation()"
           >
             <span class="text-[11px] font-medium text-slate-300 visibility-label">
               {sectionVisibility.source ? 'Public: Show' : 'Public: Hide'}
@@ -1503,7 +1499,6 @@ if (standardSourceTypes.includes(rawSourceType)) {
           <label
             class="no-section-toggle relative inline-flex items-center gap-2 cursor-pointer select-none px-2.5 py-1 rounded-lg bg-slate-800/90 border border-slate-700/70 hover:border-slate-600 transition"
             title="Toggle visibility of Power System on public anime page"
-            onclick="event.stopPropagation()"
           >
             <span class="text-[11px] font-medium text-slate-300 visibility-label">
               {sectionVisibility.powerSystem ? 'Public: Show' : 'Public: Hide'}
@@ -1600,7 +1595,6 @@ if (standardSourceTypes.includes(rawSourceType)) {
           <label
             class="no-section-toggle relative inline-flex items-center gap-2 cursor-pointer select-none px-2.5 py-1 rounded-lg bg-slate-800/90 border border-slate-700/70 hover:border-slate-600 transition"
             title="Toggle visibility of Related & Universe Media on public anime page"
-            onclick="event.stopPropagation()"
           >
             <span class="text-[11px] font-medium text-slate-300 visibility-label">
               {sectionVisibility.universe ? 'Public: Show' : 'Public: Hide'}
@@ -1646,7 +1640,7 @@ if (standardSourceTypes.includes(rawSourceType)) {
           </div>
 
           <div id="universe-container" class="space-y-3">
-            {(anime?.universe?.length ? anime.universe : []).map((u, i) => (
+            {(anime?.universe?.length ? anime.universe : []).map((u: any, i: number) => (
               <div class="p-3 bg-slate-950 border border-slate-800 rounded-xl space-y-2.5 universe-row">
                 <div class="flex flex-wrap sm:flex-nowrap items-center justify-between gap-2.5">
                   <div class="flex items-center gap-2 flex-1 min-w-[180px]">
@@ -1743,7 +1737,6 @@ if (standardSourceTypes.includes(rawSourceType)) {
           <label
             class="no-section-toggle relative inline-flex items-center gap-2 cursor-pointer select-none px-2.5 py-1 rounded-lg bg-slate-800/90 border border-slate-700/70 hover:border-slate-600 transition"
             title="Toggle visibility of Recommendations on public anime page"
-            onclick="event.stopPropagation()"
           >
             <span class="text-[11px] font-medium text-slate-300 visibility-label">
               {sectionVisibility.recommendations ? 'Public: Show' : 'Public: Hide'}
@@ -1789,7 +1782,7 @@ if (standardSourceTypes.includes(rawSourceType)) {
           </div>
 
           <div id="recs-container" class="space-y-3">
-            {(anime?.recommendations?.length ? anime.recommendations : []).map((r, i) => (
+            {(anime?.recommendations?.length ? anime.recommendations : []).map((r: any, i: number) => (
               <div class="p-3 bg-slate-950 border border-slate-800 rounded-xl space-y-2.5 rec-row">
                 <div class="flex flex-wrap sm:flex-nowrap items-center justify-between gap-2.5">
                   <div class="flex items-center gap-2 flex-1 min-w-[200px]">
@@ -1798,7 +1791,7 @@ if (standardSourceTypes.includes(rawSourceType)) {
                     </span>
                     <select class="rec-input-target flex-1 px-3 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-sm text-white font-medium" required>
                       <option value="">-- Select Recommended Anime --</option>
-                      {platformAnimeList.filter(pa => pa.id !== anime?.id).map(pa => (
+                      {platformAnimeList.filter((pa: any) => pa.id !== anime?.id).map((pa: any) => (
                         <option value={pa.id} selected={pa.id === r.targetAnimeId}>
                           {pa.title} ({pa.id})
                         </option>
@@ -1875,7 +1868,6 @@ if (standardSourceTypes.includes(rawSourceType)) {
           <label
             class="no-section-toggle relative inline-flex items-center gap-2 cursor-pointer select-none px-2.5 py-1 rounded-lg bg-slate-800/90 border border-slate-700/70 hover:border-slate-600 transition"
             title="Toggle visibility of Streaming Platforms on public anime page"
-            onclick="event.stopPropagation()"
           >
             <span class="text-[11px] font-medium text-slate-300 visibility-label">
               {sectionVisibility.streaming !== false ? 'Public: Show' : 'Public: Hide'}
@@ -1921,7 +1913,7 @@ if (standardSourceTypes.includes(rawSourceType)) {
           </div>
 
           <div id="streaming-container" class="space-y-3">
-            {(anime?.streamingPlatforms?.length ? anime.streamingPlatforms : []).map((p, i) => (
+            {(anime?.streamingPlatforms?.length ? anime.streamingPlatforms : []).map((p: any, i: number) => (
               <div class="p-3 bg-slate-950 border border-slate-800 rounded-xl space-y-2.5 streaming-row">
                 <div class="flex flex-wrap sm:flex-nowrap items-center justify-between gap-2.5">
                   <div class="flex items-center gap-2 flex-1 min-w-[200px]">

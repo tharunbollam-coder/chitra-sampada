@@ -13,7 +13,7 @@ import TabUniverse from '../../../components/anime/TabUniverse.astro';
 import TabRecommendations from '../../../components/anime/TabRecommendations.astro';
 import StreamingAvailability from '../../../components/anime/StreamingAvailability.astro';
 import RelatedBlogPosts from '../../../components/RelatedBlogPosts.astro';
-import { getAllAnime, getAvailableTabs, getDefaultTabKey } from '../../../lib/d1.js';
+import { getAllAnime, getAvailableTabs, getDefaultTabKey, optimizeTmdbPoster } from '../../../lib/d1.js';
 import { siteConfig } from '../../../config/site.js';
 
 const { slug, tab } = Astro.params;
@@ -21,7 +21,7 @@ const { slug, tab } = Astro.params;
 // Query D1 directly on each request so newly added anime entries appear immediately
 const animeList = await getAllAnime(Astro.locals);
 const anime = animeList.find(
-  (a) => a.slug === slug || a.id === slug || (a.aliases && a.aliases.includes(slug))
+  (a: any) => a.slug === slug || a.id === slug || (a.aliases && a.aliases.includes(slug))
 );
 
 if (!anime) {
@@ -32,7 +32,7 @@ const availableTabs = getAvailableTabs(anime);
 const defaultTabKey = getDefaultTabKey(anime, availableTabs) || 'watch-order';
 
 // If a specific tab is requested in the URL path, ensure it exists in availableTabs
-if (tab && !availableTabs.some((t) => t.key === tab)) {
+if (tab && !availableTabs.some((t: any) => t.key === tab)) {
   return Astro.redirect(`/anime/${anime.slug}`, 302);
 }
 
@@ -48,7 +48,7 @@ const ageRatingDisplay = hasAgeRating
   ? (Number(anime.ageRating) === 0 ? 'General' : `${anime.ageRating}+`)
   : null;
 
-function formatRuntime(runtimeMinutes) {
+function formatRuntime(runtimeMinutes: any) {
   if (!runtimeMinutes || isNaN(runtimeMinutes)) return 'Feature Film';
   const mins = parseInt(runtimeMinutes, 10);
   if (mins < 60) return `${mins}m`;
@@ -56,9 +56,9 @@ function formatRuntime(runtimeMinutes) {
   const remainingMins = mins % 60;
   return remainingMins > 0 ? `${hours}h ${remainingMins}m` : `${hours}h`;
 }
-const activeTab = availableTabs.find((t) => t.key === activeTabKey) || availableTabs[0];
+const activeTab = availableTabs.find((t: any) => t.key === activeTabKey) || availableTabs[0];
 
-function getAirStatusDetails(status) {
+function getAirStatusDetails(status: any) {
   const s = (status || '').trim();
   if (!s) return null;
   const lower = s.toLowerCase();
@@ -142,9 +142,9 @@ const tabDescMap = {
   'recommendations': `Curated anime recommendations for fans of ${anime.title}. Similar themes, combat systems, and captivating stories.`
 };
 
-const currentTabLabel = tabTitleMap[activeTab?.key] || 'Honest Guide';
+const currentTabLabel = (activeTab?.key && (tabTitleMap as Record<string, string>)[activeTab.key]) || 'Honest Guide';
 const pageTitle = `${anime.title} — ${currentTabLabel}`;
-const pageDescription = tabDescMap[activeTab?.key] || `Complete guide for ${anime.title}. ${currentTabLabel} with honest, no-fluff viewer insights.`;
+const pageDescription = (activeTab?.key && (tabDescMap as Record<string, string>)[activeTab.key]) || `Complete guide for ${anime.title}. ${currentTabLabel} with honest, no-fluff viewer insights.`;
 
 const siteOrigin = (siteConfig.siteUrl || (Astro.site ? Astro.site.origin : 'https://chitrasampada.com')).replace(/\/+$/, '');
 const canonicalPath = tab ? `/anime/${anime.slug}/${tab}` : `/anime/${anime.slug}`;
@@ -291,7 +291,7 @@ if (anime.honestyStatus === 'watched' && anime.personalRating !== undefined && a
         <div class="md:col-span-4 max-w-[280px] mx-auto md:mx-0 w-full">
           <div class="relative aspect-[2/3] rounded-2xl overflow-hidden bg-slate-100 border border-slate-200/90 shadow-sm">
             <img
-              src={anime.poster}
+              src={optimizeTmdbPoster(anime.poster, 'w500')}
               alt={`${anime.title} poster`}
               width="280"
               height="420"
@@ -494,7 +494,7 @@ if (anime.honestyStatus === 'watched' && anime.personalRating !== undefined && a
                 Genres
               </span>
               <div class="flex flex-wrap gap-1.5">
-                {anime.genres.map((genre) => (
+                {anime.genres.map((genre: any) => (
                   <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-slate-100/90 text-slate-700 border border-slate-200/60 select-none hover:bg-slate-200/70 transition-colors">
                     {genre}
                   </span>
@@ -646,7 +646,8 @@ if (anime.honestyStatus === 'watched' && anime.personalRating !== undefined && a
   </div>
 
   <!-- Client-side Tab In-Place Switching & Dynamic Context-Aware Back Navigation -->
-  <script is:inline>
+  <script>
+    // @ts-nocheck
     function setupAnimeDetailInteractions() {
       // 1. DYNAMIC CONTEXT-AWARE BACK NAVIGATION
       const backButtons = document.querySelectorAll('[data-back-link]');

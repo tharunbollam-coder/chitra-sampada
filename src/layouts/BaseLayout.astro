@@ -18,7 +18,7 @@ interface Props {
 const {
   title = siteConfig.name,
   description = siteConfig.description,
-  ogImage = '/cs.png',
+  ogImage = '/cs.webp',
   canonicalUrl: propCanonicalUrl,
   showWellnessNote
 } = Astro.props;
@@ -52,8 +52,8 @@ if (!Astro.url.pathname.startsWith('/admin') && !Astro.url.pathname.startsWith('
 <html lang="en" class="scroll-smooth bg-[#F8FAFC] text-slate-900">
   <head>
     <meta charset="utf-8" />
-    <link rel="icon" type="image/png" href="/cs.png" />
-    <link rel="apple-touch-icon" href="/cs.png" />
+    <link rel="icon" type="image/png" href="/cs.webp" />
+    <link rel="apple-touch-icon" href="/cs.webp" />
     <link rel="icon" href="/favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="generator" content={Astro.generator} />
@@ -68,7 +68,7 @@ if (!Astro.url.pathname.startsWith('/admin') && !Astro.url.pathname.startsWith('
     <!-- Google Fonts: Plus Jakarta Sans (Headings) & Inter (Body & UI) -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800;900&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet" />
 
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />
@@ -106,7 +106,8 @@ if (!Astro.url.pathname.startsWith('/admin') && !Astro.url.pathname.startsWith('
     <Footer />
 
     <!-- Global Navigation Context & Scroll Position Restoration -->
-    <script is:inline>
+    <script>
+      // @ts-nocheck
       (function () {
         function getCleanPath() {
           return window.location.pathname.replace(/\/$/, '') || '/';

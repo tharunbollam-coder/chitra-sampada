@@ -6,6 +6,8 @@ import { validateEpisodeString } from './filler-utils.js';
 
 /**
  * Fetch an anime entry by ID along with all its related normalized records.
+ * @param {string} idOrSlug
+ * @param {any} [contextOrLocals]
  */
 export async function getAnimeById(idOrSlug, contextOrLocals = null) {
   if (!idOrSlug) return null;
@@ -407,6 +409,8 @@ export async function saveAnimeVisibility(animeId, visibility = {}, contextOrLoc
 
 /**
  * Universal save: Persist all anime sections and visibility settings simultaneously.
+ * @param {any} payload
+ * @param {any} [contextOrLocals]
  */
 export async function saveAllAnime(payload, contextOrLocals = null) {
   let animeId = payload.core?.id || payload.animeId;
@@ -499,6 +503,9 @@ export async function saveAllAnime(payload, contextOrLocals = null) {
 /**
  * Save My Take / Review section.
  * Saves trimmed raw text string directly to review_paragraphs without JSON wrapping.
+ * @param {string} animeId
+ * @param {any} [reviewData]
+ * @param {any} [contextOrLocals]
  */
 export async function saveAnimeReview(animeId, { heading = '', paragraphs = '', text = '', review_paragraphs = '', type = 'full', spoilerLevel = 'none' } = {}, contextOrLocals = null) {
   const db = await getDatabase(contextOrLocals);
@@ -536,6 +543,9 @@ export async function saveAnimeReview(animeId, { heading = '', paragraphs = '', 
 /**
  * Save What I Learned / Reflection section.
  * Saves trimmed raw text string directly to lesson_takeaway without JSON wrapping.
+ * @param {string} animeId
+ * @param {any} [lessonData]
+ * @param {any} [contextOrLocals]
  */
 export async function saveAnimeLessons(animeId, { takeaway = '', paragraphs = '', text = '', what_i_learned_paragraphs = '', lesson_takeaway = '' } = {}, contextOrLocals = null) {
   const db = await getDatabase(contextOrLocals);
@@ -554,6 +564,9 @@ export async function saveAnimeLessons(animeId, { takeaway = '', paragraphs = ''
 
 /**
  * Save Watch Order & Franchise Placement for anime.
+ * @param {string} animeId
+ * @param {any} [watchOrderData]
+ * @param {any} [contextOrLocals]
  */
 export async function saveAnimeWatchOrderLink(animeId, { franchiseId = null, franchiseStepOrder = null, watchOrderNote = null } = {}, contextOrLocals = null) {
   const db = await getDatabase(contextOrLocals);
@@ -582,6 +595,9 @@ export async function saveAnimeWatchOrderLink(animeId, { franchiseId = null, fra
 /**
  * Save Filler & Canon Breakdown and recalculate filler_percentage.
  * Accepts { mangaCanon, animeCanon, mixedCanon, filler, fillerNote }.
+ * @param {string} animeId
+ * @param {any} [breakdown]
+ * @param {any} [contextOrLocals]
  */
 export async function saveAnimeFillerList(animeId, breakdown = {}, contextOrLocals = null) {
   const db = await getDatabase(contextOrLocals);
@@ -692,6 +708,10 @@ export async function saveAnimeFillerList(animeId, breakdown = {}, contextOrLoca
 
 /**
  * Save Key Characters.
+ * @param {string} animeId
+ * @param {any} [characters]
+ * @param {any} [relatedPostSlug]
+ * @param {any} [contextOrLocals]
  */
 export async function saveAnimeCharacters(animeId, characters = [], relatedPostSlug = undefined, contextOrLocals = null) {
   const db = await getDatabase(contextOrLocals);
@@ -744,6 +764,9 @@ export async function saveAnimeCharacters(animeId, characters = [], relatedPostS
 
 /**
  * Save Manga & Light Novel Source Guidance.
+ * @param {string} animeId
+ * @param {any} [source]
+ * @param {any} [contextOrLocals]
  */
 export async function saveAnimeSource(animeId, source = {}, contextOrLocals = null) {
   const db = await getDatabase(contextOrLocals);
@@ -780,6 +803,9 @@ export async function saveAnimeSource(animeId, source = {}, contextOrLocals = nu
 /**
  * Save Power System.
  * Saves trimmed raw text string directly to power_system_paragraphs without JSON wrapping.
+ * @param {string} animeId
+ * @param {any} [powerData]
+ * @param {any} [contextOrLocals]
  */
 export async function saveAnimePowerSystem(animeId, { name = '', paragraphs = '', text = '', power_system_paragraphs = '' } = {}, contextOrLocals = null) {
   const db = await getDatabase(contextOrLocals);
@@ -798,6 +824,9 @@ export async function saveAnimePowerSystem(animeId, { name = '', paragraphs = ''
 
 /**
  * Save Related & Universe Media.
+ * @param {string} animeId
+ * @param {any[]} [items]
+ * @param {any} [contextOrLocals]
  */
 export async function saveAnimeRelatedMedia(animeId, items = [], contextOrLocals = null) {
   const db = await getDatabase(contextOrLocals);
@@ -827,6 +856,9 @@ export async function saveAnimeRelatedMedia(animeId, items = [], contextOrLocals
 
 /**
  * Save Shows Like This Recommendations.
+ * @param {string} animeId
+ * @param {any[]} [items]
+ * @param {any} [contextOrLocals]
  */
 export async function saveAnimeRecommendations(animeId, items = [], contextOrLocals = null) {
   const db = await getDatabase(contextOrLocals);
@@ -854,6 +886,8 @@ export async function saveAnimeRecommendations(animeId, items = [], contextOrLoc
 
 /**
  * Delete an anime and all cascading related records.
+ * @param {string} animeId
+ * @param {any} [contextOrLocals]
  */
 export async function deleteAnime(animeId, contextOrLocals = null) {
   const db = await getDatabase(contextOrLocals);
@@ -866,6 +900,9 @@ export async function deleteAnime(animeId, contextOrLocals = null) {
 // Franchise & Watch Order Operations
 // -------------------------------------------------------------
 
+/**
+ * @param {any} [contextOrLocals]
+ */
 export async function getAllFranchises(contextOrLocals = null) {
   const db = await getDatabase(contextOrLocals);
   const franchises = await db.query(`SELECT * FROM franchises ORDER BY name ASC`);
@@ -893,6 +930,10 @@ export async function getAllFranchises(contextOrLocals = null) {
   }));
 }
 
+/**
+ * @param {any} franchiseData
+ * @param {any} [contextOrLocals]
+ */
 export async function saveFranchise({ id, name, description = '', steps = [] }, contextOrLocals = null) {
   const db = await getDatabase(contextOrLocals);
   if (!id || !name) throw new Error('Franchise ID and Name are required.');
@@ -925,6 +966,10 @@ export async function saveFranchise({ id, name, description = '', steps = [] }, 
   return { success: true, id };
 }
 
+/**
+ * @param {string} franchiseId
+ * @param {any} [contextOrLocals]
+ */
 export async function deleteFranchise(franchiseId, contextOrLocals = null) {
   const db = await getDatabase(contextOrLocals);
   await db.run(`DELETE FROM franchises WHERE id = ?`, franchiseId);
@@ -936,6 +981,9 @@ export async function deleteFranchise(franchiseId, contextOrLocals = null) {
 // Blog Management Operations
 // -------------------------------------------------------------
 
+/**
+ * @param {any} [contextOrLocals]
+ */
 export async function getAllAdminBlogPosts(contextOrLocals = null) {
   const db = await getDatabase(contextOrLocals);
   const posts = await db.query(`SELECT * FROM blog_posts ORDER BY published_date DESC`);
@@ -970,11 +1018,19 @@ export async function getAllAdminBlogPosts(contextOrLocals = null) {
   });
 }
 
+/**
+ * @param {string} id
+ * @param {any} [contextOrLocals]
+ */
 export async function getAdminBlogPostById(id, contextOrLocals = null) {
   const posts = await getAllAdminBlogPosts(contextOrLocals);
   return posts.find(p => p.id === id || p.slug === id) || null;
 }
 
+/**
+ * @param {any} postData
+ * @param {any} [contextOrLocals]
+ */
 export async function saveBlogPost({ id, slug, title, excerpt, content, publishedDate, lastUpdated = '', status = 'published', linkedAnimeIds = [] }, contextOrLocals = null) {
   const db = await getDatabase(contextOrLocals);
   if (!id || !slug || !title || !content) {
@@ -1015,6 +1071,10 @@ export async function saveBlogPost({ id, slug, title, excerpt, content, publishe
   return { success: true, id };
 }
 
+/**
+ * @param {string} id
+ * @param {any} [contextOrLocals]
+ */
 export async function deleteBlogPost(id, contextOrLocals = null) {
   const db = await getDatabase(contextOrLocals);
   await db.run(`DELETE FROM blog_posts WHERE id = ?`, id);
@@ -1024,6 +1084,9 @@ export async function deleteBlogPost(id, contextOrLocals = null) {
 
 /**
  * Save streaming platforms / where to watch options for an anime.
+ * @param {string} animeId
+ * @param {any[]} [platforms]
+ * @param {any} [contextOrLocals]
  */
 export async function saveAnimeStreamingPlatforms(animeId, platforms = [], contextOrLocals = null) {
   const db = await getDatabase(contextOrLocals);
@@ -1067,6 +1130,8 @@ export async function saveAnimeStreamingPlatforms(animeId, platforms = [], conte
 /**
  * Save or update a vibe in D1.
  * Validates slug format and ensures slug uniqueness across all other vibes.
+ * @param {any} [vibeData]
+ * @param {any} [contextOrLocals]
  */
 export async function saveVibe(vibeData = {}, contextOrLocals = null) {
   const db = await getDatabase(contextOrLocals);
@@ -1162,6 +1227,9 @@ export async function saveVibe(vibeData = {}, contextOrLocals = null) {
 
 /**
  * Toggle vibe visibility (is_active) without removing records or associations.
+ * @param {string} id
+ * @param {any} isActive
+ * @param {any} [contextOrLocals]
  */
 export async function toggleVibeActive(id, isActive, contextOrLocals = null) {
   if (!id) throw new Error('Vibe ID is required.');
