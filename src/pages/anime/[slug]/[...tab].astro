@@ -580,30 +580,25 @@ if (anime.honestyStatus === 'watched' && anime.personalRating !== undefined && a
       </div>
     </section>
 
-    <!-- 4. DYNAMIC BOTTOM SECTION (All available tabs rendered, in-place toggle with 0 scroll jump) -->
+    <!-- 4. DYNAMIC BOTTOM SECTION -->
     <main class="min-h-[250px] relative">
       <div class="tab-panels">
-        {availableTabs.map((t) => (
-          <div
-            id={`panel-${t.key}`}
-            class:list={[
-              'tab-panel transition-opacity duration-150',
-              t.key === activeTab?.key ? 'block' : 'hidden'
-            ]}
-            data-panel={t.key}
-            role="tabpanel"
-          >
-            {t.key === 'watch-order' && <TabWatchOrder anime={anime} />}
-            {t.key === 'filler-list' && <TabFillerList anime={anime} />}
-            {t.key === 'characters' && <TabCharacters anime={anime} />}
-            {t.key === 'source' && <TabSource anime={anime} />}
-            {t.key === 'power-system' && <TabPowerSystem anime={anime} />}
-            {t.key === 'review' && <TabReview anime={anime} />}
-            {t.key === 'lessons' && <TabLessons anime={anime} />}
-            {t.key === 'universe' && <TabUniverse anime={anime} />}
-            {t.key === 'recommendations' && <TabRecommendations anime={anime} />}
-          </div>
-        ))}
+        <div
+          id={`panel-${activeTabKey}`}
+          class="tab-panel transition-opacity duration-150 block"
+          data-panel={activeTabKey}
+          role="tabpanel"
+        >
+          {activeTabKey === 'watch-order' && <TabWatchOrder anime={anime} />}
+          {activeTabKey === 'filler-list' && <TabFillerList anime={anime} />}
+          {activeTabKey === 'characters' && <TabCharacters anime={anime} />}
+          {activeTabKey === 'source' && <TabSource anime={anime} />}
+          {activeTabKey === 'power-system' && <TabPowerSystem anime={anime} />}
+          {activeTabKey === 'review' && <TabReview anime={anime} />}
+          {activeTabKey === 'lessons' && <TabLessons anime={anime} />}
+          {activeTabKey === 'universe' && <TabUniverse anime={anime} />}
+          {activeTabKey === 'recommendations' && <TabRecommendations anime={anime} />}
+        </div>
       </div>
 
       <!-- Related Blog Posts / Articles discussing this anime -->
@@ -641,7 +636,7 @@ if (anime.honestyStatus === 'watched' && anime.personalRating !== undefined && a
 
   </div>
 
-  <!-- Client-side Tab In-Place Switching & Dynamic Context-Aware Back Navigation -->
+  <!-- Client-side Context-Aware Back Navigation -->
   <script>
     // @ts-nocheck
     function setupAnimeDetailInteractions() {
@@ -699,102 +694,7 @@ if (anime.honestyStatus === 'watched' && anime.personalRating !== undefined && a
         };
       });
 
-      // 2. IN-PLACE TAB SWITCHING (PRESERVES SCROLL POSITION WITHOUT RELOAD)
-      const tabLinks = document.querySelectorAll('[data-tab-link]');
-      const panels = document.querySelectorAll('[data-panel]');
-      const breadcrumbTab = document.getElementById('breadcrumb-current-tab');
-      if (!tabLinks.length || !panels.length) return;
-
-      const tabTitleMap = {
-        'watch-order': 'Watch Order',
-        'filler-list': 'Filler List',
-        'characters': 'Characters',
-        'source': 'Manga & Light Novel',
-        'power-system': 'Power System',
-        'review': 'My Take',
-        'lessons': 'What I Learned',
-        'universe': 'Related & Universe',
-        'recommendations': 'Shows Like This'
-      };
-
-      function activateTab(tabKey, updateHistory, newHref) {
-        if (!tabKey) return;
-        const currentScrollY = window.scrollY;
-
-        // Update Tab Buttons styling
-        tabLinks.forEach(function (link) {
-          const isMatch = link.getAttribute('data-tab-link') === tabKey;
-          const counter = link.querySelector('.tab-counter');
-
-          if (isMatch) {
-            link.classList.remove('inactive-tab', 'bg-white', 'hover:bg-slate-100', 'text-slate-600', 'hover:text-slate-900', 'border', 'border-slate-200/80');
-            link.classList.add('active-tab', 'bg-[#6366F1]', 'text-white', 'shadow-sm', 'shadow-indigo-500/20');
-            if (counter) {
-              counter.classList.remove('bg-slate-100', 'text-slate-500');
-              counter.classList.add('bg-[#4338CA]', 'text-white');
-            }
-          } else {
-            link.classList.remove('active-tab', 'bg-[#6366F1]', 'text-white', 'shadow-sm', 'shadow-indigo-500/20');
-            link.classList.add('inactive-tab', 'bg-white', 'hover:bg-slate-100', 'text-slate-600', 'hover:text-slate-900', 'border', 'border-slate-200/80');
-            if (counter) {
-              counter.classList.remove('bg-[#4338CA]', 'text-white');
-              counter.classList.add('bg-slate-100', 'text-slate-500');
-            }
-          }
-        });
-
-        // Toggle Tab Panels in place
-        panels.forEach(function (panel) {
-          const isMatch = panel.getAttribute('data-panel') === tabKey;
-          if (isMatch) {
-            panel.classList.remove('hidden');
-            panel.classList.add('block');
-          } else {
-            panel.classList.remove('block');
-            panel.classList.add('hidden');
-          }
-        });
-
-        // Update Breadcrumb label
-        if (breadcrumbTab && tabTitleMap[tabKey]) {
-          breadcrumbTab.textContent = tabTitleMap[tabKey];
-        }
-
-        // Update browser URL history with replaceState to keep history stack clean and preserve Astro router state
-        if (updateHistory && newHref) {
-          try {
-            const currentState = window.history.state || {};
-            window.history.replaceState(currentState, '', newHref);
-          } catch (e) {
-            window.history.replaceState(null, '', newHref);
-          }
-        }
-
-        // Strictly preserve scroll position
-        window.scrollTo({ top: currentScrollY, behavior: 'instant' });
-      }
-
-      tabLinks.forEach(function (link) {
-        link.onclick = function (e) {
-          e.preventDefault();
-          const tabKey = link.getAttribute('data-tab-link');
-          const targetHref = link.getAttribute('href');
-          activateTab(tabKey, true, targetHref);
-        };
-      });
-
-      // Handle browser back/forward within tabbed URLs
-      window.addEventListener('popstate', function () {
-        const pathParts = window.location.pathname.replace(/\/$/, '').split('/');
-        const lastPart = pathParts[pathParts.length - 1];
-        if (document.querySelector('[data-panel="' + lastPart + '"]')) {
-          activateTab(lastPart, false);
-        }
-      });
-
-      // -------------------------------------------------------------
       // Dynamic Guidance Popovers (Air Status & Age Rating)
-      // -------------------------------------------------------------
       let currentOpenPopover = null;
 
       function closeAllPopovers() {
