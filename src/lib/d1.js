@@ -67,35 +67,49 @@ function recordD1Timing(contextOrLocals, startedAt) {
 }
 
 function wrapD1(cfDb, contextOrLocals = null) {
+  const sanitize = (params) => params.map((p) => (p === undefined ? null : p));
+
   return {
     isD1: true,
     async query(sql, ...params) {
       const startedAt = performance.now();
-      let stmt = cfDb.prepare(sql);
-      if (params.length > 0) stmt = stmt.bind(...params);
       try {
+        let stmt = cfDb.prepare(sql);
+        const safeParams = sanitize(params);
+        if (safeParams.length > 0) stmt = stmt.bind(...safeParams);
         const res = await stmt.all();
-        return res.results || [];
+        return res?.results || [];
+      } catch (err) {
+        console.error('D1 query error:', err, 'SQL:', sql);
+        return [];
       } finally {
         recordD1Timing(contextOrLocals, startedAt);
       }
     },
     async queryOne(sql, ...params) {
       const startedAt = performance.now();
-      let stmt = cfDb.prepare(sql);
-      if (params.length > 0) stmt = stmt.bind(...params);
       try {
-        return await stmt.first() || null;
+        let stmt = cfDb.prepare(sql);
+        const safeParams = sanitize(params);
+        if (safeParams.length > 0) stmt = stmt.bind(...safeParams);
+        return (await stmt.first()) || null;
+      } catch (err) {
+        console.error('D1 queryOne error:', err, 'SQL:', sql);
+        return null;
       } finally {
         recordD1Timing(contextOrLocals, startedAt);
       }
     },
     async run(sql, ...params) {
       const startedAt = performance.now();
-      let stmt = cfDb.prepare(sql);
-      if (params.length > 0) stmt = stmt.bind(...params);
       try {
+        let stmt = cfDb.prepare(sql);
+        const safeParams = sanitize(params);
+        if (safeParams.length > 0) stmt = stmt.bind(...safeParams);
         return await stmt.run();
+      } catch (err) {
+        console.error('D1 run error:', err, 'SQL:', sql);
+        throw err;
       } finally {
         recordD1Timing(contextOrLocals, startedAt);
       }
@@ -712,256 +726,302 @@ export async function getAllAnime(contextOrLocals = null) {
 export async function getAnimeDetailBySlugOrId(slugOrId, contextOrLocals = null) {
   if (!slugOrId) return null;
 
-  const db = await getDatabase(contextOrLocals);
-  const anime = await db.queryOne(`
-    SELECT
-      a.id, a.slug, a.title, a.original_title, a.year, a.type, a.runtime,
-      a.movie_canon_type, a.episodes, a.status, a.personal_rating,
-      a.age_rating, a.poster, a.backdrop, a.added_date, a.last_updated,
-      a.honesty_status, a.filler_percentage, a.trending, a.community_suggested,
-      a.synopsis, a.franchise_id, a.franchise_step_order, a.review_heading,
-      a.review_paragraphs, a.review_type, a.review_spoiler_level,
-      a.source_title, a.source_original_title, a.source_author, a.source_type,
-      a.source_volumes, a.source_publication_status, a.source_adaptation_status,
-      a.source_coverage, a.source_notes, a.power_system_name,
-      a.power_system_paragraphs, a.lesson_takeaway, a.watch_order_note,
-      a.filler_note, a.character_related_post_slug, a.section_visibility
-    FROM anime a
-    LEFT JOIN anime_aliases aa ON aa.anime_id = a.id
-    WHERE a.slug = ? OR a.id = ? OR aa.alias = ?
-    LIMIT 1
-  `, slugOrId, slugOrId, slugOrId);
+  try {
+    const db = await getDatabase(contextOrLocals);
+    const lookupKey = String(slugOrId).trim();
+    if (!lookupKey) return null;
 
-  if (!anime) return null;
-
-  const [
-    aliases,
-    genres,
-    vibes,
-    fillerRows,
-    characters,
-    watchOrder,
-    universe,
-    recommendations,
-    streamingPlatforms,
-    relatedPost
-  ] = await Promise.all([
-    db.query(`SELECT alias FROM anime_aliases WHERE anime_id = ?`, anime.id),
-    db.query(`SELECT genre FROM anime_genres WHERE anime_id = ?`, anime.id),
-    db.query(`SELECT vibe_id FROM anime_vibes WHERE anime_id = ?`, anime.id),
-    db.query(`
-      SELECT type, episodes, episode_count
-      FROM anime_filler_ranges
-      WHERE anime_id = ?
-      ORDER BY range_order ASC
-    `, anime.id),
-    db.query(`
-      SELECT rank, name, category, role, commentary
-      FROM anime_characters
-      WHERE anime_id = ?
-      ORDER BY rank ASC
-    `, anime.id),
-    anime.franchise_id
-      ? db.query(`
-          SELECT fwo.step_order, fwo.title, fwo.type, fwo.episodes, fwo.anime_id, fwo.note,
-                 target.slug AS target_slug
-          FROM franchise_watch_order fwo
-          LEFT JOIN anime target ON target.id = fwo.anime_id
-            OR LOWER(TRIM(target.title)) = LOWER(TRIM(fwo.title))
-          WHERE fwo.franchise_id = ?
-          ORDER BY fwo.step_order ASC
-        `, anime.franchise_id)
-      : Promise.resolve([]),
-    db.query(`
-      SELECT id, section, title, badge, link_slug, editorial_note, item_order
-      FROM anime_related_media
-      WHERE anime_id = ?
-      ORDER BY item_order ASC, id ASC
-    `, anime.id),
-    db.query(`
+    const anime = await db.queryOne(`
       SELECT
-        r.id, r.target_anime_id, r.category_badge, r.editorial_note, r.item_order,
-        target.title AS target_title, target.slug AS target_slug, target.poster AS target_poster,
-        target.year AS target_year, target.status AS target_status,
-        target.personal_rating AS target_rating
-      FROM anime_recommendations r
-      JOIN anime target ON target.id = r.target_anime_id
-      WHERE r.anime_id = ?
-      ORDER BY r.item_order ASC, r.id ASC
-    `, anime.id),
-    db.query(`
-      SELECT id, platform_name, stream_url, logo_url, note, display_order, is_active
-      FROM anime_streaming_platforms
-      WHERE anime_id = ?
-      ORDER BY display_order ASC, id ASC
-    `, anime.id),
-    anime.character_related_post_slug
-      ? db.queryOne(`
-          SELECT id, slug, title, status
-          FROM blog_posts
-          WHERE slug = ?
-          LIMIT 1
-        `, anime.character_related_post_slug)
-      : Promise.resolve(null)
-  ]);
+        a.id, a.slug, a.title, a.original_title, a.year, a.type, a.runtime,
+        a.movie_canon_type, a.episodes, a.status, a.personal_rating,
+        a.age_rating, a.poster, a.backdrop, a.added_date, a.last_updated,
+        a.honesty_status, a.filler_percentage, a.trending, a.community_suggested,
+        a.synopsis, a.franchise_id, a.franchise_step_order, a.review_heading,
+        a.review_paragraphs, a.review_type, a.review_spoiler_level,
+        a.source_title, a.source_original_title, a.source_author, a.source_type,
+        a.source_volumes, a.source_publication_status, a.source_adaptation_status,
+        a.source_coverage, a.source_notes, a.power_system_name,
+        a.power_system_paragraphs, a.lesson_takeaway, a.watch_order_note,
+        a.filler_note, a.character_related_post_slug, a.section_visibility
+      FROM anime a
+      LEFT JOIN anime_aliases aa ON aa.anime_id = a.id
+      WHERE a.slug = ? OR a.id = ? OR aa.alias = ?
+      LIMIT 1
+    `, lookupKey, lookupKey, lookupKey);
 
-  const fillerEntries = fillerRows.map((row) => {
-    const episodes = row.episodes || '';
-    return {
-      type: row.type,
-      episodes,
-      count: typeof row.episode_count === 'number' && row.episode_count >= 0
-        ? row.episode_count
-        : (episodes ? episodes.split(',').length : 0)
+    if (!anime || !anime.id) return null;
+
+    const animeId = anime.id;
+    const franchiseId = anime.franchise_id || null;
+    const charPostSlug = anime.character_related_post_slug || null;
+
+    const [
+      aliases,
+      genres,
+      vibes,
+      fillerRows,
+      characters,
+      watchOrder,
+      universe,
+      recommendations,
+      streamingPlatforms,
+      relatedPost
+    ] = await Promise.all([
+      db.query(`SELECT alias FROM anime_aliases WHERE anime_id = ?`, animeId),
+      db.query(`SELECT genre FROM anime_genres WHERE anime_id = ?`, animeId),
+      db.query(`SELECT vibe_id FROM anime_vibes WHERE anime_id = ?`, animeId),
+      db.query(`
+        SELECT type, episodes, episode_count
+        FROM anime_filler_ranges
+        WHERE anime_id = ?
+      `, animeId),
+      db.query(`
+        SELECT rank, name, category, role, commentary
+        FROM anime_characters
+        WHERE anime_id = ?
+        ORDER BY rank ASC
+      `, animeId),
+      franchiseId
+        ? db.query(`
+            SELECT fwo.step_order, fwo.title, fwo.type, fwo.episodes, fwo.anime_id, fwo.note,
+                   target.slug AS target_slug
+            FROM franchise_watch_order fwo
+            LEFT JOIN anime target ON target.id = fwo.anime_id
+              OR LOWER(TRIM(target.title)) = LOWER(TRIM(fwo.title))
+            WHERE fwo.franchise_id = ?
+            ORDER BY fwo.step_order ASC
+          `, franchiseId)
+        : Promise.resolve([]),
+      db.query(`
+        SELECT id, section, title, badge, link_slug, editorial_note, item_order
+        FROM anime_related_media
+        WHERE anime_id = ?
+        ORDER BY item_order ASC, id ASC
+      `, animeId),
+      db.query(`
+        SELECT
+          r.id, r.target_anime_id, r.category_badge, r.editorial_note, r.item_order,
+          target.title AS target_title, target.slug AS target_slug, target.poster AS target_poster,
+          target.year AS target_year, target.status AS target_status,
+          target.personal_rating AS target_rating
+        FROM anime_recommendations r
+        JOIN anime target ON target.id = r.target_anime_id
+        WHERE r.anime_id = ?
+        ORDER BY r.item_order ASC, r.id ASC
+      `, animeId),
+      db.query(`
+        SELECT id, platform_name, stream_url, logo_url, note, display_order, is_active
+        FROM anime_streaming_platforms
+        WHERE anime_id = ?
+        ORDER BY display_order ASC, id ASC
+      `, animeId),
+      charPostSlug
+        ? db.queryOne(`
+            SELECT id, slug, title, status
+            FROM blog_posts
+            WHERE slug = ?
+            LIMIT 1
+          `, charPostSlug)
+        : Promise.resolve(null)
+    ]);
+
+    const safeAliases = Array.isArray(aliases) ? aliases : [];
+    const safeGenres = Array.isArray(genres) ? genres : [];
+    const safeVibes = Array.isArray(vibes) ? vibes : [];
+    const safeFillerRows = Array.isArray(fillerRows) ? fillerRows : [];
+    const safeCharacters = Array.isArray(characters) ? characters : [];
+    const safeWatchOrder = Array.isArray(watchOrder) ? watchOrder : [];
+    const safeUniverse = Array.isArray(universe) ? universe : [];
+    const safeRecommendations = Array.isArray(recommendations) ? recommendations : [];
+    const safeStreamingPlatforms = Array.isArray(streamingPlatforms) ? streamingPlatforms : [];
+
+    const fillerEntries = safeFillerRows.map((row) => {
+      const episodes = row.episodes || '';
+      return {
+        type: row.type,
+        episodes,
+        count: typeof row.episode_count === 'number' && row.episode_count >= 0
+          ? row.episode_count
+          : (episodes ? episodes.split(',').length : 0)
+      };
+    }).filter((row) => row.episodes.trim().length > 0);
+
+    const FILLER_CATEGORY_ORDER = {
+      'Manga Canon': 1,
+      'Anime Canon': 2,
+      'Mixed Canon': 3,
+      'Mixed Canon/Filler': 3,
+      'Mixed Canon / Filler': 3,
+      'Filler': 4,
+      'Filler Episodes': 4,
+      'Filler Episodes (Skippable)': 4
     };
-  }).filter((row) => row.episodes.trim().length > 0);
 
-  const countFor = (type) => fillerEntries.find((entry) => entry.type === type)?.count || 0;
-  const mangaCanonEpisodes = countFor('Manga Canon');
-  const animeCanonEpisodes = countFor('Anime Canon');
-  const mixedEpisodes = countFor('Mixed Canon/Filler');
-  const fillerEpisodes = countFor('Filler');
-  const totalEpisodes = mangaCanonEpisodes + animeCanonEpisodes + mixedEpisodes + fillerEpisodes;
-  const fillerList = fillerEntries.length > 0 ? {
-    totalEpisodes,
-    fillerEpisodes,
-    canonEpisodes: mangaCanonEpisodes + animeCanonEpisodes,
-    mangaCanonEpisodes,
-    animeCanonEpisodes,
-    mixedEpisodes,
-    fillerPercentage: totalEpisodes > 0 ? Math.round((fillerEpisodes / totalEpisodes) * 100) : 0,
-    types: fillerEntries
-  } : null;
+    const getFillerOrder = (type) => {
+      if (!type) return 99;
+      const t = String(type).trim();
+      if (FILLER_CATEGORY_ORDER[t] !== undefined) return FILLER_CATEGORY_ORDER[t];
+      const l = t.toLowerCase();
+      if (l.includes('manga')) return 1;
+      if (l.includes('anime')) return 2;
+      if (l.includes('mixed')) return 3;
+      if (l.includes('filler')) return 4;
+      return 99;
+    };
 
-  let sectionVisibility = {
-    review: true,
-    lessons: true,
-    watchOrder: true,
-    fillerList: true,
-    characters: true,
-    source: true,
-    powerSystem: true,
-    universe: true,
-    recommendations: true,
-    streaming: true
-  };
-  if (anime.section_visibility) {
-    try {
-      sectionVisibility = { ...sectionVisibility, ...JSON.parse(anime.section_visibility) };
-    } catch {}
+    fillerEntries.sort((a, b) => getFillerOrder(a.type) - getFillerOrder(b.type));
+
+    const countFor = (type) => fillerEntries.find((entry) => entry.type === type)?.count || 0;
+    const mangaCanonEpisodes = countFor('Manga Canon');
+    const animeCanonEpisodes = countFor('Anime Canon');
+    const mixedEpisodes = countFor('Mixed Canon/Filler');
+    const fillerEpisodes = countFor('Filler');
+    const totalEpisodes = mangaCanonEpisodes + animeCanonEpisodes + mixedEpisodes + fillerEpisodes;
+    const fillerList = fillerEntries.length > 0 ? {
+      totalEpisodes,
+      fillerEpisodes,
+      canonEpisodes: mangaCanonEpisodes + animeCanonEpisodes,
+      mangaCanonEpisodes,
+      animeCanonEpisodes,
+      mixedEpisodes,
+      fillerPercentage: totalEpisodes > 0 ? Math.round((fillerEpisodes / totalEpisodes) * 100) : 0,
+      types: fillerEntries
+    } : null;
+
+    let sectionVisibility = {
+      review: true,
+      lessons: true,
+      watchOrder: true,
+      fillerList: true,
+      characters: true,
+      source: true,
+      powerSystem: true,
+      universe: true,
+      recommendations: true,
+      streaming: true
+    };
+    if (anime.section_visibility) {
+      try {
+        sectionVisibility = { ...sectionVisibility, ...JSON.parse(anime.section_visibility) };
+      } catch {}
+    }
+
+    const reviewText = anime.review_paragraphs || '';
+    const powerText = anime.power_system_paragraphs || '';
+    const lessonTakeaway = anime.lesson_takeaway || '';
+
+    return {
+      id: anime.id,
+      slug: anime.slug,
+      aliases: safeAliases.length > 0 ? safeAliases.map((row) => row.alias) : [anime.id, anime.slug],
+      title: anime.title,
+      originalTitle: anime.original_title,
+      year: anime.year,
+      type: anime.type || 'series',
+      runtime: anime.runtime !== null && anime.runtime !== undefined && anime.runtime !== '' ? Number(anime.runtime) : null,
+      movieCanonType: anime.movie_canon_type || null,
+      episodes: anime.episodes || fillerList?.totalEpisodes || 0,
+      status: anime.status,
+      personalRating: anime.personal_rating !== null && anime.personal_rating !== undefined && anime.personal_rating !== '' ? Number(anime.personal_rating) : undefined,
+      personal_rating: anime.personal_rating !== null && anime.personal_rating !== undefined && anime.personal_rating !== '' ? Number(anime.personal_rating) : undefined,
+      ageRating: anime.age_rating !== null && anime.age_rating !== undefined && anime.age_rating !== '' ? Number(anime.age_rating) : null,
+      poster: anime.poster,
+      backdrop: anime.backdrop,
+      addedDate: anime.added_date,
+      lastUpdated: anime.last_updated,
+      honestyStatus: anime.honesty_status,
+      fillerPercentage: fillerList?.totalEpisodes > 0 ? fillerList.fillerPercentage : anime.filler_percentage,
+      genres: safeGenres.map((row) => row.genre),
+      vibes: safeVibes.map((row) => row.vibe_id),
+      trending: Boolean(anime.trending),
+      communitySuggested: Boolean(anime.community_suggested),
+      synopsis: anime.synopsis,
+      review: reviewText.trim().length > 0 || anime.review_heading ? {
+        heading: anime.review_heading,
+        paragraphs: reviewText,
+        text: reviewText,
+        type: anime.review_type === 'quick' || anime.review_type === 'quick_take' ? 'quick' : 'full',
+        spoilerLevel: anime.review_spoiler_level || 'none'
+      } : null,
+      watchOrder: safeWatchOrder.map((step) => ({
+        order: step.step_order,
+        title: step.title,
+        type: step.type,
+        episodes: step.episodes,
+        animeId: step.anime_id,
+        slug: step.target_slug || step.anime_id || null,
+        isCurrent: step.anime_id === anime.id || step.step_order === anime.franchise_step_order,
+        note: step.note
+      })),
+      watchOrderNote: anime.watch_order_note || null,
+      fillerList,
+      fillerNote: anime.filler_note || null,
+      characters: safeCharacters,
+      characterRelatedPostSlug: anime.character_related_post_slug || null,
+      characterRelatedPost: relatedPost || (anime.character_related_post_slug ? { slug: anime.character_related_post_slug, title: 'Related Article' } : null),
+      source: anime.source_title || anime.source_type ? {
+        title: anime.source_title,
+        originalTitle: anime.source_original_title,
+        author: anime.source_author,
+        type: anime.source_type,
+        volumes: anime.source_volumes,
+        publicationStatus: anime.source_publication_status,
+        adaptationStatus: anime.source_adaptation_status,
+        coverage: anime.source_coverage,
+        notes: anime.source_notes
+      } : null,
+      powerSystem: anime.power_system_name || powerText.trim().length > 0 ? {
+        name: anime.power_system_name,
+        paragraphs: powerText,
+        text: powerText
+      } : null,
+      lessons: lessonTakeaway.trim().length > 0 ? {
+        takeaway: lessonTakeaway,
+        paragraphs: lessonTakeaway,
+        text: lessonTakeaway
+      } : null,
+      review_paragraphs: reviewText,
+      power_system_paragraphs: powerText,
+      lesson_takeaway: lessonTakeaway,
+      what_i_learned_paragraphs: lessonTakeaway,
+      universe: safeUniverse.map((row) => ({
+        id: row.id,
+        section: row.section,
+        title: row.title,
+        badge: row.badge,
+        linkSlug: row.link_slug,
+        editorialNote: row.editorial_note,
+        itemOrder: row.item_order
+      })),
+      recommendations: safeRecommendations.map((row) => ({
+        id: row.id,
+        targetAnimeId: row.target_anime_id,
+        targetTitle: row.target_title || '',
+        targetSlug: row.target_slug || '',
+        targetPoster: row.target_poster || '',
+        targetYear: row.target_year || null,
+        targetStatus: row.target_status || '',
+        targetRating: row.target_rating !== null && row.target_rating !== undefined ? row.target_rating : undefined,
+        categoryBadge: row.category_badge,
+        editorialNote: row.editorial_note,
+        itemOrder: row.item_order
+      })),
+      streamingPlatforms: safeStreamingPlatforms.map((row) => ({
+        id: row.id,
+        platformName: row.platform_name,
+        streamUrl: row.stream_url,
+        logoUrl: row.logo_url,
+        note: row.note,
+        displayOrder: row.display_order,
+        isActive: row.is_active !== 0
+      })),
+      sectionVisibility
+    };
+  } catch (error) {
+    console.error('getAnimeDetailBySlugOrId error:', error);
+    return null;
   }
-
-  const reviewText = anime.review_paragraphs || '';
-  const powerText = anime.power_system_paragraphs || '';
-  const lessonTakeaway = anime.lesson_takeaway || '';
-
-  return {
-    id: anime.id,
-    slug: anime.slug,
-    aliases: aliases.length > 0 ? aliases.map((row) => row.alias) : [anime.id, anime.slug],
-    title: anime.title,
-    originalTitle: anime.original_title,
-    year: anime.year,
-    type: anime.type || 'series',
-    runtime: anime.runtime !== null && anime.runtime !== undefined && anime.runtime !== '' ? Number(anime.runtime) : null,
-    movieCanonType: anime.movie_canon_type || null,
-    episodes: anime.episodes || fillerList?.totalEpisodes || 0,
-    status: anime.status,
-    personalRating: anime.personal_rating !== null && anime.personal_rating !== undefined && anime.personal_rating !== '' ? Number(anime.personal_rating) : undefined,
-    personal_rating: anime.personal_rating !== null && anime.personal_rating !== undefined && anime.personal_rating !== '' ? Number(anime.personal_rating) : undefined,
-    ageRating: anime.age_rating !== null && anime.age_rating !== undefined && anime.age_rating !== '' ? Number(anime.age_rating) : null,
-    poster: anime.poster,
-    backdrop: anime.backdrop,
-    addedDate: anime.added_date,
-    lastUpdated: anime.last_updated,
-    honestyStatus: anime.honesty_status,
-    fillerPercentage: fillerList?.totalEpisodes > 0 ? fillerList.fillerPercentage : anime.filler_percentage,
-    genres: genres.map((row) => row.genre),
-    vibes: vibes.map((row) => row.vibe_id),
-    trending: Boolean(anime.trending),
-    communitySuggested: Boolean(anime.community_suggested),
-    synopsis: anime.synopsis,
-    review: reviewText.trim().length > 0 || anime.review_heading ? {
-      heading: anime.review_heading,
-      paragraphs: reviewText,
-      text: reviewText,
-      type: anime.review_type === 'quick' || anime.review_type === 'quick_take' ? 'quick' : 'full',
-      spoilerLevel: anime.review_spoiler_level || 'none'
-    } : null,
-    watchOrder: watchOrder.map((step) => ({
-      order: step.step_order,
-      title: step.title,
-      type: step.type,
-      episodes: step.episodes,
-      animeId: step.anime_id,
-      slug: step.target_slug || step.anime_id || null,
-      isCurrent: step.anime_id === anime.id || step.step_order === anime.franchise_step_order,
-      note: step.note
-    })),
-    watchOrderNote: anime.watch_order_note || null,
-    fillerList,
-    fillerNote: anime.filler_note || null,
-    characters,
-    characterRelatedPostSlug: anime.character_related_post_slug || null,
-    characterRelatedPost: relatedPost || (anime.character_related_post_slug ? { slug: anime.character_related_post_slug, title: 'Related Article' } : null),
-    source: anime.source_title || anime.source_type ? {
-      title: anime.source_title,
-      originalTitle: anime.source_original_title,
-      author: anime.source_author,
-      type: anime.source_type,
-      volumes: anime.source_volumes,
-      publicationStatus: anime.source_publication_status,
-      adaptationStatus: anime.source_adaptation_status,
-      coverage: anime.source_coverage,
-      notes: anime.source_notes
-    } : null,
-    powerSystem: anime.power_system_name || powerText.trim().length > 0 ? {
-      name: anime.power_system_name,
-      paragraphs: powerText,
-      text: powerText
-    } : null,
-    lessons: lessonTakeaway.trim().length > 0 ? {
-      takeaway: lessonTakeaway,
-      paragraphs: lessonTakeaway,
-      text: lessonTakeaway
-    } : null,
-    review_paragraphs: reviewText,
-    power_system_paragraphs: powerText,
-    lesson_takeaway: lessonTakeaway,
-    what_i_learned_paragraphs: lessonTakeaway,
-    universe: universe.map((row) => ({
-      id: row.id,
-      section: row.section,
-      title: row.title,
-      badge: row.badge,
-      linkSlug: row.link_slug,
-      editorialNote: row.editorial_note,
-      itemOrder: row.item_order
-    })),
-    recommendations: recommendations.map((row) => ({
-      id: row.id,
-      targetAnimeId: row.target_anime_id,
-      targetTitle: row.target_title || '',
-      targetSlug: row.target_slug || '',
-      targetPoster: row.target_poster || '',
-      targetYear: row.target_year || null,
-      targetStatus: row.target_status || '',
-      targetRating: row.target_rating !== null && row.target_rating !== undefined ? row.target_rating : undefined,
-      categoryBadge: row.category_badge,
-      editorialNote: row.editorial_note,
-      itemOrder: row.item_order
-    })),
-    streamingPlatforms: streamingPlatforms.map((row) => ({
-      id: row.id,
-      platformName: row.platform_name,
-      streamUrl: row.stream_url,
-      logoUrl: row.logo_url,
-      note: row.note,
-      displayOrder: row.display_order,
-      isActive: row.is_active !== 0
-    })),
-    sectionVisibility
-  };
 }
 
 /**

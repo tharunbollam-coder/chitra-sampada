@@ -2,8 +2,33 @@
 // src/components/anime/TabFillerList.astro
 const { anime } = Astro.props;
 const fillerData = anime.fillerList || {};
-const types = fillerData.types || [];
+const rawTypes = fillerData.types || [];
 const fillerNote = anime.fillerNote?.trim() || null;
+
+const FILLER_ORDER: Record<string, number> = {
+  'Manga Canon': 1,
+  'Anime Canon': 2,
+  'Mixed Canon/Filler': 3,
+  'Mixed Canon / Filler': 3,
+  'Mixed Canon': 3,
+  'Filler': 4,
+  'Filler Episodes': 4,
+  'Filler Episodes (Skippable)': 4
+};
+
+function getCategoryRank(type: string): number {
+  if (!type) return 99;
+  const t = type.trim();
+  if (FILLER_ORDER[t] !== undefined) return FILLER_ORDER[t];
+  const l = t.toLowerCase();
+  if (l.includes('manga')) return 1;
+  if (l.includes('anime')) return 2;
+  if (l.includes('mixed')) return 3;
+  if (l.includes('filler')) return 4;
+  return 99;
+}
+
+const types = [...rawTypes].sort((a: any, b: any) => getCategoryRank(a.type) - getCategoryRank(b.type));
 const hasBreakdownData = types.length > 0;
 
 const mangaCanonCount = types.find((t) => t.type === 'Manga Canon')?.count || 0;

@@ -21,7 +21,7 @@ const { slug, tab } = Astro.params;
 const anime = await getAnimeDetailBySlugOrId(slug || '', Astro.locals);
 
 if (!anime) {
-  return new Response('Anime Not Found', { status: 404 });
+  return Astro.redirect('/404');
 }
 
 const availableTabs = getAvailableTabs(anime);
@@ -546,7 +546,7 @@ if (anime.honestyStatus === 'watched' && anime.personalRating !== undefined && a
     </section>
 
     <!-- 3. SECONDARY HORIZONTAL TAB NAVIGATION (STICKY / FULL WIDTH) -->
-    <section class="sticky top-18 z-40 bg-white/95 backdrop-blur-md border-y border-slate-200 py-3 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 shadow-2xs">
+    <section id="tab-navigation" class="sticky top-18 z-40 bg-white/95 backdrop-blur-md border-y border-slate-200 py-3 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 shadow-2xs scroll-mt-20">
       <div class="max-w-7xl mx-auto flex items-center justify-between gap-4">
         
         <!-- Tab Navigation Links -->
@@ -559,6 +559,7 @@ if (anime.honestyStatus === 'watched' && anime.personalRating !== undefined && a
               <a
                 href={tabUrl}
                 data-tab-link={tab.key}
+                data-astro-history="replace"
                 class:list={[
                   'anime-tab-link px-3.5 sm:px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap transition-all duration-150 shrink-0 select-none flex items-center gap-1.5 cursor-pointer',
                   isActive
@@ -707,7 +708,11 @@ if (anime.honestyStatus === 'watched' && anime.personalRating !== undefined && a
         }
 
         button.onclick = function (e) {
-          if (sourcePage && window.history.length > 1) {
+          const isInternalReferrer = Boolean(
+            document.referrer && document.referrer.startsWith(window.location.origin)
+          );
+
+          if (isInternalReferrer && window.history.length > 1) {
             e.preventDefault();
             window.history.back();
           }
@@ -841,6 +846,46 @@ if (anime.honestyStatus === 'watched' && anime.personalRating !== undefined && a
     // Attach to Astro ViewTransitions lifecycle event
     if (!window.__animeDetailInteractionsInitialized) {
       document.addEventListener('astro:page-load', setupAnimeDetailInteractions);
+
+      // Scroll viewport directly to tab navigation bar when switching between tabs of the same anime
+      let shouldScrollToTabNav = false;
+
+      document.addEventListener('astro:before-preparation', function (event) {
+        try {
+          if (event.navigationType === 'traverse') {
+            shouldScrollToTabNav = false;
+            return;
+          }
+          const from = event.from.pathname;
+          const to = event.to.pathname;
+          const fromParts = from.split('/').filter(Boolean);
+          const toParts = to.split('/').filter(Boolean);
+          if (
+            fromParts[0] === 'anime' &&
+            toParts[0] === 'anime' &&
+            fromParts[1] &&
+            fromParts[1] === toParts[1]
+          ) {
+            shouldScrollToTabNav = true;
+          } else {
+            shouldScrollToTabNav = false;
+          }
+        } catch (e) {
+          shouldScrollToTabNav = false;
+        }
+      });
+
+      document.addEventListener('astro:after-swap', function () {
+        if (shouldScrollToTabNav) {
+          const tabNav = document.getElementById('tab-navigation');
+          if (tabNav) {
+            const navTop = Math.max(0, tabNav.getBoundingClientRect().top + window.scrollY - 72);
+            window.scrollTo({ top: navTop, behavior: 'instant' });
+          }
+          shouldScrollToTabNav = false;
+        }
+      });
+
       window.__animeDetailInteractionsInitialized = true;
     }
   </script>

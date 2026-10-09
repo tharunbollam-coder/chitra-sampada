@@ -102,6 +102,10 @@ const resolvedOgImage = ogImage.startsWith('http') ? ogImage : new URL(ogImage, 
     <script>
       // @ts-nocheck
       (function () {
+        if ('scrollRestoration' in history) {
+          history.scrollRestoration = 'auto';
+        }
+
         function getCleanPath() {
           return window.location.pathname.replace(/\/$/, '') || '/';
         }
@@ -129,16 +133,26 @@ const resolvedOgImage = ogImage.startsWith('http') ? ogImage : new URL(ogImage, 
               if (savedY !== null) {
                 const top = parseInt(savedY, 10);
                 if (!isNaN(top) && top > 0) {
-                  // Keep position restored, remove key after restoring
-                  sessionStorage.removeItem(key);
                   requestAnimationFrame(function () {
-                    window.scrollTo({ top: top, behavior: 'instant' });
+                    if (window.scrollY === 0) {
+                      window.scrollTo({ top: top, behavior: 'instant' });
+                    }
                   });
                 }
               }
             } catch (e) {}
           }
         }
+
+        // Disable smooth scroll on history traversal so native scroll restoration runs instantly
+        document.addEventListener('astro:before-swap', function (event) {
+          if ('scrollRestoration' in history) {
+            history.scrollRestoration = 'auto';
+          }
+          if (event.navigationType === 'traverse') {
+            event.newDocument.documentElement.style.scrollBehavior = 'auto';
+          }
+        });
 
         // Record scroll position on navigation transitions or page leave without continuous main thread thrashing
         document.addEventListener('astro:before-preparation', recordListingState);
