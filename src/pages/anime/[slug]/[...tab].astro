@@ -288,6 +288,8 @@ if (anime.honestyStatus === 'watched' && anime.personalRating !== undefined && a
           <div class="relative aspect-[2/3] rounded-2xl overflow-hidden bg-slate-100 border border-slate-200/90 shadow-sm">
             <img
               src={optimizeTmdbPoster(anime.poster, 'w500')}
+              srcset={`${optimizeTmdbPoster(anime.poster, 'w342')} 342w, ${optimizeTmdbPoster(anime.poster, 'w500')} 500w`}
+              sizes="(min-width: 768px) 280px, min(100vw - 2rem, 280px)"
               alt={`${anime.title} poster`}
               width="280"
               height="420"

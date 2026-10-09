@@ -14,9 +14,15 @@ const anime: any = initialAnime;
 const isNew = !anime;
 const pageTitle = isNew ? 'Add New Anime' : `Edit Anime: ${anime?.title || ''}`;
 
-const franchises: any[] = (await getAllFranchises(Astro.locals)) || [];
-const adminBlogPosts: any[] = (await getAllAdminBlogPosts(Astro.locals)) || [];
-const dbVibes: any[] = (await getAllAdminVibes(Astro.locals).catch(() => [])) || [];
+const [franchisesResult, adminBlogPostsResult, dbVibesResult] = await Promise.all([
+  getAllFranchises(Astro.locals),
+  getAllAdminBlogPosts(Astro.locals),
+  getAllAdminVibes(Astro.locals).catch(() => [])
+]);
+
+const franchises: any[] = franchisesResult || [];
+const adminBlogPosts: any[] = adminBlogPostsResult || [];
+const dbVibes: any[] = dbVibesResult || [];
 const editorVibes: any[] = dbVibes.length > 0 ? dbVibes : fallbackVibes;
 const db: any = await getDatabase(Astro.locals);
 const existingGenreRows: any[] = (await db.query('SELECT DISTINCT genre FROM anime_genres ORDER BY genre ASC')) || [];
