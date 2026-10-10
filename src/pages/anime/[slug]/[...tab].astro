@@ -24,6 +24,8 @@ if (!anime) {
   return Astro.redirect('/404');
 }
 
+Astro.response.headers.set('Cache-Control', 'public, max-age=0, s-maxage=86400, stale-while-revalidate=3600');
+
 const availableTabs = getAvailableTabs(anime);
 const defaultTabKey = getDefaultTabKey(anime, availableTabs) || 'watch-order';
 

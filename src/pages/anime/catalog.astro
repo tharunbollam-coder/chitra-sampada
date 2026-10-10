@@ -8,6 +8,8 @@ import { siteConfig } from '../../config/site.js';
 const animeList = await getCompactAnimeList(Astro.locals);
 const vibes = await getAllVibes(Astro.locals);
 
+Astro.response.headers.set('Cache-Control', 'public, max-age=0, s-maxage=86400, stale-while-revalidate=3600');
+
 // Metrics
 const watchedCount = animeList.filter((a: any) => a.honestyStatus === 'watched').length;
 const watchlistCount = animeList.filter((a: any) => a.honestyStatus === 'watchlist').length;

@@ -7,6 +7,8 @@ import { siteConfig } from '../../config/site.js';
 
 const posts = await getAllBlogPosts(Astro.locals);
 
+Astro.response.headers.set('Cache-Control', 'public, max-age=0, s-maxage=86400, stale-while-revalidate=3600');
+
 const pageTitle = 'Articles & Insights';
 const pageDescription = `Honest anime commentary, filler breakdowns, and in-depth companion essays for real viewers from ${siteConfig.name}.`;
 

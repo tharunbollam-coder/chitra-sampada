@@ -25,6 +25,8 @@ if (matchingAnime.length === 0) {
   return new Response('Not Found', { status: 404 });
 }
 
+Astro.response.headers.set('Cache-Control', 'public, max-age=0, s-maxage=86400, stale-while-revalidate=3600');
+
 // Sub-metrics
 const watchedCount = matchingAnime.filter((a: any) => a.honestyStatus === 'watched').length;
 const watchlistCount = matchingAnime.filter((a: any) => a.honestyStatus === 'watchlist').length;

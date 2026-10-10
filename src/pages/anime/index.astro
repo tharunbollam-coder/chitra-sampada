@@ -9,6 +9,8 @@ import { siteConfig } from '../../config/site.js';
 const animeList = await getCompactAnimeList(Astro.locals);
 const allVibes = await getAllVibes(Astro.locals);
 
+Astro.response.headers.set('Cache-Control', 'public, max-age=0, s-maxage=86400, stale-while-revalidate=3600');
+
 // Public Card Display Rule: Show card in "Browse by Vibe" ONLY if is_active = 1 AND at least one published anime is assigned to it.
 const activeVibes = allVibes.filter((v: any) => v.isActive && animeList.some((a: any) => a.vibes && a.vibes.includes(v.id)));
 
