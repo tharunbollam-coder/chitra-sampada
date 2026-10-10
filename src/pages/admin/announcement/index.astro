@@ -1,0 +1,313 @@
+---
+// src/pages/admin/announcement/index.astro
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import { getHomepageAnnouncement } from '../../../lib/d1.js';
+
+const announcement = await getHomepageAnnouncement(Astro.locals);
+const isLive = Boolean(announcement.enabled && announcement.message?.trim());
+---
+
+<AdminLayout title="Homepage Announcement" activeSection="announcement">
+  <!-- Header -->
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-800">
+    <div>
+      <div class="flex items-center gap-3">
+        <h1 class="text-2xl sm:text-3xl font-bold font-heading text-white tracking-tight">Homepage Announcement</h1>
+        <span
+          id="status-badge"
+          class={`text-xs px-2.5 py-1 rounded-full font-semibold border ${
+            isLive
+              ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+              : 'bg-slate-800 text-slate-400 border-slate-700'
+          }`}
+        >
+          {isLive ? '● Live on Site' : '○ Inactive / Hidden'}
+        </span>
+      </div>
+      <p class="text-sm text-slate-400 mt-1">
+        Publish an alert or highlight note (e.g., YouTube video release, important site update, or announcement) displayed directly below the homepage hero.
+      </p>
+    </div>
+
+    <div class="flex items-center gap-2">
+      <a
+        href="/"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-slate-300 hover:text-white bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/60 rounded-xl transition shadow-xs"
+      >
+        <span>View Live Homepage</span>
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+        </svg>
+      </a>
+    </div>
+  </div>
+
+  <div class="max-w-3xl mx-auto w-full my-6 space-y-6">
+    <!-- Guidelines Note -->
+    <div class="p-4 bg-slate-900/70 border border-slate-800 rounded-2xl flex items-start gap-3.5 text-xs text-slate-400 leading-relaxed">
+      <span class="text-indigo-400 text-base mt-0.5 shrink-0">📢</span>
+      <div class="space-y-1">
+        <p class="font-semibold text-slate-300">Announcement Rules:</p>
+        <p>Only one active note is stored. When the toggle is turned <strong>ON</strong> and a message is entered, it immediately renders directly below the hero section on the homepage. When toggled <strong>OFF</strong> or left empty, nothing is rendered—leaving zero blank space or placeholders on the live site.</p>
+      </div>
+    </div>
+
+    <!-- Centered Form Container -->
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 sm:p-7 shadow-sm space-y-6">
+      
+      <!-- Toggle Card -->
+      <div class="p-4 rounded-xl bg-slate-950/60 border border-slate-800/80 flex items-center justify-between gap-4">
+        <div>
+          <label for="announcement-toggle" class="text-sm font-semibold text-white block cursor-pointer">
+            Display on Homepage
+          </label>
+          <p class="text-xs text-slate-400 mt-0.5">
+            Turn ON to publish the announcement banner on the live homepage.
+          </p>
+        </div>
+        
+        <!-- Accessible Toggle Switch -->
+        <label class="relative inline-flex items-center cursor-pointer shrink-0">
+          <input
+            type="checkbox"
+            id="announcement-toggle"
+            class="sr-only peer"
+            checked={Boolean(announcement.enabled)}
+          />
+          <div class="w-12 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+        </label>
+      </div>
+
+      <!-- Title Input -->
+      <div class="space-y-1.5">
+        <label for="announcement-title" class="block text-xs font-semibold text-slate-300 uppercase tracking-wider">
+          Announcement Title <span class="text-slate-500 font-normal lowercase">(optional)</span>
+        </label>
+        <input
+          type="text"
+          id="announcement-title"
+          value={announcement.title || ''}
+          placeholder="e.g. New Video: Complete Fate Series Watch Order Breakdown!"
+          class="w-full px-4 py-2.5 rounded-xl bg-slate-950/80 border border-slate-800 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-indigo-500 transition"
+        />
+        <p class="text-[11px] text-slate-500">Short, bold headline for quick scanning.</p>
+      </div>
+
+      <!-- Message Textarea -->
+      <div class="space-y-1.5">
+        <div class="flex items-center justify-between">
+          <label for="announcement-message" class="block text-xs font-semibold text-slate-300 uppercase tracking-wider">
+            Announcement Message <span class="text-rose-400 font-normal">*</span>
+          </label>
+          <span id="char-count" class="text-[11px] text-slate-500 font-mono">0 chars</span>
+        </div>
+        <textarea
+          id="announcement-message"
+          rows="4"
+          placeholder="e.g. We just uploaded our ultimate Fate franchise roadmap to YouTube. Watch the video for the full chronological storyline order and filler breakdown!"
+          class="w-full px-4 py-3 rounded-xl bg-slate-950/80 border border-slate-800 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-indigo-500 transition leading-relaxed"
+        >{announcement.message || ''}</textarea>
+        <p class="text-[11px] text-slate-500">The core message shown to readers. Keep it clear, concise, and informative.</p>
+      </div>
+
+      <!-- Action Link & Button Text (2-column on sm) -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+        <div class="space-y-1.5">
+          <label for="announcement-link-url" class="block text-xs font-semibold text-slate-300 uppercase tracking-wider">
+            Link URL <span class="text-slate-500 font-normal lowercase">(optional)</span>
+          </label>
+          <input
+            type="url"
+            id="announcement-link-url"
+            value={announcement.linkUrl || ''}
+            placeholder="https://youtube.com/watch?v=..."
+            class="w-full px-4 py-2.5 rounded-xl bg-slate-950/80 border border-slate-800 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-indigo-500 transition font-mono text-xs"
+          />
+          <p class="text-[11px] text-slate-500">Destination URL when the button is clicked.</p>
+        </div>
+
+        <div class="space-y-1.5">
+          <label for="announcement-link-text" class="block text-xs font-semibold text-slate-300 uppercase tracking-wider">
+            Button Text <span class="text-slate-500 font-normal lowercase">(optional)</span>
+          </label>
+          <input
+            type="text"
+            id="announcement-link-text"
+            value={announcement.linkText || ''}
+            placeholder="e.g. Watch on YouTube"
+            class="w-full px-4 py-2.5 rounded-xl bg-slate-950/80 border border-slate-800 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-indigo-500 transition"
+          />
+          <p class="text-[11px] text-slate-500">Defaults to "Learn More" if left blank.</p>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="flex flex-col-reverse sm:flex-row items-center justify-between gap-3 pt-4 border-t border-slate-800/80">
+        <button
+          type="button"
+          id="btn-clear-announcement"
+          class="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700/80 text-slate-300 text-xs font-medium transition cursor-pointer"
+        >
+          Clear Note
+        </button>
+
+        <button
+          type="button"
+          id="btn-save-announcement"
+          class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white text-sm font-semibold rounded-xl shadow-sm transition cursor-pointer"
+        >
+          <svg id="save-spinner" class="hidden w-4 h-4 animate-spin text-white" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          <svg id="save-icon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+          </svg>
+          <span id="save-text">Save Changes</span>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <script is:inline>
+    (function () {
+      const toggleEl = document.getElementById('announcement-toggle');
+      const titleEl = document.getElementById('announcement-title');
+      const messageEl = document.getElementById('announcement-message');
+      const linkUrlEl = document.getElementById('announcement-link-url');
+      const linkTextEl = document.getElementById('announcement-link-text');
+      const charCountEl = document.getElementById('char-count');
+      const statusBadgeEl = document.getElementById('status-badge');
+
+      const btnSave = document.getElementById('btn-save-announcement');
+      const btnClear = document.getElementById('btn-clear-announcement');
+      const saveSpinner = document.getElementById('save-spinner');
+      const saveIcon = document.getElementById('save-icon');
+      const saveText = document.getElementById('save-text');
+
+      function updateCharCount() {
+        if (!charCountEl || !messageEl) return;
+        const len = messageEl.value.length;
+        charCountEl.textContent = `${len} char${len === 1 ? '' : 's'}`;
+      }
+
+      function updateStatusBadge() {
+        if (!statusBadgeEl || !toggleEl || !messageEl) return;
+        const isLive = toggleEl.checked && messageEl.value.trim().length > 0;
+        if (isLive) {
+          statusBadgeEl.className = 'text-xs px-2.5 py-1 rounded-full font-semibold border bg-emerald-500/10 text-emerald-400 border-emerald-500/30';
+          statusBadgeEl.textContent = '● Live on Site';
+        } else {
+          statusBadgeEl.className = 'text-xs px-2.5 py-1 rounded-full font-semibold border bg-slate-800 text-slate-400 border-slate-700';
+          statusBadgeEl.textContent = '○ Inactive / Hidden';
+        }
+      }
+
+      if (messageEl) {
+        messageEl.addEventListener('input', () => {
+          updateCharCount();
+          updateStatusBadge();
+        });
+      }
+
+      if (toggleEl) {
+        toggleEl.addEventListener('change', updateStatusBadge);
+      }
+
+      // Clear note
+      if (btnClear) {
+        btnClear.addEventListener('click', () => {
+          if (!confirm('Clear all announcement fields and turn off display?')) return;
+          if (toggleEl) toggleEl.checked = false;
+          if (titleEl) titleEl.value = '';
+          if (messageEl) messageEl.value = '';
+          if (linkUrlEl) linkUrlEl.value = '';
+          if (linkTextEl) linkTextEl.value = '';
+          updateCharCount();
+          updateStatusBadge();
+        });
+      }
+
+      // Save handler
+      if (btnSave) {
+        btnSave.addEventListener('click', async () => {
+          const isEnabled = toggleEl ? toggleEl.checked : false;
+          const title = (titleEl?.value || '').trim();
+          const message = (messageEl?.value || '').trim();
+          const linkUrl = (linkUrlEl?.value || '').trim();
+          const linkText = (linkTextEl?.value || '').trim();
+
+          if (isEnabled && !message) {
+            if (window.showAdminToast) {
+              window.showAdminToast('Please provide a message or turn off the display toggle.', 'warning');
+            } else {
+              alert('Please provide a message or turn off the display toggle.');
+            }
+            messageEl?.focus();
+            return;
+          }
+
+          // UI saving state
+          btnSave.disabled = true;
+          saveSpinner?.classList.remove('hidden');
+          saveIcon?.classList.add('hidden');
+          if (saveText) saveText.textContent = 'Saving...';
+
+          try {
+            const payload = {
+              enabled: isEnabled,
+              title,
+              message,
+              linkUrl,
+              linkText,
+              updatedAt: new Date().toISOString()
+            };
+
+            const res = await fetch('/api/admin/settings', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                key: 'homepage_announcement',
+                value: JSON.stringify(payload)
+              })
+            });
+
+            const data = await res.json();
+            if (!res.ok || !data.success) {
+              throw new Error(data.error || 'Failed to save announcement');
+            }
+
+            updateStatusBadge();
+
+            if (window.showAdminToast) {
+              window.showAdminToast('Homepage announcement saved successfully! Changes are live.', 'success');
+            } else {
+              alert('Homepage announcement saved successfully!');
+            }
+          } catch (err) {
+            console.error(err);
+            if (window.showAdminToast) {
+              window.showAdminToast(err.message || 'Error saving announcement', 'error');
+            } else {
+              alert(err.message || 'Error saving announcement');
+            }
+          } finally {
+            btnSave.disabled = false;
+            saveSpinner?.classList.add('hidden');
+            saveIcon?.classList.remove('hidden');
+            if (saveText) saveText.textContent = 'Save Changes';
+          }
+        });
+      }
+
+      // Initial run
+      updateCharCount();
+      updateStatusBadge();
+    })();
+  </script>
+</AdminLayout>

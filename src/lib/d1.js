@@ -1377,6 +1377,58 @@ export async function setSiteSetting(key, value, contextOrLocals = null) {
 }
 
 /**
+ * Retrieve the active single homepage announcement note from site_settings.
+ * @param {any} [contextOrLocals]
+ */
+export async function getHomepageAnnouncement(contextOrLocals = null) {
+  const raw = await getSiteSetting('homepage_announcement', null, contextOrLocals);
+  if (!raw) {
+    return {
+      enabled: false,
+      title: '',
+      message: '',
+      linkUrl: '',
+      linkText: ''
+    };
+  }
+  try {
+    const data = typeof raw === 'string' ? JSON.parse(raw) : raw;
+    return {
+      enabled: Boolean(data?.enabled),
+      title: data?.title || '',
+      message: data?.message || '',
+      linkUrl: data?.linkUrl || '',
+      linkText: data?.linkText || ''
+    };
+  } catch {
+    return {
+      enabled: false,
+      title: '',
+      message: '',
+      linkUrl: '',
+      linkText: ''
+    };
+  }
+}
+
+/**
+ * Save or update the single homepage announcement note in D1.
+ * @param {any} data
+ * @param {any} [contextOrLocals]
+ */
+export async function setHomepageAnnouncement(data, contextOrLocals = null) {
+  const payload = JSON.stringify({
+    enabled: Boolean(data?.enabled),
+    title: String(data?.title || '').trim(),
+    message: String(data?.message || '').trim(),
+    linkUrl: String(data?.linkUrl || '').trim(),
+    linkText: String(data?.linkText || '').trim(),
+    updatedAt: new Date().toISOString()
+  });
+  return await setSiteSetting('homepage_announcement', payload, contextOrLocals);
+}
+
+/**
  * Fetch all vibes from D1 with in-memory caching (30s TTL).
  * Formatted with camelCase and UI compatibility fields.
  * @param {any} [contextOrLocals]

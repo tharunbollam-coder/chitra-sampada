@@ -48,4 +48,11 @@ export const siteConfig = {
     editorialPledge:
       "Every title is transparently classified under one of three clear categories: what I have personally watched, what is on my watchlist, and compiled reference guides — so you always know exactly what context you are getting.",
   },
+
+  socialLinks: {
+    youtube: "https://www.youtube.com/@chitrasampada",
+    instagram: "https://www.instagram.com/chitrasampada",
+    facebook: "https://www.facebook.com/people/Chitra-Sampada/61594367504799/",
+    pinterest: "https://www.pinterest.com/chitrasampada",
+  },
 };

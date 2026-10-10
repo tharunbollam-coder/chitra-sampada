@@ -125,6 +125,7 @@ async function main() {
       'anime_vibes',
       'anime_genres',
       'anime_aliases',
+      'vibes',
       'franchise_watch_order',
       'franchises',
       'site_settings',
@@ -159,7 +160,8 @@ async function main() {
       'blog_posts',
       'franchises',
       'franchise_watch_order',
-      'site_settings'
+      'site_settings',
+      'vibes'
     ];
 
     console.log('\n  📊 Database Record Count Comparison:');

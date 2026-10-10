@@ -4,7 +4,7 @@ import '../styles/global.css';
 
 interface Props {
   title: string;
-  activeSection?: 'anime' | 'blog' | 'franchises' | 'vibes';
+  activeSection?: 'anime' | 'blog' | 'franchises' | 'vibes' | 'announcement';
 }
 
 const { title, activeSection = 'anime' } = Astro.props;
@@ -93,6 +93,16 @@ Astro.response.headers.set('Cache-Control', 'private, no-cache, no-store, must-r
               >
                 Vibes & Tropes
               </a>
+              <a
+                href="/admin/announcement"
+                class={`px-3.5 py-2 rounded-lg transition-colors ${
+                  activeSection === 'announcement'
+                    ? 'bg-indigo-600 text-white shadow-sm'
+                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+                }`}
+              >
+                Announcement
+              </a>
             </nav>
           </div>
 
@@ -144,6 +154,14 @@ Astro.response.headers.set('Cache-Control', 'private, no-cache, no-store, must-r
             }`}
           >
             Vibes
+          </a>
+          <a
+            href="/admin/announcement"
+            class={`px-3 py-1.5 rounded-md whitespace-nowrap ${
+              activeSection === 'announcement' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white bg-slate-800/50'
+            }`}
+          >
+            Announcement
           </a>
         </div>
       </div>
