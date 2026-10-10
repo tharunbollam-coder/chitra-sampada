@@ -265,7 +265,7 @@ const animeList = await getAllAnime(Astro.locals);
   </div>
 
   <!-- Client-side Logic for Step Reordering, Adding, and Saving -->
-  <script is:inline define:vars={{ animeCatalog: animeList }}>
+  <script is:inline define:vars={{ animeCatalog: animeList.map(a => ({ id: a.id, title: a.title, type: a.type, episodes: a.episodes, runtime: a.runtime })) }}>
     // Toggle New Franchise form
     const btnCreate = document.getElementById('btn-create-franchise');
     const panelNew = document.getElementById('new-franchise-panel');
@@ -314,6 +314,61 @@ const animeList = await getAllAnime(Astro.locals);
         placeholder.style.display = rows.length === 0 ? '' : 'none';
       }
     }
+
+    // Auto-populate Step metadata when an Anime is selected from dropdown
+    document.addEventListener('change', (e) => {
+      const animeSelect = e.target.closest('.step-anime-id');
+      if (!animeSelect) return;
+      const row = animeSelect.closest('.step-row');
+      if (!row) return;
+
+      const selectedId = animeSelect.value;
+      if (!selectedId) return;
+
+      const anime = animeCatalog.find((a) => String(a.id) === String(selectedId));
+      if (!anime) return;
+
+      // 1. Auto-fill Title
+      const titleInput = row.querySelector('.step-title');
+      if (titleInput && anime.title) {
+        titleInput.value = anime.title;
+      }
+
+      // 2. Auto-select Format / Type
+      const typeSelect = row.querySelector('.step-type');
+      if (typeSelect) {
+        const rawType = (anime.type || '').toLowerCase();
+        let targetType = 'TV Series';
+        if (rawType.includes('movie') || rawType === 'film') {
+          targetType = 'Movie';
+        } else if (rawType.includes('ova')) {
+          targetType = 'OVA';
+        } else if (rawType.includes('special')) {
+          targetType = 'Special';
+        } else {
+          targetType = 'TV Series';
+        }
+        typeSelect.value = targetType;
+      }
+
+      // 3. Auto-fill Episode Count
+      const episodesInput = row.querySelector('.step-episodes');
+      if (episodesInput) {
+        const rawType = (anime.type || '').toLowerCase();
+        const isMovie = rawType.includes('movie') || rawType === 'film';
+        if (anime.episodes && Number(anime.episodes) > 0) {
+          episodesInput.value = `${anime.episodes} ${Number(anime.episodes) === 1 ? 'ep' : 'eps'}`;
+        } else if (isMovie) {
+          if (anime.runtime && Number(anime.runtime) > 0) {
+            episodesInput.value = `${anime.runtime}m`;
+          } else {
+            episodesInput.value = '1 ep';
+          }
+        } else if (anime.runtime && Number(anime.runtime) > 0) {
+          episodesInput.value = `${anime.runtime}m`;
+        }
+      }
+    });
 
     // Add Step to Franchise
     document.querySelectorAll('.btn-add-step').forEach((btn) => {
