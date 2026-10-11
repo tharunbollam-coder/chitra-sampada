@@ -284,6 +284,13 @@ const animeList = await getAllAnime(Astro.locals);
       const name = document.getElementById('new-f-name').value.trim();
       const description = document.getElementById('new-f-desc').value.trim();
 
+      const submitBtn = formNew.querySelector('button[type="submit"]');
+      const origHtml = submitBtn ? submitBtn.innerHTML : '';
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = `<svg class="animate-spin w-4 h-4 text-white inline-block mr-1.5" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg><span>Creating...</span>`;
+      }
+
       try {
         const res = await fetch('/api/admin/franchises', {
           method: 'POST',
@@ -299,6 +306,11 @@ const animeList = await getAllAnime(Astro.locals);
         }
       } catch (err) {
         window.showAdminToast('Network error: ' + err.message, 'error');
+      } finally {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = origHtml;
+        }
       }
     });
 
@@ -485,6 +497,10 @@ const animeList = await getAllAnime(Astro.locals);
 
         feedback.classList.remove('hidden', 'bg-rose-950/80', 'border-rose-700', 'text-rose-300', 'bg-emerald-950/80', 'border-emerald-700', 'text-emerald-300');
 
+        const origHtml = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = `<svg class="animate-spin w-3.5 h-3.5 text-white inline-block mr-1.5" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg><span>Saving...</span>`;
+
         try {
           const res = await fetch('/api/admin/franchises', {
             method: 'POST',
@@ -510,6 +526,9 @@ const animeList = await getAllAnime(Astro.locals);
         } catch (err) {
           feedback.classList.add('bg-rose-950/80', 'border-rose-700', 'text-rose-300');
           feedback.textContent = 'Network error: ' + err.message;
+        } finally {
+          btn.disabled = false;
+          btn.innerHTML = origHtml;
         }
       });
     });

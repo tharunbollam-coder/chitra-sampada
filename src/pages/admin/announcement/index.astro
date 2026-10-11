@@ -209,12 +209,7 @@ const isLive = Boolean(announcement.enabled && announcement.message?.trim());
       if (messageEl) {
         messageEl.addEventListener('input', () => {
           updateCharCount();
-          updateStatusBadge();
         });
-      }
-
-      if (toggleEl) {
-        toggleEl.addEventListener('change', updateStatusBadge);
       }
 
       // Clear note

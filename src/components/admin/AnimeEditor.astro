@@ -2108,18 +2108,17 @@ if (standardSourceTypes.includes(rawSourceType)) {
       });
     });
 
-    // Visibility Toggles (Show/Hide on Public Page)
+    // Visibility Toggles (Show/Hide on Public Page) - Local in-memory state only (NO auto-save)
     document.querySelectorAll('.section-visibility-checkbox').forEach((checkbox) => {
-      checkbox.addEventListener('change', async (e) => {
+      checkbox.addEventListener('change', (e) => {
         const input = e.target;
-        const section = input.getAttribute('data-section');
         const labelContainer = input.closest('label');
         const labelText = labelContainer?.querySelector('.visibility-label');
         const track = labelContainer?.querySelector('.switch-track');
         const thumb = labelContainer?.querySelector('.switch-thumb');
         const isVisible = input.checked;
 
-        // Visual update immediately
+        // Visual update only - no background network requests
         if (labelText) labelText.textContent = isVisible ? 'Public: Show' : 'Public: Hide';
         if (track) {
           track.classList.toggle('bg-indigo-600', isVisible);
@@ -2129,54 +2128,42 @@ if (standardSourceTypes.includes(rawSourceType)) {
           thumb.classList.toggle('translate-x-3.5', isVisible);
           thumb.classList.toggle('translate-x-0', !isVisible);
         }
-
-        if (!currentAnimeId) {
-          alert('Please save Section 1 (Core Details) first before updating section visibility.');
-          input.checked = !isVisible;
-          if (labelText) labelText.textContent = !isVisible ? 'Public: Show' : 'Public: Hide';
-          if (track) {
-            track.classList.toggle('bg-indigo-600', !isVisible);
-            track.classList.toggle('bg-slate-700', isVisible);
-          }
-          if (thumb) {
-            thumb.classList.toggle('translate-x-3.5', !isVisible);
-            thumb.classList.toggle('translate-x-0', isVisible);
-          }
-          return;
-        }
-
-        try {
-          const res = await fetch('/api/admin/anime/visibility', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              animeId: currentAnimeId,
-              section,
-              visible: isVisible
-            })
-          });
-
-          const data = await res.json();
-          if (!res.ok || !data.success) {
-            throw new Error(data.error || 'Failed to update section visibility');
-          }
-        } catch (err) {
-          console.error('Error updating section visibility:', err);
-          alert('Could not update visibility: ' + err.message);
-          // Revert visual and checkbox state
-          input.checked = !isVisible;
-          if (labelText) labelText.textContent = !isVisible ? 'Public: Show' : 'Public: Hide';
-          if (track) {
-            track.classList.toggle('bg-indigo-600', !isVisible);
-            track.classList.toggle('bg-slate-700', isVisible);
-          }
-          if (thumb) {
-            thumb.classList.toggle('translate-x-3.5', !isVisible);
-            thumb.classList.toggle('translate-x-0', isVisible);
-          }
-        }
       });
     });
+
+    // Button loading state helper for strict manual save flow
+    function setButtonLoading(btn, loadingText = 'Saving...') {
+      if (!btn) return () => {};
+      const origHtml = btn.innerHTML;
+      btn.disabled = true;
+      btn.classList.add('opacity-75', 'cursor-not-allowed');
+      btn.innerHTML = `<svg class="animate-spin w-4 h-4 text-white inline-block mr-1.5 -mt-0.5" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg><span>${loadingText}</span>`;
+      return () => {
+        btn.disabled = false;
+        btn.classList.remove('opacity-75', 'cursor-not-allowed');
+        btn.innerHTML = origHtml;
+      };
+    }
+
+    // Helper to persist section visibility on explicit manual section save
+    async function saveSectionVisibility(sectionKey) {
+      if (!currentAnimeId || !sectionKey) return;
+      const cb = document.querySelector(`.section-visibility-checkbox[data-section="${sectionKey}"]`);
+      if (!cb) return;
+      try {
+        await fetch('/api/admin/anime/visibility', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            animeId: currentAnimeId,
+            section: sectionKey,
+            visible: cb.checked
+          })
+        });
+      } catch (err) {
+        console.warn('Could not save section visibility for ' + sectionKey, err);
+      }
+    }
 
     // Auto-generate slug and ID from title if creating a new anime
     const titleInput = document.getElementById('core-title');
@@ -3044,6 +3031,9 @@ if (standardSourceTypes.includes(rawSourceType)) {
         vibes: checkedVibes
       };
 
+      const submitBtn = formCore.querySelector('button[type="submit"]');
+      const restoreBtn = setButtonLoading(submitBtn, 'Saving Core...');
+
       try {
         const res = await fetch('/api/admin/anime/core', {
           method: 'POST',
@@ -3091,6 +3081,8 @@ if (standardSourceTypes.includes(rawSourceType)) {
         }
       } catch (err) {
         setFeedback(coreFeedback, 'Network error: ' + err.message, 'error');
+      } finally {
+        restoreBtn();
       }
     });
 
@@ -3113,6 +3105,9 @@ if (standardSourceTypes.includes(rawSourceType)) {
       const reviewType = document.querySelector('input[name="review-type"]:checked')?.value || 'full';
       const spoilerLevel = document.querySelector('input[name="review-spoiler-level"]:checked')?.value || 'none';
 
+      const submitBtn = formReview.querySelector('button[type="submit"]');
+      const restoreBtn = setButtonLoading(submitBtn, 'Saving Review...');
+
       try {
         const res = await fetch('/api/admin/anime/review', {
           method: 'POST',
@@ -3121,6 +3116,7 @@ if (standardSourceTypes.includes(rawSourceType)) {
         });
         const data = await res.json();
         if (data.success) {
+          await saveSectionVisibility('review');
           setFeedback(reviewFeedback, '✓ Review / My Take saved successfully!', 'success');
           reviewBadge.classList.remove('hidden');
           window.showAdminToast('Review saved successfully', 'success');
@@ -3129,6 +3125,8 @@ if (standardSourceTypes.includes(rawSourceType)) {
         }
       } catch (err) {
         setFeedback(reviewFeedback, 'Network error: ' + err.message, 'error');
+      } finally {
+        restoreBtn();
       }
     });
 
@@ -3148,6 +3146,9 @@ if (standardSourceTypes.includes(rawSourceType)) {
 
       const takeaway = document.getElementById('lesson-takeaway').value.trim();
 
+      const submitBtn = formLessons.querySelector('button[type="submit"]');
+      const restoreBtn = setButtonLoading(submitBtn, 'Saving Lessons...');
+
       try {
         const res = await fetch('/api/admin/anime/lessons', {
           method: 'POST',
@@ -3156,6 +3157,7 @@ if (standardSourceTypes.includes(rawSourceType)) {
         });
         const data = await res.json();
         if (data.success) {
+          await saveSectionVisibility('lessons');
           setFeedback(lessonsFeedback, '✓ Lessons / Reflection saved successfully!', 'success');
           lessonsBadge.classList.remove('hidden');
           window.showAdminToast('Lessons saved successfully', 'success');
@@ -3164,6 +3166,8 @@ if (standardSourceTypes.includes(rawSourceType)) {
         }
       } catch (err) {
         setFeedback(lessonsFeedback, 'Network error: ' + err.message, 'error');
+      } finally {
+        restoreBtn();
       }
     });
 
@@ -3223,6 +3227,9 @@ if (standardSourceTypes.includes(rawSourceType)) {
       const franchiseStepOrder = woStep?.value || null;
       const watchOrderNote = document.getElementById('wo-note')?.value.trim() || null;
 
+      const submitBtn = formWO.querySelector('button[type="submit"]');
+      const restoreBtn = setButtonLoading(submitBtn, 'Saving Watch Order...');
+
       try {
         const res = await fetch('/api/admin/anime/watch-order', {
           method: 'POST',
@@ -3231,6 +3238,7 @@ if (standardSourceTypes.includes(rawSourceType)) {
         });
         const data = await res.json();
         if (data.success) {
+          await saveSectionVisibility('watchOrder');
           setFeedback(woFeedback, '✓ Franchise placement saved successfully!', 'success');
           woBadge.classList.remove('hidden');
           updateWatchOrderHint();
@@ -3240,6 +3248,8 @@ if (standardSourceTypes.includes(rawSourceType)) {
         }
       } catch (err) {
         setFeedback(woFeedback, 'Network error: ' + err.message, 'error');
+      } finally {
+        restoreBtn();
       }
     });
 
@@ -3295,6 +3305,9 @@ if (standardSourceTypes.includes(rawSourceType)) {
       const errFiller = validateRangeInput('Filler', filler);
       if (errFiller) { setFeedback(fillerFeedback, errFiller, 'error'); return; }
 
+      const submitBtn = formFiller.querySelector('button[type="submit"]');
+      const restoreBtn = setButtonLoading(submitBtn, 'Saving Breakdown...');
+
       try {
         const res = await fetch('/api/admin/anime/filler-ranges', {
           method: 'POST',
@@ -3310,6 +3323,7 @@ if (standardSourceTypes.includes(rawSourceType)) {
         });
         const data = await res.json();
         if (data.success) {
+          await saveSectionVisibility('fillerList');
           updateLiveFillerStats();
           fillerBadge.classList.remove('hidden');
 
@@ -3337,6 +3351,8 @@ if (standardSourceTypes.includes(rawSourceType)) {
         }
       } catch (err) {
         setFeedback(fillerFeedback, 'Network error: ' + err.message, 'error');
+      } finally {
+        restoreBtn();
       }
     });
 
@@ -3434,20 +3450,8 @@ if (standardSourceTypes.includes(rawSourceType)) {
       }
 
       const submitBtn = formChars.querySelector('button[type="submit"]');
-      const originalBtnHtml = submitBtn ? submitBtn.innerHTML : 'Save Key Characters';
-
+      const restoreBtn = setButtonLoading(submitBtn, 'Saving Characters...');
       isSavingChars = true;
-      if (submitBtn) {
-        submitBtn.disabled = true;
-        submitBtn.classList.add('opacity-70', 'cursor-not-allowed');
-        submitBtn.innerHTML = `
-          <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-          </svg>
-          Saving Characters...
-        `;
-      }
 
       try {
         const rows = document.querySelectorAll('#chars-container .character-row');
@@ -3480,6 +3484,7 @@ if (standardSourceTypes.includes(rawSourceType)) {
         });
         const data = await res.json();
         if (data.success) {
+          await saveSectionVisibility('characters');
           setFeedback(charsFeedback, '✓ Key characters saved successfully!', 'success');
           charsBadge.classList.remove('hidden');
           window.showAdminToast('Characters saved successfully', 'success');
@@ -3490,11 +3495,7 @@ if (standardSourceTypes.includes(rawSourceType)) {
         setFeedback(charsFeedback, 'Network error: ' + err.message, 'error');
       } finally {
         isSavingChars = false;
-        if (submitBtn) {
-          submitBtn.disabled = false;
-          submitBtn.classList.remove('opacity-70', 'cursor-not-allowed');
-          submitBtn.innerHTML = originalBtnHtml;
-        }
+        restoreBtn();
       }
     });
 
@@ -3522,6 +3523,9 @@ if (standardSourceTypes.includes(rawSourceType)) {
         notes: document.getElementById('source-notes').value.trim()
       };
 
+      const submitBtn = formSource.querySelector('button[type="submit"]');
+      const restoreBtn = setButtonLoading(submitBtn, 'Saving Source...');
+
       try {
         const res = await fetch('/api/admin/anime/source', {
           method: 'POST',
@@ -3530,6 +3534,7 @@ if (standardSourceTypes.includes(rawSourceType)) {
         });
         const data = await res.json();
         if (data.success) {
+          await saveSectionVisibility('source');
           setFeedback(sourceFeedback, '✓ Source material guidance saved successfully!', 'success');
           sourceBadge.classList.remove('hidden');
           window.showAdminToast('Source guidance saved', 'success');
@@ -3538,6 +3543,8 @@ if (standardSourceTypes.includes(rawSourceType)) {
         }
       } catch (err) {
         setFeedback(sourceFeedback, 'Network error: ' + err.message, 'error');
+      } finally {
+        restoreBtn();
       }
     });
 
@@ -3558,6 +3565,9 @@ if (standardSourceTypes.includes(rawSourceType)) {
       const name = document.getElementById('power-name').value.trim();
       const text = document.getElementById('power-text').value.trim();
 
+      const submitBtn = formPower.querySelector('button[type="submit"]');
+      const restoreBtn = setButtonLoading(submitBtn, 'Saving Power System...');
+
       try {
         const res = await fetch('/api/admin/anime/power-system', {
           method: 'POST',
@@ -3566,6 +3576,7 @@ if (standardSourceTypes.includes(rawSourceType)) {
         });
         const data = await res.json();
         if (data.success) {
+          await saveSectionVisibility('powerSystem');
           setFeedback(powerFeedback, '✓ Power system details saved successfully!', 'success');
           powerBadge.classList.remove('hidden');
           window.showAdminToast('Power system saved successfully', 'success');
@@ -3574,6 +3585,8 @@ if (standardSourceTypes.includes(rawSourceType)) {
         }
       } catch (err) {
         setFeedback(powerFeedback, 'Network error: ' + err.message, 'error');
+      } finally {
+        restoreBtn();
       }
     });
 
@@ -3610,6 +3623,9 @@ if (standardSourceTypes.includes(rawSourceType)) {
         }
       });
 
+      const submitBtn = formUniverse?.querySelector('button[type="submit"]');
+      const restoreBtn = setButtonLoading(submitBtn, 'Saving Universe...');
+
       try {
         const res = await fetch('/api/admin/anime/universe', {
           method: 'POST',
@@ -3618,6 +3634,7 @@ if (standardSourceTypes.includes(rawSourceType)) {
         });
         const data = await res.json();
         if (data.success) {
+          await saveSectionVisibility('universe');
           setFeedback(universeFeedback, '✓ Related & Universe media saved successfully!', 'success');
           universeBadge.classList.remove('hidden');
           window.showAdminToast('Universe media saved successfully', 'success');
@@ -3626,6 +3643,8 @@ if (standardSourceTypes.includes(rawSourceType)) {
         }
       } catch (err) {
         setFeedback(universeFeedback, 'Network error: ' + err.message, 'error');
+      } finally {
+        restoreBtn();
       }
     });
 
@@ -3660,6 +3679,9 @@ if (standardSourceTypes.includes(rawSourceType)) {
         }
       });
 
+      const submitBtn = formRecs?.querySelector('button[type="submit"]');
+      const restoreBtn = setButtonLoading(submitBtn, 'Saving Recommendations...');
+
       try {
         const res = await fetch('/api/admin/anime/recommendations', {
           method: 'POST',
@@ -3668,6 +3690,7 @@ if (standardSourceTypes.includes(rawSourceType)) {
         });
         const data = await res.json();
         if (data.success) {
+          await saveSectionVisibility('recommendations');
           setFeedback(recsFeedback, '✓ Recommendations saved successfully!', 'success');
           recsBadge.classList.remove('hidden');
           window.showAdminToast('Recommendations saved successfully', 'success');
@@ -3676,6 +3699,8 @@ if (standardSourceTypes.includes(rawSourceType)) {
         }
       } catch (err) {
         setFeedback(recsFeedback, 'Network error: ' + err.message, 'error');
+      } finally {
+        restoreBtn();
       }
     });
 
@@ -3718,6 +3743,9 @@ if (standardSourceTypes.includes(rawSourceType)) {
         }
       });
 
+      const submitBtn = formStreaming?.querySelector('button[type="submit"]');
+      const restoreBtn = setButtonLoading(submitBtn, 'Saving Streaming...');
+
       try {
         const res = await fetch('/api/admin/anime/streaming', {
           method: 'POST',
@@ -3726,6 +3754,7 @@ if (standardSourceTypes.includes(rawSourceType)) {
         });
         const data = await res.json();
         if (data.success) {
+          await saveSectionVisibility('streaming');
           setFeedback(streamingFeedback, '✓ Streaming platforms saved successfully!', 'success');
           streamingBadge?.classList.remove('hidden');
           window.showAdminToast('Streaming platforms saved successfully', 'success');
@@ -3734,6 +3763,8 @@ if (standardSourceTypes.includes(rawSourceType)) {
         }
       } catch (err) {
         setFeedback(streamingFeedback, 'Network error: ' + err.message, 'error');
+      } finally {
+        restoreBtn();
       }
     });
 

@@ -285,6 +285,19 @@ const linkedAnimeIds = post ? post.linkedAnime.map(a => a.id) : [];
       e.preventDefault();
       feedback.classList.remove('hidden', 'bg-rose-950/80', 'border-rose-700', 'text-rose-300', 'bg-emerald-950/80', 'border-emerald-700', 'text-emerald-300');
 
+      const submitBtn = form.querySelector('button[type="submit"]');
+      const origSubmitHtml = submitBtn ? submitBtn.innerHTML : '';
+      const origTopHtml = btnSaveTop ? btnSaveTop.innerHTML : '';
+
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = `<svg class="animate-spin w-4 h-4 text-white inline-block mr-1.5" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg><span>Saving...</span>`;
+      }
+      if (btnSaveTop) {
+        btnSaveTop.disabled = true;
+        btnSaveTop.innerHTML = `<svg class="animate-spin w-4 h-4 text-white inline-block mr-1.5" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg><span>Saving...</span>`;
+      }
+
       const checkedAnime = Array.from(document.querySelectorAll('input[name="linkedAnime"]:checked')).map(el => el.value);
 
       const payload = {
@@ -324,6 +337,15 @@ const linkedAnimeIds = post ? post.linkedAnime.map(a => a.id) : [];
       } catch (err) {
         feedback.classList.add('bg-rose-950/80', 'border-rose-700', 'text-rose-300');
         feedback.textContent = 'Network error: ' + err.message;
+      } finally {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = origSubmitHtml;
+        }
+        if (btnSaveTop) {
+          btnSaveTop.disabled = false;
+          btnSaveTop.innerHTML = origTopHtml;
+        }
       }
     });
   </script>
