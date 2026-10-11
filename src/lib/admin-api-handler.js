@@ -29,6 +29,15 @@ import {
 } from './admin-db.js';
 import { getDatabase, getSiteSetting, setSiteSetting, getAllAdminVibes } from './d1.js';
 import { vibes } from '../data/vibes.js';
+import {
+  purgeCloudflareCache,
+  purgeHomepageCache,
+  purgeFranchiseCache,
+  purgeAnimeCache,
+  purgeAnimeCacheByIdOrSlug,
+  purgeBlogCache,
+  purgeEntireSiteCache
+} from './cache-purge.ts';
 
 function jsonResponse(data, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -110,7 +119,10 @@ export async function handleAdminApi({ request, locals, url, params }) {
         if (!animeId) {
           return jsonResponse({ success: false, error: 'Anime ID is required for deletion' }, 400);
         }
+        const db = await getDatabase(locals);
+        const existing = await db.queryOne('SELECT slug FROM anime WHERE id = ?', animeId).catch(() => null);
         await deleteAnime(animeId, locals);
+        await purgeAnimeCache(existing?.slug || animeId, locals);
         return jsonResponse({ success: true, message: `Anime "${animeId}" deleted successfully` });
       }
     }
@@ -169,6 +181,7 @@ export async function handleAdminApi({ request, locals, url, params }) {
       };
 
       const result = await saveAnimeCore(cleanData, locals);
+      await purgeAnimeCache(cleanSlug, locals);
       return jsonResponse({ success: true, message: 'Core details saved successfully', data: result });
     }
 
@@ -179,6 +192,7 @@ export async function handleAdminApi({ request, locals, url, params }) {
       if (!animeId) return jsonResponse({ success: false, error: 'Anime ID is required' }, 400);
       const content = review_paragraphs !== undefined ? review_paragraphs : (paragraphs !== undefined ? paragraphs : text);
       await saveAnimeReview(animeId, { heading, review_paragraphs: content, type, spoilerLevel }, locals);
+      await purgeAnimeCacheByIdOrSlug(animeId, locals);
       return jsonResponse({ success: true, message: 'Review / My Take saved successfully' });
     }
 
@@ -189,6 +203,7 @@ export async function handleAdminApi({ request, locals, url, params }) {
       if (!animeId) return jsonResponse({ success: false, error: 'Anime ID is required' }, 400);
       const content = what_i_learned_paragraphs !== undefined ? what_i_learned_paragraphs : (lesson_takeaway !== undefined ? lesson_takeaway : (takeaway !== undefined ? takeaway : (text || paragraphs)));
       await saveAnimeLessons(animeId, { lesson_takeaway: content }, locals);
+      await purgeAnimeCacheByIdOrSlug(animeId, locals);
       return jsonResponse({ success: true, message: 'What I Learned section saved successfully' });
     }
 
@@ -198,6 +213,10 @@ export async function handleAdminApi({ request, locals, url, params }) {
       const { animeId, franchiseId, franchiseStepOrder, watchOrderNote } = body;
       if (!animeId) return jsonResponse({ success: false, error: 'Anime ID is required' }, 400);
       await saveAnimeWatchOrderLink(animeId, { franchiseId, franchiseStepOrder, watchOrderNote }, locals);
+      await Promise.all([
+        purgeAnimeCacheByIdOrSlug(animeId, locals),
+        purgeFranchiseCache(franchiseId, locals)
+      ]);
       return jsonResponse({ success: true, message: 'Watch Order link saved successfully' });
     }
 
@@ -209,6 +228,7 @@ export async function handleAdminApi({ request, locals, url, params }) {
 
       try {
         const result = await saveAnimeFillerList(animeId, { mangaCanon, animeCanon, mixedCanon, filler, fillerNote }, locals);
+        await purgeAnimeCacheByIdOrSlug(animeId, locals);
         return jsonResponse({
           success: true,
           message: `Episode breakdown saved. Total: ${result.totalEpisodes} eps. Filler: ${result.fillerPercentage}%`,
@@ -229,6 +249,7 @@ export async function handleAdminApi({ request, locals, url, params }) {
       if (!animeId) return jsonResponse({ success: false, error: 'Anime ID is required' }, 400);
       if (!Array.isArray(characters)) return jsonResponse({ success: false, error: 'Characters must be an array' }, 400);
       await saveAnimeCharacters(animeId, characters, relatedPostSlug ?? characterRelatedPostSlug, locals);
+      await purgeAnimeCacheByIdOrSlug(animeId, locals);
       return jsonResponse({ success: true, message: 'Key Characters saved successfully' });
     }
 
@@ -238,6 +259,7 @@ export async function handleAdminApi({ request, locals, url, params }) {
       const { animeId, source } = body;
       if (!animeId) return jsonResponse({ success: false, error: 'Anime ID is required' }, 400);
       await saveAnimeSource(animeId, source || {}, locals);
+      await purgeAnimeCacheByIdOrSlug(animeId, locals);
       return jsonResponse({ success: true, message: 'Source guidance saved successfully' });
     }
 
@@ -248,6 +270,7 @@ export async function handleAdminApi({ request, locals, url, params }) {
       if (!animeId) return jsonResponse({ success: false, error: 'Anime ID is required' }, 400);
       const content = power_system_paragraphs !== undefined ? power_system_paragraphs : (paragraphs !== undefined ? paragraphs : text);
       await saveAnimePowerSystem(animeId, { name, power_system_paragraphs: content }, locals);
+      await purgeAnimeCacheByIdOrSlug(animeId, locals);
       return jsonResponse({ success: true, message: 'Power system details saved successfully' });
     }
 
@@ -258,6 +281,7 @@ export async function handleAdminApi({ request, locals, url, params }) {
       if (!animeId) return jsonResponse({ success: false, error: 'Anime ID is required' }, 400);
       if (!Array.isArray(universe)) return jsonResponse({ success: false, error: 'Universe items must be an array' }, 400);
       await saveAnimeRelatedMedia(animeId, universe, locals);
+      await purgeAnimeCacheByIdOrSlug(animeId, locals);
       return jsonResponse({ success: true, message: 'Related & Universe media saved successfully' });
     }
 
@@ -268,6 +292,7 @@ export async function handleAdminApi({ request, locals, url, params }) {
       if (!animeId) return jsonResponse({ success: false, error: 'Anime ID is required' }, 400);
       if (!Array.isArray(recommendations)) return jsonResponse({ success: false, error: 'Recommendations must be an array' }, 400);
       await saveAnimeRecommendations(animeId, recommendations, locals);
+      await purgeAnimeCacheByIdOrSlug(animeId, locals);
       return jsonResponse({ success: true, message: 'Recommendations saved successfully' });
     }
 
@@ -278,6 +303,7 @@ export async function handleAdminApi({ request, locals, url, params }) {
       if (!animeId) return jsonResponse({ success: false, error: 'Anime ID is required' }, 400);
       if (!Array.isArray(platforms)) return jsonResponse({ success: false, error: 'Platforms must be an array' }, 400);
       await saveAnimeStreamingPlatforms(animeId, platforms, locals);
+      await purgeAnimeCacheByIdOrSlug(animeId, locals);
       return jsonResponse({ success: true, message: 'Streaming platforms saved successfully' });
     }
 
@@ -294,6 +320,7 @@ export async function handleAdminApi({ request, locals, url, params }) {
         payload = visibility;
       }
       const result = await saveAnimeVisibility(animeId, payload, locals);
+      await purgeAnimeCacheByIdOrSlug(animeId, locals);
       return jsonResponse({ success: true, message: 'Visibility updated successfully', data: result });
     }
 
@@ -305,6 +332,10 @@ export async function handleAdminApi({ request, locals, url, params }) {
       }
       try {
         const result = await saveAllAnime(body, locals);
+        const targetIdOrSlug = body.core?.slug || body.animeId || body.core?.id;
+        if (targetIdOrSlug) {
+          await purgeAnimeCacheByIdOrSlug(targetIdOrSlug, locals);
+        }
         return jsonResponse({
           success: true,
           message: 'All anime sections and visibility settings saved successfully!',
@@ -331,6 +362,7 @@ export async function handleAdminApi({ request, locals, url, params }) {
           return jsonResponse({ success: false, error: 'Franchise ID and Name are required' }, 400);
         }
         const result = await saveFranchise(body, locals);
+        await purgeFranchiseCache(body.id, locals);
         return jsonResponse({ success: true, message: 'Franchise saved successfully', data: result });
       }
 
@@ -341,6 +373,7 @@ export async function handleAdminApi({ request, locals, url, params }) {
           return jsonResponse({ success: false, error: 'Franchise ID is required' }, 400);
         }
         await deleteFranchise(fid, locals);
+        await purgeFranchiseCache(fid, locals);
         return jsonResponse({ success: true, message: `Franchise "${fid}" deleted successfully` });
       }
     }
@@ -389,6 +422,7 @@ export async function handleAdminApi({ request, locals, url, params }) {
           content: content.trim(),
           lastUpdated: new Date().toISOString().split('T')[0]
         }, locals);
+        await purgeBlogCache(cleanSlug, locals);
         return jsonResponse({ success: true, message: 'Blog post saved successfully', data: result });
       }
 
@@ -398,7 +432,10 @@ export async function handleAdminApi({ request, locals, url, params }) {
         if (!pid) {
           return jsonResponse({ success: false, error: 'Blog Post ID is required' }, 400);
         }
+        const db = await getDatabase(locals);
+        const existing = await db.queryOne('SELECT slug FROM blog_posts WHERE id = ?', pid).catch(() => null);
         await deleteBlogPost(pid, locals);
+        await purgeBlogCache(existing?.slug, locals);
         return jsonResponse({ success: true, message: `Blog post "${pid}" deleted successfully` });
       }
     }
@@ -428,7 +465,11 @@ export async function handleAdminApi({ request, locals, url, params }) {
         if (!key?.trim()) {
           return jsonResponse({ success: false, error: 'Setting key is required' }, 400);
         }
-        const result = await setSiteSetting(key.trim(), value ?? '', locals);
+        const trimmedKey = key.trim();
+        const result = await setSiteSetting(trimmedKey, value ?? '', locals);
+        if (trimmedKey === 'homepage_announcement' || trimmedKey === 'thought_of_the_week') {
+          await purgeHomepageCache(locals);
+        }
         return jsonResponse({ success: true, message: 'Setting saved successfully', data: result });
       }
     }
@@ -446,6 +487,7 @@ export async function handleAdminApi({ request, locals, url, params }) {
       if (method === 'POST' && route !== 'vibes/visibility') {
         const body = await parseJsonBody(request);
         const result = await saveVibe(body, locals);
+        await purgeCloudflareCache(['/anime', '/anime/catalog', '/'], locals);
         return jsonResponse({ success: true, message: 'Vibe saved successfully', data: result });
       }
 
@@ -457,12 +499,52 @@ export async function handleAdminApi({ request, locals, url, params }) {
           return jsonResponse({ success: false, error: 'Vibe ID is required' }, 400);
         }
         const result = await toggleVibeActive(vid, isActive, locals);
+        await purgeCloudflareCache(['/anime', '/anime/catalog', '/'], locals);
         return jsonResponse({ success: true, message: 'Vibe visibility updated', data: result });
       }
 
       if (method === 'DELETE') {
         return jsonResponse({ success: false, error: 'Vibes cannot be deleted.' }, 405);
       }
+    }
+
+    // -------------------------------------------------------------
+    // 7. Manual Cache Purge Endpoint (Cloudflare Edge Cache)
+    // -------------------------------------------------------------
+    if (route === 'purge-cache' && method === 'POST') {
+      const body = await parseJsonBody(request);
+      const target = body.target || 'all'; // 'homepage' | 'watch-orders' | 'all' | 'custom'
+      let purgeResult;
+
+      if (target === 'homepage') {
+        purgeResult = await purgeHomepageCache(locals);
+      } else if (target === 'watch-orders' || target === 'watch-order') {
+        purgeResult = await purgeFranchiseCache(null, locals);
+      } else if (target === 'all' || target === 'full-site') {
+        purgeResult = await purgeEntireSiteCache(locals);
+      } else if (target === 'custom' && Array.isArray(body.paths)) {
+        purgeResult = await purgeCloudflareCache(body.paths, locals);
+      } else {
+        return jsonResponse({ success: false, error: `Invalid purge target: "${target}"` }, 400);
+      }
+
+      if (!purgeResult.success) {
+        return jsonResponse({
+          success: false,
+          error: purgeResult.error || 'Failed to purge Cloudflare edge cache',
+          skipped: purgeResult.skipped
+        }, 500);
+      }
+
+      return jsonResponse({
+        success: true,
+        message: purgeResult.skipped
+          ? 'Cache purge skipped (Cloudflare credentials not configured in local environment).'
+          : target === 'all'
+          ? 'Entire site Cloudflare edge cache purged successfully!'
+          : `${target.charAt(0).toUpperCase() + target.slice(1)} edge cache purged successfully!`,
+        data: purgeResult
+      });
     }
 
     return jsonResponse({ success: false, error: `Admin route ${method} /${route} not found` }, 404);

@@ -20,6 +20,59 @@ const totalTrending = animeList.filter(a => a.trending).length;
       <p class="text-sm text-slate-400 mt-1">Manage all anime records, reviews, filler lists, and characters.</p>
     </div>
     <div class="flex flex-wrap items-center gap-2.5">
+      <!-- Purge Cache Dropdown -->
+      <div class="relative inline-block text-left" id="purge-cache-dropdown-container">
+        <button
+          type="button"
+          id="btn-purge-cache-menu"
+          class="inline-flex items-center justify-center gap-2 px-3.5 py-2.5 bg-slate-800 hover:bg-slate-700 active:bg-slate-900 text-slate-200 hover:text-white text-sm font-semibold rounded-xl border border-slate-700/80 shadow-sm transition cursor-pointer"
+          title="Purge Cloudflare Edge Cache"
+        >
+          <svg class="w-4 h-4 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+          </svg>
+          <span>Purge Cache</span>
+          <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+
+        <div
+          id="menu-purge-cache"
+          class="hidden absolute right-0 mt-2 w-56 rounded-2xl bg-slate-900 border border-slate-800 shadow-2xl py-1.5 z-50 text-xs focus:outline-none"
+        >
+          <div class="px-3 py-2 border-b border-slate-800/80">
+            <p class="font-semibold text-white">Edge Cache Actions</p>
+            <p class="text-[11px] text-slate-400 mt-0.5">Purge CDN cached pages</p>
+          </div>
+          <button
+            type="button"
+            class="btn-manual-purge w-full text-left px-3.5 py-2 text-slate-300 hover:text-white hover:bg-slate-800/80 transition flex items-center gap-2 cursor-pointer"
+            data-target="homepage"
+          >
+            <svg class="w-3.5 h-3.5 text-sky-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+            <span>Purge Homepage (/)</span>
+          </button>
+          <button
+            type="button"
+            class="btn-manual-purge w-full text-left px-3.5 py-2 text-slate-300 hover:text-white hover:bg-slate-800/80 transition flex items-center gap-2 cursor-pointer"
+            data-target="watch-orders"
+          >
+            <svg class="w-3.5 h-3.5 text-indigo-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+            <span>Purge Watch Orders</span>
+          </button>
+          <div class="my-1 border-t border-slate-800/80"></div>
+          <button
+            type="button"
+            class="btn-manual-purge w-full text-left px-3.5 py-2 text-rose-400 hover:text-rose-300 hover:bg-rose-950/30 transition flex items-center gap-2 cursor-pointer"
+            data-target="all"
+          >
+            <svg class="w-3.5 h-3.5 text-rose-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+            <span>Purge Full Site Cache</span>
+          </button>
+        </div>
+      </div>
+
       <a
         href="/admin/anime/editor"
         class="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold rounded-xl shadow-sm transition"
@@ -80,6 +133,52 @@ const totalTrending = animeList.filter(a => a.trending).length;
         placeholder="Enter positive thought for the week..."
         class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-white placeholder-slate-500 text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition"
       />
+    </div>
+  </div>
+
+  <!-- Cloudflare Edge Cache Management Card -->
+  <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 mb-6 shadow-sm">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800/80 mb-3.5">
+      <div class="flex items-center gap-2.5">
+        <span class="w-7 h-7 rounded-lg bg-sky-950/60 text-sky-400 font-bold text-xs flex items-center justify-center border border-sky-800/50">
+          ⚡
+        </span>
+        <div>
+          <h2 class="text-sm font-semibold text-white font-heading">Cloudflare Edge Cache Purge</h2>
+          <p class="text-xs text-slate-400">Instantly purge edge-cached pages across Cloudflare's global CDN network.</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <span id="cache-purge-badge" class="hidden text-xs px-2.5 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800/80 font-medium">Cache Purged</span>
+      </div>
+    </div>
+    <div class="flex flex-wrap items-center gap-2.5 sm:gap-3">
+      <button
+        type="button"
+        class="btn-manual-purge px-3.5 py-2 bg-slate-950 hover:bg-slate-800 active:bg-slate-900 text-slate-200 hover:text-white text-xs font-semibold rounded-xl border border-slate-700/80 transition cursor-pointer flex items-center gap-2 shadow-sm"
+        data-target="homepage"
+      >
+        <svg class="w-3.5 h-3.5 text-sky-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+        <span>Purge Homepage</span>
+      </button>
+
+      <button
+        type="button"
+        class="btn-manual-purge px-3.5 py-2 bg-slate-950 hover:bg-slate-800 active:bg-slate-900 text-slate-200 hover:text-white text-xs font-semibold rounded-xl border border-slate-700/80 transition cursor-pointer flex items-center gap-2 shadow-sm"
+        data-target="watch-orders"
+      >
+        <svg class="w-3.5 h-3.5 text-indigo-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+        <span>Purge Watch Orders</span>
+      </button>
+
+      <button
+        type="button"
+        class="btn-manual-purge px-3.5 py-2 bg-rose-950/40 hover:bg-rose-900/50 active:bg-rose-950 text-rose-300 hover:text-rose-100 text-xs font-semibold rounded-xl border border-rose-800/60 transition cursor-pointer flex items-center gap-2 shadow-sm"
+        data-target="all"
+      >
+        <svg class="w-3.5 h-3.5 text-rose-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+        <span>Purge Full Site Cache</span>
+      </button>
     </div>
   </div>
 
@@ -324,6 +423,66 @@ const totalTrending = animeList.filter(a => a.trending).length;
           btn.innerHTML = origHtml;
         }
       }
+    });
+
+    // Toggle Purge Cache Dropdown
+    const btnPurgeMenu = document.getElementById('btn-purge-cache-menu');
+    const menuPurge = document.getElementById('menu-purge-cache');
+    btnPurgeMenu?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      menuPurge?.classList.toggle('hidden');
+    });
+
+    document.addEventListener('click', (e) => {
+      const container = document.getElementById('purge-cache-dropdown-container');
+      if (container && !container.contains(e.target)) {
+        menuPurge?.classList.add('hidden');
+      }
+    });
+
+    // Handle Manual Cloudflare Edge Cache Purge
+    document.querySelectorAll('.btn-manual-purge').forEach((btn) => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const target = btn.getAttribute('data-target') || 'all';
+        const targetLabel = target === 'homepage' ? 'Homepage' : target === 'watch-orders' ? 'Watch Orders' : 'Full Site';
+
+        if (target === 'all' && !confirm('Are you sure you want to purge the entire Cloudflare edge cache for the whole site? This will force edge servers worldwide to re-fetch all pages on the next visit.')) {
+          return;
+        }
+
+        const origHtml = btn.innerHTML;
+        btn.disabled = true;
+        btn.classList.add('opacity-75', 'cursor-not-allowed');
+        btn.innerHTML = `<svg class="animate-spin w-3.5 h-3.5 text-current inline-block mr-1.5 -mt-0.5" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg><span>Purging...</span>`;
+
+        try {
+          const res = await fetch('/api/admin/purge-cache', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ target })
+          });
+
+          const data = await res.json();
+          if (res.ok && data.success) {
+            window.showAdminToast(data.message || `${targetLabel} edge cache purged successfully!`, 'success');
+            const badge = document.getElementById('cache-purge-badge');
+            if (badge) {
+              badge.classList.remove('hidden');
+              setTimeout(() => badge.classList.add('hidden'), 3500);
+            }
+          } else {
+            window.showAdminToast(data.error || `Failed to purge ${targetLabel} cache`, 'error');
+          }
+        } catch (err) {
+          window.showAdminToast('Network error while purging cache: ' + err.message, 'error');
+        } finally {
+          btn.disabled = false;
+          btn.classList.remove('opacity-75', 'cursor-not-allowed');
+          btn.innerHTML = origHtml;
+          menuPurge?.classList.add('hidden');
+        }
+      });
     });
   </script>
 </AdminLayout>
