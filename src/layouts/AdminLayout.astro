@@ -17,7 +17,9 @@ Astro.response.headers.set('Cache-Control', 'private, no-cache, no-store, must-r
 <html lang="en" class="bg-slate-900 text-slate-100 antialiased min-h-screen">
   <head>
     <meta charset="utf-8" />
-    <link rel="icon" type="image/png" href="/cs.webp" />
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/webp" href="/cs.webp" />
     <link rel="apple-touch-icon" href="/cs.webp" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{title} | Chitra Sampada Admin</title>
@@ -46,6 +48,8 @@ Astro.response.headers.set('Cache-Control', 'private, no-cache, no-store, must-r
                 alt="Chitra Sampada Logo"
                 width="32"
                 height="32"
+                loading="eager"
+                decoding="async"
                 class="w-8 h-8 rounded-lg object-contain shadow-sm shrink-0 aspect-square"
               />
               <span>Chitra Admin</span>

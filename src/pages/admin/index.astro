@@ -3,13 +3,30 @@
 import AdminLayout from '../../layouts/AdminLayout.astro';
 import { getAllAnime, getSiteSetting } from '../../lib/d1.js';
 
-// Load anime list dynamically
-const animeList = await getAllAnime(Astro.locals);
-const currentQuote = await getSiteSetting('thought_of_the_week', 'Plant a tree if you get the chance — future you will thank present you.', Astro.locals);
+interface AnimeRecord {
+  id: string;
+  slug: string;
+  title: string;
+  type?: string;
+  year?: string | number;
+  episodes?: string | number;
+  runtime?: number | null;
+  status?: string;
+  honestyStatus?: string;
+  personalRating?: number | string | null;
+  lastUpdated?: string;
+  trending?: boolean | number;
+  fillerPercentage?: number;
+  [key: string]: any;
+}
 
-const totalAnime = animeList.length;
-const totalWatched = animeList.filter(a => a.honestyStatus === 'watched').length;
-const totalTrending = animeList.filter(a => a.trending).length;
+// Load anime list dynamically
+const animeList: AnimeRecord[] = (await getAllAnime(Astro.locals)) || [];
+const currentQuote: string = (await getSiteSetting('thought_of_the_week', 'Plant a tree if you get the chance — future you will thank present you.', Astro.locals)) || '';
+
+const totalAnime: number = animeList.length;
+const totalWatched: number = animeList.filter((a: AnimeRecord) => a.honestyStatus === 'watched').length;
+const totalTrending: number = animeList.filter((a: AnimeRecord) => Boolean(a.trending)).length;
 ---
 
 <AdminLayout title="Anime Catalog" activeSection="anime">
@@ -19,60 +36,7 @@ const totalTrending = animeList.filter(a => a.trending).length;
       <h1 class="text-2xl sm:text-3xl font-bold font-heading text-white tracking-tight">Anime Catalog</h1>
       <p class="text-sm text-slate-400 mt-1">Manage all anime records, reviews, filler lists, and characters.</p>
     </div>
-    <div class="flex flex-wrap items-center gap-2.5">
-      <!-- Purge Cache Dropdown -->
-      <div class="relative inline-block text-left" id="purge-cache-dropdown-container">
-        <button
-          type="button"
-          id="btn-purge-cache-menu"
-          class="inline-flex items-center justify-center gap-2 px-3.5 py-2.5 bg-slate-800 hover:bg-slate-700 active:bg-slate-900 text-slate-200 hover:text-white text-sm font-semibold rounded-xl border border-slate-700/80 shadow-sm transition cursor-pointer"
-          title="Purge Cloudflare Edge Cache"
-        >
-          <svg class="w-4 h-4 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-          </svg>
-          <span>Purge Cache</span>
-          <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-          </svg>
-        </button>
-
-        <div
-          id="menu-purge-cache"
-          class="hidden absolute right-0 mt-2 w-56 rounded-2xl bg-slate-900 border border-slate-800 shadow-2xl py-1.5 z-50 text-xs focus:outline-none"
-        >
-          <div class="px-3 py-2 border-b border-slate-800/80">
-            <p class="font-semibold text-white">Edge Cache Actions</p>
-            <p class="text-[11px] text-slate-400 mt-0.5">Purge CDN cached pages</p>
-          </div>
-          <button
-            type="button"
-            class="btn-manual-purge w-full text-left px-3.5 py-2 text-slate-300 hover:text-white hover:bg-slate-800/80 transition flex items-center gap-2 cursor-pointer"
-            data-target="homepage"
-          >
-            <svg class="w-3.5 h-3.5 text-sky-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
-            <span>Purge Homepage (/)</span>
-          </button>
-          <button
-            type="button"
-            class="btn-manual-purge w-full text-left px-3.5 py-2 text-slate-300 hover:text-white hover:bg-slate-800/80 transition flex items-center gap-2 cursor-pointer"
-            data-target="watch-orders"
-          >
-            <svg class="w-3.5 h-3.5 text-indigo-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
-            <span>Purge Watch Orders</span>
-          </button>
-          <div class="my-1 border-t border-slate-800/80"></div>
-          <button
-            type="button"
-            class="btn-manual-purge w-full text-left px-3.5 py-2 text-rose-400 hover:text-rose-300 hover:bg-rose-950/30 transition flex items-center gap-2 cursor-pointer"
-            data-target="all"
-          >
-            <svg class="w-3.5 h-3.5 text-rose-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-            <span>Purge Full Site Cache</span>
-          </button>
-        </div>
-      </div>
-
+    <div class="flex items-center gap-2.5">
       <a
         href="/admin/anime/editor"
         class="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold rounded-xl shadow-sm transition"
@@ -202,7 +166,7 @@ const totalTrending = animeList.filter(a => a.trending).length;
   <!-- Anime Table / Card Container -->
   <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-sm">
     <div class="overflow-x-auto">
-      <table class="w-full min-w-[640px] text-left text-sm text-slate-300 divide-y divide-slate-800">
+      <table class="w-full min-w-160 text-left text-sm text-slate-300 divide-y divide-slate-800">
         <thead class="bg-slate-950/60 text-xs font-semibold text-slate-400 uppercase tracking-wider">
           <tr>
             <th scope="col" class="py-3.5 px-4 sm:px-6">Title & ID</th>
@@ -214,7 +178,7 @@ const totalTrending = animeList.filter(a => a.trending).length;
           </tr>
         </thead>
         <tbody id="anime-tbody" class="divide-y divide-slate-800/80 font-normal">
-          {animeList.map(anime => (
+          {animeList.map((anime: AnimeRecord) => (
             <tr class="hover:bg-slate-800/40 transition anime-row" data-search={`${anime.title} ${anime.id} ${anime.slug}`.toLowerCase()}>
               <td class="py-4 px-4 sm:px-6">
                 <div class="font-semibold text-white text-base leading-snug flex items-center gap-2">
@@ -236,7 +200,7 @@ const totalTrending = animeList.filter(a => a.trending).length;
                 <div class="text-xs text-slate-400">
                   {anime.type === 'movie'
                     ? `Movie ${anime.runtime ? `(${anime.runtime}m)` : ''}`
-                    : `${anime.episodes} eps ${anime.fillerPercentage > 0 ? `(${anime.fillerPercentage}% filler)` : ''}`}
+                    : `${anime.episodes} eps ${typeof anime.fillerPercentage === 'number' && anime.fillerPercentage > 0 ? `(${anime.fillerPercentage}% filler)` : ''}`}
                 </div>
               </td>
               <td class="py-4 px-4">
@@ -425,21 +389,6 @@ const totalTrending = animeList.filter(a => a.trending).length;
       }
     });
 
-    // Toggle Purge Cache Dropdown
-    const btnPurgeMenu = document.getElementById('btn-purge-cache-menu');
-    const menuPurge = document.getElementById('menu-purge-cache');
-    btnPurgeMenu?.addEventListener('click', (e) => {
-      e.stopPropagation();
-      menuPurge?.classList.toggle('hidden');
-    });
-
-    document.addEventListener('click', (e) => {
-      const container = document.getElementById('purge-cache-dropdown-container');
-      if (container && !container.contains(e.target)) {
-        menuPurge?.classList.add('hidden');
-      }
-    });
-
     // Handle Manual Cloudflare Edge Cache Purge
     document.querySelectorAll('.btn-manual-purge').forEach((btn) => {
       btn.addEventListener('click', async (e) => {
@@ -480,7 +429,6 @@ const totalTrending = animeList.filter(a => a.trending).length;
           btn.disabled = false;
           btn.classList.remove('opacity-75', 'cursor-not-allowed');
           btn.innerHTML = origHtml;
-          menuPurge?.classList.add('hidden');
         }
       });
     });

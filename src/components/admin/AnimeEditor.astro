@@ -170,7 +170,7 @@ if (standardSourceTypes.includes(rawSourceType)) {
         <!-- Local Inline Feedback Banner -->
         <div id="core-feedback" class="hidden mb-5 p-3.5 rounded-xl text-xs sm:text-sm font-medium border"></div>
 
-        <form id="form-core" class="space-y-5">
+        <form id="form-core" class="space-y-5" action="javascript:void(0);" onsubmit="event.preventDefault();">
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <!-- ID -->
             <div>
@@ -634,7 +634,7 @@ if (standardSourceTypes.includes(rawSourceType)) {
       <div id="section-review-body" class="px-4 sm:px-6 pb-6 pt-2 border-t border-slate-800/80">
         <div id="review-feedback" class="hidden mb-5 p-3.5 rounded-xl text-xs sm:text-sm font-medium border"></div>
 
-        <form id="form-review" class="space-y-5">
+        <form id="form-review" class="space-y-5" action="javascript:void(0);" onsubmit="event.preventDefault();">
           <!-- Review Type: Quick Take vs Full Take -->
           <div>
             <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
@@ -802,7 +802,7 @@ if (standardSourceTypes.includes(rawSourceType)) {
       <div id="section-lessons-body" class="px-4 sm:px-6 pb-6 pt-2 border-t border-slate-800/80">
         <div id="lessons-feedback" class="hidden mb-5 p-3.5 rounded-xl text-xs sm:text-sm font-medium border"></div>
 
-        <form id="form-lessons" class="space-y-5">
+        <form id="form-lessons" class="space-y-5" action="javascript:void(0);" onsubmit="event.preventDefault();">
           <div>
             <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5" for="lesson-takeaway">
               Takeaway Content / Reflection
@@ -884,7 +884,7 @@ if (standardSourceTypes.includes(rawSourceType)) {
       <div id="section-watch-order-body" class="px-4 sm:px-6 pb-6 pt-2 border-t border-slate-800/80">
         <div id="watch-order-feedback" class="hidden mb-5 p-3.5 rounded-xl text-xs sm:text-sm font-medium border"></div>
 
-        <form id="form-watch-order" class="space-y-5">
+        <form id="form-watch-order" class="space-y-5" action="javascript:void(0);" onsubmit="event.preventDefault();">
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 items-start">
             <div class="sm:col-span-2">
               <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5" for="wo-franchise">
@@ -965,9 +965,10 @@ if (standardSourceTypes.includes(rawSourceType)) {
           <div class="pt-4 border-t border-slate-800 flex justify-end">
             <button
               type="submit"
+              id="btn-save-watch-order"
               class="w-full sm:w-auto px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold rounded-xl shadow-sm transition cursor-pointer"
             >
-              Save Franchise Link
+              Save Watch Order & Franchise
             </button>
           </div>
         </form>
@@ -1035,7 +1036,7 @@ if (standardSourceTypes.includes(rawSourceType)) {
       <div id="section-filler-body" class="px-4 sm:px-6 pb-6 pt-2 border-t border-slate-800/80">
         <div id="filler-feedback" class="hidden mb-5 p-3.5 rounded-xl text-xs sm:text-sm font-medium border"></div>
 
-        <form id="form-filler" class="space-y-4">
+        <form id="form-filler" class="space-y-4" action="javascript:void(0);" onsubmit="event.preventDefault();">
           <!-- Filler Note / Movie Timeline Note -->
           <div>
             <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5" for="filler-note">
@@ -1230,7 +1231,7 @@ if (standardSourceTypes.includes(rawSourceType)) {
       <div id="section-chars-body" class="px-4 sm:px-6 pb-6 pt-2 border-t border-slate-800/80">
         <div id="chars-feedback" class="hidden mb-5 p-3.5 rounded-xl text-xs sm:text-sm font-medium border"></div>
 
-        <form id="form-chars" class="space-y-4">
+        <form id="form-chars" class="space-y-4" action="javascript:void(0);" onsubmit="event.preventDefault();">
           <div>
             <p class="text-xs text-slate-400">
               Add primary and memorable characters in order of significance.
@@ -1389,7 +1390,7 @@ if (standardSourceTypes.includes(rawSourceType)) {
       <div id="section-source-body" class="px-4 sm:px-6 pb-6 pt-2 border-t border-slate-800/80">
         <div id="source-feedback" class="hidden mb-5 p-3.5 rounded-xl text-xs sm:text-sm font-medium border"></div>
 
-        <form id="form-source" class="space-y-4">
+        <form id="form-source" class="space-y-4" action="javascript:void(0);" onsubmit="event.preventDefault();">
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <div>
               <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5" for="source-title">
@@ -1565,7 +1566,7 @@ if (standardSourceTypes.includes(rawSourceType)) {
       <div id="section-power-body" class="px-4 sm:px-6 pb-6 pt-2 border-t border-slate-800/80">
         <div id="power-feedback" class="hidden mb-5 p-3.5 rounded-xl text-xs sm:text-sm font-medium border"></div>
 
-        <form id="form-power" class="space-y-4">
+        <form id="form-power" class="space-y-4" action="javascript:void(0);" onsubmit="event.preventDefault();">
           <div>
             <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5" for="power-name">
               Power System Name
@@ -1661,7 +1662,7 @@ if (standardSourceTypes.includes(rawSourceType)) {
       <div id="section-universe-body" class="px-4 sm:px-6 pb-6 pt-2 border-t border-slate-800/80">
         <div id="universe-feedback" class="hidden mb-5 p-3.5 rounded-xl text-xs sm:text-sm font-medium border"></div>
 
-        <form id="form-universe" class="space-y-4">
+        <form id="form-universe" class="space-y-4" action="javascript:void(0);" onsubmit="event.preventDefault();">
           <div class="flex items-center justify-between">
             <p class="text-xs text-slate-400">
               Catalog franchise entries grouped into Official Canon Storyline vs Non-Canon / Spin-offs.
@@ -1803,7 +1804,7 @@ if (standardSourceTypes.includes(rawSourceType)) {
       <div id="section-recs-body" class="px-4 sm:px-6 pb-6 pt-2 border-t border-slate-800/80">
         <div id="recs-feedback" class="hidden mb-5 p-3.5 rounded-xl text-xs sm:text-sm font-medium border"></div>
 
-        <form id="form-recs" class="space-y-4">
+        <form id="form-recs" class="space-y-4" action="javascript:void(0);" onsubmit="event.preventDefault();">
           <div class="flex items-center justify-between">
             <p class="text-xs text-slate-400">
               Pick other anime titles on the platform and explain why fans of this show will love them.
@@ -1934,7 +1935,7 @@ if (standardSourceTypes.includes(rawSourceType)) {
       <div id="section-streaming-body" class="px-4 sm:px-6 pb-6 pt-2 border-t border-slate-800/80">
         <div id="streaming-feedback" class="hidden mb-5 p-3.5 rounded-xl text-xs sm:text-sm font-medium border"></div>
 
-        <form id="form-streaming" class="space-y-4">
+        <form id="form-streaming" class="space-y-4" action="javascript:void(0);" onsubmit="event.preventDefault();">
           <div class="flex items-center justify-between">
             <p class="text-xs text-slate-400">
               Add platforms where fans can officially stream this show (e.g. Crunchyroll, Netflix, Muse Asia).
@@ -2662,6 +2663,42 @@ if (standardSourceTypes.includes(rawSourceType)) {
 
     document.getElementById('core-type')?.addEventListener('change', updateMediaTypeUI);
 
+    // Dynamic Watch Order Hint & Step Order Updater for Section 4
+    function updateWatchOrderHint() {
+      const franchiseEl = document.getElementById('wo-franchise');
+      const hintTextEl = document.getElementById('wo-hint-text');
+      const hintBoxEl = document.getElementById('wo-franchise-hint');
+      const stepEl = document.getElementById('wo-step');
+
+      if (!franchiseEl || !hintTextEl) return;
+      const fid = franchiseEl.value;
+      if (!fid) {
+        hintTextEl.innerHTML = 'Assigning a franchise associates this anime with a chronological universe. Full timeline ordering and step sequences are managed centrally in the <a href="/admin/franchises" class="text-indigo-400 hover:text-indigo-300 underline underline-offset-2" target="_blank">Franchises Manager</a>.';
+        if (hintBoxEl) {
+          hintBoxEl.className = 'p-3.5 rounded-xl border text-xs leading-relaxed transition-all bg-slate-950/60 border-slate-800 text-slate-400';
+        }
+        return;
+      }
+
+      const catalog = (typeof franchiseCatalog !== 'undefined' && Array.isArray(franchiseCatalog)) ? franchiseCatalog : [];
+      const franchise = catalog.find((f) => f.id === fid);
+      if (!franchise) return;
+
+      const step = (franchise.steps || []).find((s) => s.animeId && currentAnimeId && String(s.animeId) === String(currentAnimeId));
+      if (step) {
+        hintTextEl.innerHTML = `Linked to <strong>${franchise.name}</strong> as <strong>Step #${step.stepOrder}</strong> (${step.title}). Full timeline sequence and step reordering are managed in the <a href="/admin/franchises" class="text-indigo-400 hover:text-indigo-300 underline underline-offset-2" target="_blank">Franchises Manager</a>.`;
+        if (stepEl && !stepEl.value) {
+          stepEl.value = step.stepOrder;
+        }
+      } else {
+        hintTextEl.innerHTML = `Associated with <strong>${franchise.name}</strong>. Add this title to the sequence or reorder entries anytime in the <a href="/admin/franchises" class="text-indigo-400 hover:text-indigo-300 underline underline-offset-2" target="_blank">Franchises Manager</a>.`;
+      }
+
+      if (hintBoxEl) {
+        hintBoxEl.className = 'p-3.5 rounded-xl border text-xs leading-relaxed transition-all bg-indigo-950/30 border-indigo-500/30 text-indigo-200';
+      }
+    }
+
     // Full Form Hydration Function: populates all fields, unlocks sections, sets Edit header
     function hydrateAnimeData(a) {
       if (!a) return;
@@ -3179,79 +3216,60 @@ if (standardSourceTypes.includes(rawSourceType)) {
     const woBadge = document.getElementById('watch-order-badge');
     const woFranchise = document.getElementById('wo-franchise');
     const woStep = document.getElementById('wo-step');
-    const woHintText = document.getElementById('wo-hint-text');
-    const woHintBox = document.getElementById('wo-franchise-hint');
-
-    function updateWatchOrderHint() {
-      if (!woFranchise || !woHintText) return;
-      const fid = woFranchise.value;
-      if (!fid) {
-        woHintText.innerHTML = 'Assigning a franchise associates this anime with a chronological universe. Full timeline ordering and step sequences are managed centrally in the <a href="/admin/franchises" class="text-indigo-400 hover:text-indigo-300 underline underline-offset-2" target="_blank">Franchises Manager</a>.';
-        if (woHintBox) {
-          woHintBox.className = 'p-3.5 rounded-xl border text-xs leading-relaxed transition-all bg-slate-950/60 border-slate-800 text-slate-400';
-        }
-        return;
-      }
-
-      const catalog = Array.isArray(franchiseCatalog) ? franchiseCatalog : [];
-      const franchise = catalog.find((f) => f.id === fid);
-      if (!franchise) return;
-
-      const step = (franchise.steps || []).find((s) => s.animeId && currentAnimeId && String(s.animeId) === String(currentAnimeId));
-      if (step) {
-        woHintText.innerHTML = `Linked to <strong>${franchise.name}</strong> as <strong>Step #${step.stepOrder}</strong> (${step.title}). Full timeline sequence and step reordering are managed in the <a href="/admin/franchises" class="text-indigo-400 hover:text-indigo-300 underline underline-offset-2" target="_blank">Franchises Manager</a>.`;
-        if (woStep && !woStep.value) {
-          woStep.value = step.stepOrder;
-        }
-      } else {
-        woHintText.innerHTML = `Associated with <strong>${franchise.name}</strong>. Add this title to the sequence or reorder entries anytime in the <a href="/admin/franchises" class="text-indigo-400 hover:text-indigo-300 underline underline-offset-2" target="_blank">Franchises Manager</a>.`;
-      }
-
-      if (woHintBox) {
-        woHintBox.className = 'p-3.5 rounded-xl border text-xs leading-relaxed transition-all bg-indigo-950/30 border-indigo-500/30 text-indigo-200';
-      }
-    }
 
     if (woFranchise) {
       woFranchise.addEventListener('change', updateWatchOrderHint);
     }
 
-    formWO.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      if (!currentAnimeId) {
-        setFeedback(woFeedback, 'Please save Section 1 Core Details first.', 'error');
-        return;
-      }
-
-      const franchiseId = woFranchise?.value || null;
-      const franchiseStepOrder = woStep?.value || null;
-      const watchOrderNote = document.getElementById('wo-note')?.value.trim() || null;
-
-      const submitBtn = formWO.querySelector('button[type="submit"]');
-      const restoreBtn = setButtonLoading(submitBtn, 'Saving Watch Order...');
-
-      try {
-        const res = await fetch('/api/admin/anime/watch-order', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ animeId: currentAnimeId, franchiseId, franchiseStepOrder, watchOrderNote })
-        });
-        const data = await res.json();
-        if (data.success) {
-          await saveSectionVisibility('watchOrder');
-          setFeedback(woFeedback, '✓ Franchise placement saved successfully!', 'success');
-          woBadge.classList.remove('hidden');
-          updateWatchOrderHint();
-          window.showAdminToast('Watch order link saved', 'success');
-        } else {
-          setFeedback(woFeedback, 'Error: ' + data.error, 'error');
+    if (formWO) {
+      formWO.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (!currentAnimeId) {
+          setFeedback(woFeedback, 'Please save Section 1 Core Details first.', 'error');
+          return;
         }
-      } catch (err) {
-        setFeedback(woFeedback, 'Network error: ' + err.message, 'error');
-      } finally {
-        restoreBtn();
-      }
-    });
+
+        const franchiseId = document.getElementById('wo-franchise')?.value || null;
+        const franchiseStepOrder = document.getElementById('wo-step')?.value || null;
+        const watchOrderNote = document.getElementById('wo-note')?.value.trim() || null;
+
+        const submitBtn = formWO.querySelector('button[type="submit"]');
+        const restoreBtn = setButtonLoading(submitBtn, 'Saving Watch Order...');
+
+        try {
+          const res = await fetch('/api/admin/anime/watch-order', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ animeId: currentAnimeId, franchiseId, franchiseStepOrder, watchOrderNote })
+          });
+          const data = await res.json();
+          if (data.success) {
+            await saveSectionVisibility('watchOrder');
+            setFeedback(woFeedback, '✓ Watch order details saved successfully!', 'success');
+            woBadge?.classList.remove('hidden');
+            updateWatchOrderHint();
+            if (typeof window.showAdminToast === 'function') {
+              window.showAdminToast('Watch order note & franchise link saved', 'success');
+            }
+
+            // Ensure browser URL retains the current anime id
+            if (currentAnimeId) {
+              const currentUrl = new URL(window.location.href);
+              if (!currentUrl.searchParams.has('id')) {
+                currentUrl.searchParams.set('id', currentAnimeId);
+                window.history.replaceState({}, '', currentUrl.toString());
+              }
+            }
+          } else {
+            setFeedback(woFeedback, 'Error: ' + (data.error || 'Failed to save watch order link'), 'error');
+          }
+        } catch (err) {
+          setFeedback(woFeedback, 'Network error: ' + err.message, 'error');
+        } finally {
+          restoreBtn();
+        }
+      });
+    }
 
     // -------------------------------------------------------------
     // 5. SAVE FILLER RANGES
