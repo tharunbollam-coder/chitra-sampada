@@ -1,6 +1,7 @@
 // src/lib/cache-purge.ts
 // Centralized Cloudflare Edge Cache Purge Utility
 
+import { env } from 'cloudflare:workers';
 import { siteConfig } from '../config/site.js';
 import { getDatabase } from './d1.js';
 
@@ -25,21 +26,41 @@ export interface PurgeCacheResult {
 }
 
 /**
- * Extract Cloudflare credentials and public site URL from all potential runtime contexts.
+ * Extract Cloudflare credentials and public site URL from Cloudflare Workers env and fallbacks.
  */
 export function getCloudflareConfig(contextOrLocals?: any): CloudflareConfig {
-  const env: Record<string, any> = {
-    ...(typeof process !== 'undefined' ? process.env : {}),
-    ...(typeof import.meta !== 'undefined' && import.meta.env ? import.meta.env : {}),
-    ...(typeof globalThis !== 'undefined' && (globalThis as any).env ? (globalThis as any).env : {}),
-    ...(contextOrLocals?.runtime?.env || {}),
-    ...(contextOrLocals?.env || {})
-  };
+  const procEnv = typeof process !== 'undefined' ? process.env : {};
+  const metaEnv: Record<string, any> = (typeof import.meta !== 'undefined' && import.meta.env ? import.meta.env : {}) as Record<string, any>;
+  const cfEnv: Record<string, any> = (typeof env !== 'undefined' && env) ? env : {};
+  const localsEnv: Record<string, any> = (contextOrLocals && typeof contextOrLocals === 'object' && contextOrLocals.env) ? contextOrLocals.env : {};
+  const globalEnv: Record<string, any> = (typeof globalThis !== 'undefined' && (globalThis as any).env) ? (globalThis as any).env : {};
 
-  const zoneId = (env.CLOUDFLARE_ZONE_ID || '').toString().trim() || undefined;
-  const apiToken = (env.CLOUDFLARE_API_TOKEN || '').toString().trim() || undefined;
+  const zoneId = (
+    cfEnv.CLOUDFLARE_ZONE_ID ||
+    procEnv.CLOUDFLARE_ZONE_ID ||
+    localsEnv.CLOUDFLARE_ZONE_ID ||
+    metaEnv.CLOUDFLARE_ZONE_ID ||
+    globalEnv.CLOUDFLARE_ZONE_ID ||
+    ''
+  ).toString().trim() || undefined;
 
-  let siteUrl = (env.PUBLIC_SITE_URL || siteConfig.siteUrl || 'https://chitrasampada.com').toString().trim();
+  const apiToken = (
+    cfEnv.CLOUDFLARE_API_TOKEN ||
+    procEnv.CLOUDFLARE_API_TOKEN ||
+    localsEnv.CLOUDFLARE_API_TOKEN ||
+    metaEnv.CLOUDFLARE_API_TOKEN ||
+    globalEnv.CLOUDFLARE_API_TOKEN ||
+    ''
+  ).toString().trim() || undefined;
+
+  let siteUrl = (
+    cfEnv.PUBLIC_SITE_URL ||
+    procEnv.PUBLIC_SITE_URL ||
+    localsEnv.PUBLIC_SITE_URL ||
+    metaEnv.PUBLIC_SITE_URL ||
+    siteConfig.siteUrl ||
+    'https://chitrasampada.com'
+  ).toString().trim();
   siteUrl = siteUrl.replace(/\/+$/, '');
 
   return { zoneId, apiToken, siteUrl };

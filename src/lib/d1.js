@@ -178,7 +178,7 @@ export async function getDatabase(contextOrLocals = null) {
     (!process.versions?.node);
 
   if (isCloudflare) {
-    throw new Error("Cloudflare D1 database binding 'DB' was not found in Astro.locals.runtime.env or cloudflare:workers.");
+    throw new Error("Cloudflare D1 database binding 'DB' was not found in cloudflare:workers.");
   }
 
   // 5. Local Node.js / CLI / Build environment fallback
