@@ -10,7 +10,7 @@ import { siteConfig } from '../config/site.js';
 const animeList = await getCompactAnimeList(Astro.locals);
 const announcement = await getHomepageAnnouncement(Astro.locals);
 
-Astro.response.headers.set('Cache-Control', 'public, max-age=0, s-maxage=86400, stale-while-revalidate=3600');
+Astro.response.headers.set('Cache-Control', 'public, max-age=0, must-revalidate, s-maxage=86400');
 
 // Top titles for the homepage spotlight
 const spotlightAnime = animeList.filter((a: any) => a.trending).slice(0, 4);
