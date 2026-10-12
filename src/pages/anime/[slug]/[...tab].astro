@@ -107,7 +107,6 @@ function getAirStatusDetails(status: any) {
 }
 
 const airStatusInfo = getAirStatusDetails(anime.status);
-const isQuickReview = activeTab?.key === 'review' && anime.review?.type === 'quick';
 
 const isWatched = anime.honestyStatus === 'watched';
 const rawLesson = anime.what_i_learned_paragraphs || anime.lesson_takeaway || (typeof anime.lessons === 'string' ? anime.lessons : (anime.lessons?.takeaway || (typeof anime.lessons?.paragraphs === 'string' ? anime.lessons.paragraphs : null)));
@@ -115,38 +114,63 @@ const lessonText = isWatched && rawLesson
   ? (rawLesson.split(/\n\s*\n/)[0]?.trim() || rawLesson.trim())
   : null;
 
-// Dynamic Title & Description based on active tab
-const tabTitleMap = {
-  'watch-order': 'Watch Order & Franchise Sequence',
-  'filler-list': 'Filler List & Canon Breakdown',
-  'characters': 'Ranked Characters',
-  'source': 'Manga & Light Novel Source Guide',
-  'power-system': 'Power System & Lore',
-  'review': isQuickReview ? 'Quick Take: Initial Reaction' : 'My Honest Take & Review',
-  'lessons': 'What I Learned (Reflections)',
-  'universe': 'Related & Universe Media',
-  'recommendations': 'Shows Like This (Recommendations)'
-};
-
-const tabDescMap = {
-  'watch-order': `Chronological watch order and movie timeline for ${anime.title}. Streamlined sequence without confusion or unnecessary spin-offs.`,
-  'filler-list': `Complete filler episode list and canon breakdown for ${anime.title}. Accurate percentage and curated episodes to skip.`,
-  'characters': `Key characters and ranked character commentary for ${anime.title}. Detailed roles and personality dynamics.`,
-  'source': `Manga and light novel source material guide for ${anime.title}. Chapter adaptation coverage and where to start reading.`,
-  'power-system': `In-depth power system breakdown, combat mechanics, and worldbuilding lore for ${anime.title}.`,
-  'review': `Honest, spoiler-free personal review and rating for ${anime.title}. Real viewer perspective without promotional hype.`,
-  'lessons': `Key takeaways and philosophical reflections learned from watching ${anime.title}.`,
-  'universe': `Complete franchise media directory for ${anime.title}. Official canon storylines, movies, spin-offs, and specials.`,
-  'recommendations': `Curated anime recommendations for fans of ${anime.title}. Similar themes, combat systems, and captivating stories.`
-};
-
-const currentTabLabel = (activeTab?.key && (tabTitleMap as Record<string, string>)[activeTab.key]) || 'Honest Guide';
-const pageTitle = `${anime.title} — ${currentTabLabel}`;
-const pageDescription = (activeTab?.key && (tabDescMap as Record<string, string>)[activeTab.key]) || `Complete guide for ${anime.title}. ${currentTabLabel} with honest, no-fluff viewer insights.`;
-
 const siteOrigin = (siteConfig.siteUrl || (Astro.site ? Astro.site.origin : 'https://chitrasampada.com')).replace(/\/+$/, '');
-const canonicalPath = tab ? `/anime/${anime.slug}/${tab}` : `/anime/${anime.slug}`;
-const canonicalUrl = `${siteOrigin}${canonicalPath}`;
+
+// Tab-Specific SEO Metadata & Canonical URLs
+let pageTitle: string;
+let pageDescription: string;
+let canonicalUrl: string;
+
+if (!tab) {
+  // Overview / My Take (/anime/[slug])
+  pageTitle = `${anime.title} — Review & Guide | Chitra Sampada`;
+  pageDescription = `Read honest review, rating, and details for ${anime.title} on Chitra Sampada.`;
+  canonicalUrl = `${siteOrigin}/anime/${anime.slug}`;
+} else if (tab === 'filler-list') {
+  // Filler List (/anime/[slug]/filler-list)
+  pageTitle = `${anime.title} Filler List & Canon Episode Guide | Chitra Sampada`;
+  pageDescription = `Complete filler episode list and canon guide for ${anime.title}. Find out which episodes to skip.`;
+  canonicalUrl = `${siteOrigin}/anime/${anime.slug}/filler-list`;
+} else if (tab === 'watch-order') {
+  // Watch Order (/anime/[slug]/watch-order)
+  pageTitle = `${anime.title} Watch Order & Chronological Guide | Chitra Sampada`;
+  pageDescription = `The optimal watch order for ${anime.title}, including all TV series, movies, and OVAs in order.`;
+  canonicalUrl = `${siteOrigin}/anime/${anime.slug}/watch-order`;
+} else if (tab === 'characters') {
+  // Characters (/anime/[slug]/characters)
+  pageTitle = `${anime.title} Characters & Cast | Chitra Sampada`;
+  pageDescription = `Meet the full character list and cast of ${anime.title}.`;
+  canonicalUrl = `${siteOrigin}/anime/${anime.slug}/characters`;
+} else if (tab === 'review') {
+  pageTitle = `${anime.title} — Review & Guide | Chitra Sampada`;
+  pageDescription = `Read honest review, rating, and details for ${anime.title} on Chitra Sampada.`;
+  canonicalUrl = `${siteOrigin}/anime/${anime.slug}/review`;
+} else if (tab === 'source') {
+  pageTitle = `${anime.title} Manga & Light Novel Source Guide | Chitra Sampada`;
+  pageDescription = `Manga and light novel source material guide for ${anime.title}. Chapter adaptation coverage and where to start reading.`;
+  canonicalUrl = `${siteOrigin}/anime/${anime.slug}/source`;
+} else if (tab === 'power-system') {
+  pageTitle = `${anime.title} Power System & Combat Lore | Chitra Sampada`;
+  pageDescription = `In-depth power system breakdown, combat mechanics, and worldbuilding lore for ${anime.title}.`;
+  canonicalUrl = `${siteOrigin}/anime/${anime.slug}/power-system`;
+} else if (tab === 'lessons') {
+  pageTitle = `${anime.title} Lessons & Reflections | Chitra Sampada`;
+  pageDescription = `Key takeaways and philosophical reflections learned from watching ${anime.title}.`;
+  canonicalUrl = `${siteOrigin}/anime/${anime.slug}/lessons`;
+} else if (tab === 'universe') {
+  pageTitle = `${anime.title} Universe & Franchise Media Directory | Chitra Sampada`;
+  pageDescription = `Complete franchise media directory for ${anime.title}. Official canon storylines, movies, spin-offs, and specials.`;
+  canonicalUrl = `${siteOrigin}/anime/${anime.slug}/universe`;
+} else if (tab === 'recommendations') {
+  pageTitle = `${anime.title} Recommendations & Similar Anime | Chitra Sampada`;
+  pageDescription = `Curated anime recommendations for fans of ${anime.title}. Similar themes, combat systems, and captivating stories.`;
+  canonicalUrl = `${siteOrigin}/anime/${anime.slug}/recommendations`;
+} else {
+  const currentTabLabel = activeTab?.label || 'Honest Guide';
+  pageTitle = `${anime.title} — ${currentTabLabel} | Chitra Sampada`;
+  pageDescription = `Complete guide for ${anime.title}. ${currentTabLabel} with honest, no-fluff viewer insights.`;
+  canonicalUrl = `${siteOrigin}/anime/${anime.slug}/${tab}`;
+}
 
 // Structured Data Schemas
 const breadcrumbItems = [
