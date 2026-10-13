@@ -357,6 +357,13 @@ export function invalidateVibesCache() {
   vibesCache.timestamp = 0;
 }
 
+export function invalidateAllCaches() {
+  invalidateAnimeCache();
+  invalidateBlogCache();
+  invalidateSiteSettingsCache();
+  invalidateVibesCache();
+}
+
 /**
  * Fetch all anime from D1 (or local D1 SQLite during build/prerender)
  * Formatted with camelCase properties matching the UI expectations.
@@ -1124,6 +1131,15 @@ export function getAvailableTabs(anime) {
     tabs.push({ key: 'recommendations', label: 'Shows Like This', count: anime.recommendations.length });
   }
 
+  // Fallback: If no custom section tabs have data or are enabled (e.g. newly created movie or entry),
+  // guarantee at least the primary overview/watch-order tab is available so UI tabs never break or render blank
+  if (tabs.length === 0) {
+    tabs.push({
+      key: 'watch-order',
+      label: anime?.type === 'movie' ? 'Movie Info' : 'Watch Order'
+    });
+  }
+
   return tabs;
 }
 
@@ -1324,12 +1340,12 @@ export async function getAnimeBySlugOrId(slugOrId, contextOrLocals = null) {
  * @param {any} [availableTabs]
  */
 export function getDefaultTabKey(_anime, availableTabs) {
-  if (!availableTabs || availableTabs.length === 0) return null;
+  if (!availableTabs || availableTabs.length === 0) return 'watch-order';
   const reviewTab = availableTabs.find((t) => t.key === 'review');
   if (reviewTab) {
     return 'review';
   }
-  return availableTabs[0].key;
+  return availableTabs[0].key || 'watch-order';
 }
 
 /**

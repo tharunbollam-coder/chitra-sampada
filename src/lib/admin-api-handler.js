@@ -27,7 +27,7 @@ import {
   saveVibe,
   toggleVibeActive
 } from './admin-db.js';
-import { getDatabase, getSiteSetting, setSiteSetting, getAllAdminVibes } from './d1.js';
+import { getDatabase, getSiteSetting, setSiteSetting, getAllAdminVibes, invalidateAllCaches } from './d1.js';
 import { vibes } from '../data/vibes.js';
 import {
   purgeCloudflareCache,
@@ -120,9 +120,17 @@ export async function handleAdminApi({ request, locals, url, params }) {
           return jsonResponse({ success: false, error: 'Anime ID is required for deletion' }, 400);
         }
         const db = await getDatabase(locals);
-        const existing = await db.queryOne('SELECT slug FROM anime WHERE id = ?', animeId).catch(() => null);
+        const existing = await db.queryOne('SELECT slug, franchise_id FROM anime WHERE id = ?', animeId).catch(() => null);
+        const existingVibes = await db.query('SELECT v.slug FROM anime_vibes av JOIN vibes v ON v.id = av.vibe_id WHERE av.anime_id = ?', animeId).catch(() => []);
         await deleteAnime(animeId, locals);
         await purgeAnimeCache(existing?.slug || animeId, locals);
+        if (existing?.franchise_id) {
+          await purgeFranchiseCache(existing.franchise_id, locals);
+        }
+        if (Array.isArray(existingVibes) && existingVibes.length > 0) {
+          const vibePaths = existingVibes.map((v) => `/anime/tag/${v.slug}`);
+          await purgeCloudflareCache(vibePaths, locals);
+        }
         return jsonResponse({ success: true, message: `Anime "${animeId}" deleted successfully` });
       }
     }
@@ -181,7 +189,7 @@ export async function handleAdminApi({ request, locals, url, params }) {
       };
 
       const result = await saveAnimeCore(cleanData, locals);
-      await purgeAnimeCache(cleanSlug, locals);
+      await purgeAnimeCacheByIdOrSlug(cleanId, locals);
       return jsonResponse({ success: true, message: 'Core details saved successfully', data: result });
     }
 
@@ -336,6 +344,10 @@ export async function handleAdminApi({ request, locals, url, params }) {
         if (targetIdOrSlug) {
           await purgeAnimeCacheByIdOrSlug(targetIdOrSlug, locals);
         }
+        const franchiseId = body.watchOrder?.franchiseId || body.core?.franchiseId;
+        if (franchiseId) {
+          await purgeFranchiseCache(franchiseId, locals);
+        }
         return jsonResponse({
           success: true,
           message: 'All anime sections and visibility settings saved successfully!',
@@ -487,7 +499,10 @@ export async function handleAdminApi({ request, locals, url, params }) {
       if (method === 'POST' && route !== 'vibes/visibility') {
         const body = await parseJsonBody(request);
         const result = await saveVibe(body, locals);
-        await purgeCloudflareCache(['/anime', '/anime/catalog', '/'], locals);
+        const vibeSlug = result?.slug || body?.slug;
+        const purgePaths = ['/anime', '/anime/catalog', '/'];
+        if (vibeSlug) purgePaths.push(`/anime/tag/${String(vibeSlug).trim().toLowerCase()}`);
+        await purgeCloudflareCache(purgePaths, locals);
         return jsonResponse({ success: true, message: 'Vibe saved successfully', data: result });
       }
 
@@ -498,8 +513,12 @@ export async function handleAdminApi({ request, locals, url, params }) {
         if (!vid) {
           return jsonResponse({ success: false, error: 'Vibe ID is required' }, 400);
         }
+        const db = await getDatabase(locals);
+        const existingVibe = await db.queryOne('SELECT slug FROM vibes WHERE id = ?', vid).catch(() => null);
         const result = await toggleVibeActive(vid, isActive, locals);
-        await purgeCloudflareCache(['/anime', '/anime/catalog', '/'], locals);
+        const purgePaths = ['/anime', '/anime/catalog', '/'];
+        if (existingVibe?.slug) purgePaths.push(`/anime/tag/${String(existingVibe.slug).trim().toLowerCase()}`);
+        await purgeCloudflareCache(purgePaths, locals);
         return jsonResponse({ success: true, message: 'Vibe visibility updated', data: result });
       }
 
@@ -514,6 +533,7 @@ export async function handleAdminApi({ request, locals, url, params }) {
     if (route === 'purge-cache' && method === 'POST') {
       const body = await parseJsonBody(request);
       const target = body.target || 'all'; // 'homepage' | 'watch-orders' | 'all' | 'custom'
+      invalidateAllCaches();
       let purgeResult;
 
       if (target === 'homepage') {

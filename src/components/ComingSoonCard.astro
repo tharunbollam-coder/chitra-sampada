@@ -1,7 +1,14 @@
 ---
 // src/components/ComingSoonCard.astro
+interface Props {
+  title?: string;
+  category?: string;
+  description?: string;
+  features?: string[];
+  icon?: string;
+}
 
-const { title, category, description, features = [], icon = 'film' } = Astro.props;
+const { title, category, description, features = [], icon = 'film' } = Astro.props as Props;
 ---
 
 <div class="relative group rounded-2xl p-7 sm:p-8 bg-white border border-slate-200/80 hover:border-slate-300 shadow-xs hover:shadow-md transition-all duration-300 flex flex-col justify-between overflow-hidden hover:-translate-y-1">

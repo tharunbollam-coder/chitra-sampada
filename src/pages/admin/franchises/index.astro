@@ -97,7 +97,7 @@ const animeList = await getAllAnime(Astro.locals);
 
   <!-- Franchises List -->
   <div class="mt-8 space-y-6" id="franchises-list">
-    {franchises.map(franchise => (
+    {franchises.map((franchise: any) => (
       <div
         class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-sm franchise-card"
         data-franchise-id={franchise.id}
@@ -161,7 +161,7 @@ const animeList = await getAllAnime(Astro.locals);
           </div>
 
           <div class="space-y-2.5 steps-container" data-franchise-id={franchise.id}>
-            {franchise.steps.map((step, idx) => (
+            {franchise.steps.map((step: any, idx: number) => (
               <div class="p-3 bg-slate-950 border border-slate-800 rounded-xl step-row space-y-2">
                 <div class="flex flex-wrap sm:flex-nowrap items-center gap-2">
                   <!-- Reorder Controls: Up / Down -->
@@ -229,7 +229,7 @@ const animeList = await getAllAnime(Astro.locals);
                   <div>
                     <select class="step-anime-id w-full px-2.5 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs text-slate-300">
                       <option value="">Link to Catalog Anime (Optional)</option>
-                      {animeList.map(a => (
+                      {animeList.map((a: any) => (
                         <option value={a.id} selected={step.animeId === a.id}>
                           {a.title} ({a.id})
                         </option>
@@ -265,7 +265,7 @@ const animeList = await getAllAnime(Astro.locals);
   </div>
 
   <!-- Client-side Logic for Step Reordering, Adding, and Saving -->
-  <script is:inline define:vars={{ animeCatalog: animeList.map(a => ({ id: a.id, title: a.title, type: a.type, episodes: a.episodes, runtime: a.runtime })) }}>
+  <script is:inline define:vars={{ animeCatalog: animeList.map((a: any) => ({ id: a.id, title: a.title, type: a.type, episodes: a.episodes, runtime: a.runtime })) }}>
     // Toggle New Franchise form
     const btnCreate = document.getElementById('btn-create-franchise');
     const panelNew = document.getElementById('new-franchise-panel');

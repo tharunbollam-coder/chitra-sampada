@@ -1,6 +1,8 @@
 import { getAllAnime, getAvailableTabs, getAllBlogPosts, getAllVibes } from '../lib/d1.js';
 import { siteConfig } from '../config/site.js';
 
+export const prerender = false;
+
 export async function GET(context) {
   const siteUrl = (siteConfig.siteUrl || 'https://chitrasampada.com').replace(/\/+$/, '');
 
@@ -123,7 +125,7 @@ ${urls.map((u) => `  <url>
   return new Response(xml, {
     headers: {
       'Content-Type': 'application/xml',
-      'Cache-Control': 'public, max-age=3600, s-maxage=3600'
+      'Cache-Control': 'public, max-age=0, must-revalidate, s-maxage=86400'
     }
   });
 }

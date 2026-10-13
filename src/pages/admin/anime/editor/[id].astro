@@ -4,6 +4,9 @@ import AnimeEditor from '../../../../components/admin/AnimeEditor.astro';
 import { getAnimeById } from '../../../../lib/admin-db.js';
 
 const { id } = Astro.params;
+if (!id) {
+  return Astro.redirect('/admin');
+}
 const anime = await getAnimeById(id, Astro.locals);
 ---
 

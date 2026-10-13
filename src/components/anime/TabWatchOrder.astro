@@ -8,7 +8,7 @@ const watchOrderNote = anime.watchOrderNote?.trim() || null;
 const hasSteps = watchOrder.length > 0;
 const parsedWatchOrderNote = watchOrderNote ? marked.parse(watchOrderNote) : '';
 
-const hasEpisodes = (ep) => {
+const hasEpisodes = (ep: any) => {
   if (!ep) return false;
   const str = String(ep).trim();
   return str.length > 0 && str !== '—' && str !== '-';
@@ -57,7 +57,7 @@ const hasEpisodes = (ep) => {
     <!-- Sequential Timeline List (only rendered if steps exist) -->
     {hasSteps && (
       <div class="relative space-y-4 before:absolute before:inset-0 before:left-5 before:top-4 before:bottom-4 before:w-0.5 before:bg-slate-200 before:hidden sm:before:block">
-        {watchOrder.map((item, index) => (
+        {watchOrder.map((item: any, index: number) => (
           <div class:list={[
             'relative flex items-start gap-3.5 sm:gap-4 p-3.5 sm:p-5 rounded-2xl border transition-all duration-200',
             item.isCurrent

@@ -6,6 +6,8 @@ import VibeCard from '../../components/VibeCard.astro';
 import { getCompactAnimeList, getAllVibes } from '../../lib/d1.js';
 import { siteConfig } from '../../config/site.js';
 
+export const prerender = false;
+
 const animeList = await getCompactAnimeList(Astro.locals);
 const allVibes = await getAllVibes(Astro.locals);
 
@@ -14,8 +16,9 @@ Astro.response.headers.set('Cache-Control', 'public, max-age=0, must-revalidate,
 // Public Card Display Rule: Show card in "Browse by Vibe" ONLY if is_active = 1 AND at least one published anime is assigned to it.
 const activeVibes = allVibes.filter((v: any) => v.isActive && animeList.some((a: any) => a.vibes && a.vibes.includes(v.id)));
 
-// Featured selection for the static grid (top 4 titles to reduce mobile scroll fatigue)
-const featuredAnime = animeList.filter((a: any) => a.trending).slice(0, 4);
+// Featured selection for the static grid (prefers trending, falls back to latest additions)
+const trendingAnime = animeList.filter((a: any) => a.trending);
+const featuredAnime = (trendingAnime.length > 0 ? trendingAnime : animeList).slice(0, 4);
 
 const siteOrigin = (siteConfig.siteUrl || (Astro.site ? Astro.site.origin : 'https://chitrasampada.com')).replace(/\/+$/, '');
 const canonicalUrl = `${siteOrigin}/anime`;

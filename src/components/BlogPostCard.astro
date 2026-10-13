@@ -62,12 +62,12 @@ const formattedDate = !isNaN(dateObj.getTime())
     {post.linkedAnime && post.linkedAnime.length > 0 && (
       <div class="text-xs sm:text-sm font-medium text-slate-400">
         <span>Discusses:</span>{' '}
-        {post.linkedAnime.slice(0, 2).map((anime, idx) => (
+        {post.linkedAnime.slice(0, 2).map((anime: any, idx: number) => (
           <a
             href={`/anime/${anime.slug}`}
             class="text-indigo-600 hover:text-indigo-700 hover:underline transition-colors"
           >
-            {anime.title}{idx < Math.min(post.linkedAnime.length, 2) - 1 ? ', ' : ''}
+            {anime.title}{idx < Math.min(post.linkedAnime?.length || 0, 2) - 1 ? ', ' : ''}
           </a>
         ))}
         {post.linkedAnime.length > 2 && (

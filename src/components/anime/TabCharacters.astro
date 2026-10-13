@@ -23,7 +23,7 @@ const relatedPost = anime.characterRelatedPost;
 
     <!-- Key Characters Cards Grid -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
-      {characters.map((char) => (
+      {characters.map((char: any) => (
         <div class="p-5 rounded-2xl bg-white hover:bg-slate-50/60 border border-slate-200/90 shadow-2xs transition-all duration-200 flex flex-col justify-between gap-3">
           
           <div class="space-y-2">

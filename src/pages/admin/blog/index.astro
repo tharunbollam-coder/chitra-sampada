@@ -57,7 +57,7 @@ const posts = await getAllAdminBlogPosts(Astro.locals);
           </tr>
         </thead>
         <tbody id="blog-tbody" class="divide-y divide-slate-800/80 font-normal">
-          {posts.map(post => (
+          {posts.map((post: any) => (
             <tr class="hover:bg-slate-800/40 transition blog-row" data-search={`${post.title} ${post.slug}`.toLowerCase()}>
               <td class="py-4 px-4 sm:px-6">
                 <div class="font-semibold text-white text-base leading-snug">
@@ -82,7 +82,7 @@ const posts = await getAllAdminBlogPosts(Astro.locals);
               </td>
               <td class="py-4 px-4 hidden md:table-cell">
                 <div class="flex flex-wrap gap-1">
-                  {post.linkedAnime.map(a => (
+                  {post.linkedAnime.map((a: any) => (
                     <span class="inline-flex items-center px-2 py-0.5 rounded text-xs bg-slate-800 text-slate-300 border border-slate-700">
                       {a.title}
                     </span>

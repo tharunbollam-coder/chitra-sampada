@@ -87,7 +87,7 @@ const vibeStyles = {
 };
 
 const themeKey = vibe.color_theme || vibe.colorTheme || vibe.id;
-const style = vibeStyles[themeKey] || vibeStyles[vibe.id] || vibeStyles['indigo'];
+const style = (vibeStyles as Record<string, any>)[themeKey] || (vibeStyles as Record<string, any>)[vibe.id] || vibeStyles['indigo'];
 const displayTitle = vibe.title || vibe.name;
 const displayBadge = vibe.badge || vibe.group_label || vibe.groupLabel || 'CURATED';
 const Component = href ? 'a' : 'button';

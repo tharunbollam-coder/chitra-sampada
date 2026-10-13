@@ -179,8 +179,8 @@ function getEpisodeRanges(episodesStr: string | null | undefined): string[] {
     <!-- Episode Sections per Active Category (Flowing Text Layout - only if breakdown ranges exist) -->
     {hasBreakdownData && (
       <div class="space-y-5">
-        {types.map((entry) => {
-          const conf = TYPE_CONFIG[entry.type] || {
+        {types.map((entry: any) => {
+          const conf = (TYPE_CONFIG as Record<string, any>)[entry.type] || {
             badge: 'bg-slate-100 text-slate-800 border-slate-300',
             container: 'bg-slate-50/70 border-slate-200 text-slate-800',
             dot: 'bg-slate-400',

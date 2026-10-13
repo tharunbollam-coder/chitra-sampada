@@ -1,5 +1,7 @@
 import { siteConfig } from '../config/site.js';
 
+export const prerender = true;
+
 export function GET() {
   const siteUrl = (siteConfig.siteUrl || 'https://chitrasampada.com').replace(/\/+$/, '');
 

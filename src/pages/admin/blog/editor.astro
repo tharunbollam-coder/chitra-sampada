@@ -16,7 +16,7 @@ const animeList = await getAllAnime(Astro.locals);
 
 const isNew = !post;
 const todayStr = new Date().toISOString().split('T')[0];
-const linkedAnimeIds = post ? post.linkedAnime.map(a => a.id) : [];
+const linkedAnimeIds = post ? post.linkedAnime.map((a: any) => a.id) : [];
 ---
 
 <AdminLayout title={isNew ? 'Write New Blog Post' : `Edit Post: ${post.title}`} activeSection="blog">
@@ -174,7 +174,7 @@ const linkedAnimeIds = post ? post.linkedAnime.map(a => a.id) : [];
             Discusses / Linked Anime Series
           </label>
           <div class="flex flex-wrap gap-2 max-h-36 overflow-y-auto p-3 bg-slate-950 border border-slate-800 rounded-xl">
-            {animeList.map(a => (
+            {animeList.map((a: any) => (
               <label class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs font-medium cursor-pointer hover:border-slate-700 transition">
                 <input
                   type="checkbox"

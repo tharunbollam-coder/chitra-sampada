@@ -7,8 +7,8 @@ interface Props {
 const { anime } = Astro.props;
 const universe = Array.isArray(anime.universe) ? anime.universe : [];
 
-const canonItems = universe.filter(item => item.section === 'canon');
-const nonCanonItems = universe.filter(item => item.section === 'non_canon');
+const canonItems = universe.filter((item: any) => item.section === 'canon');
+const nonCanonItems = universe.filter((item: any) => item.section === 'non_canon');
 
 function getBadgeStyle(badge: string, isCanon: boolean) {
   const b = (badge || '').toLowerCase();
@@ -73,7 +73,7 @@ function getBadgeStyle(badge: string, isCanon: boolean) {
             </p>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
-              {canonItems.map((item, idx) => (
+              {canonItems.map((item: any, idx: number) => (
                 <div class="bg-slate-50/70 hover:bg-slate-50 border border-slate-200/90 rounded-2xl p-4 sm:p-5 flex flex-col justify-between gap-3.5 transition-all duration-200 shadow-2xs">
                   <div class="space-y-2">
                     <div class="flex items-start justify-between gap-2">
@@ -144,7 +144,7 @@ function getBadgeStyle(badge: string, isCanon: boolean) {
             </p>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
-              {nonCanonItems.map((item, idx) => (
+              {nonCanonItems.map((item: any, idx: number) => (
                 <div class="bg-slate-50/70 hover:bg-slate-50 border border-slate-200/90 rounded-2xl p-4 sm:p-5 flex flex-col justify-between gap-3.5 transition-all duration-200 shadow-2xs">
                   <div class="space-y-2">
                     <div class="flex items-start justify-between gap-2">

@@ -16,6 +16,8 @@ import RelatedBlogPosts from '../../../components/RelatedBlogPosts.astro';
 import { getAnimeDetailBySlugOrId, getAvailableTabs, getDefaultTabKey, optimizeTmdbPoster } from '../../../lib/d1.js';
 import { siteConfig } from '../../../config/site.js';
 
+export const prerender = false;
+
 const { slug, tab } = Astro.params;
 
 const anime = await getAnimeDetailBySlugOrId(slug || '', Astro.locals);

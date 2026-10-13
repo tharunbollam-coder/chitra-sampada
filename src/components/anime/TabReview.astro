@@ -8,7 +8,6 @@ const paragraphs = typeof rawReviewSource === 'string'
   ? rawReviewSource.split(/\n\s*\n/).map(p => p.trim()).filter(Boolean)
   : [];
 
-const isWatched = anime.honestyStatus === 'watched';
 const score = anime.personalRating;
 const hasContent = Boolean(
   (review.heading && review.heading.trim().length > 0) || paragraphs.length > 0

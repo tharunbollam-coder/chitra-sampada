@@ -6,8 +6,8 @@ import { getAllAdminVibes } from '../../../lib/d1.js';
 const vibes = await getAllAdminVibes(Astro.locals);
 
 const totalVibes = vibes.length;
-const activeCount = vibes.filter(v => v.isActive).length;
-const hiddenCount = vibes.filter(v => !v.isActive).length;
+const activeCount = vibes.filter((v: any) => v.isActive).length;
+const hiddenCount = vibes.filter((v: any) => !v.isActive).length;
 
 const colorThemes = [
   { value: 'purple', label: 'Purple (Hype & Magic)', bg: 'bg-purple-900/40 text-purple-300 border-purple-700/60' },
@@ -22,7 +22,7 @@ const colorThemes = [
   { value: 'slate', label: 'Slate (Grounded & Neutral)', bg: 'bg-slate-800 text-slate-300 border-slate-700' }
 ];
 
-function getThemePill(theme) {
+function getThemePill(theme: any) {
   const match = colorThemes.find(c => c.value === theme);
   return match || colorThemes[2]; // fallback to indigo
 }
@@ -87,7 +87,7 @@ function getThemePill(theme) {
         No vibes found. Click "+ New Vibe" above to create your first collection!
       </div>
     ) : (
-      vibes.map((v) => {
+      vibes.map((v: any) => {
         const themeInfo = getThemePill(v.colorTheme);
         return (
           <div

@@ -3,7 +3,13 @@
 
 import { env } from 'cloudflare:workers';
 import { siteConfig } from '../config/site.js';
-import { getDatabase } from './d1.js';
+import {
+  getDatabase,
+  invalidateAllCaches,
+  invalidateAnimeCache,
+  invalidateBlogCache,
+  invalidateSiteSettingsCache
+} from './d1.js';
 
 export interface CloudflareConfig {
   zoneId?: string;
@@ -192,29 +198,69 @@ export async function purgeCloudflareCache(
  * Purge Homepage Cache
  */
 export async function purgeHomepageCache(contextOrLocals?: any): Promise<PurgeCacheResult> {
-  return purgeCloudflareCache(['/'], contextOrLocals);
+  invalidateSiteSettingsCache();
+  invalidateAnimeCache();
+  return purgeCloudflareCache(['/', '/sitemap.xml'], contextOrLocals);
 }
 
 /**
- * Purge Franchise and Watch Order Cache
+ * Purge Franchise and Watch Order Cache.
+ * Discovers all anime associated with this franchise in D1,
+ * and purges all of their individual detail routes, sub-tabs, catalog, hub, and homepage.
  */
 export async function purgeFranchiseCache(
   franchiseId?: string | null,
   contextOrLocals?: any
 ): Promise<PurgeCacheResult> {
-  const paths = ['/watch-order', '/franchises', '/'];
-  if (franchiseId && typeof franchiseId === 'string') {
-    paths.push(`/franchise/${franchiseId.trim()}`);
+  invalidateAnimeCache();
+
+  const paths = new Set<string>(['/anime', '/anime/catalog', '/', '/sitemap.xml']);
+
+  if (franchiseId && typeof franchiseId === 'string' && franchiseId.trim().length > 0) {
+    const cleanFid = franchiseId.trim();
+    try {
+      const db = await getDatabase(contextOrLocals);
+      const rows = await db.query(`
+        SELECT DISTINCT slug FROM anime WHERE franchise_id = ?
+        UNION
+        SELECT DISTINCT a.slug
+        FROM franchise_watch_order fwo
+        JOIN anime a ON fwo.anime_id = a.id
+        WHERE fwo.franchise_id = ?
+      `, cleanFid, cleanFid);
+
+      if (Array.isArray(rows)) {
+        for (const row of rows) {
+          if (row?.slug) {
+            const s = String(row.slug).trim().toLowerCase();
+            paths.add(`/anime/${s}`);
+            paths.add(`/anime/${s}/watch-order`);
+            paths.add(`/anime/${s}/filler-list`);
+            paths.add(`/anime/${s}/characters`);
+            paths.add(`/anime/${s}/review`);
+            paths.add(`/anime/${s}/lessons`);
+            paths.add(`/anime/${s}/source`);
+            paths.add(`/anime/${s}/power-system`);
+            paths.add(`/anime/${s}/universe`);
+            paths.add(`/anime/${s}/recommendations`);
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('[Cache Purge] Could not query anime slugs for franchise:', cleanFid, err);
+    }
   }
-  return purgeCloudflareCache(paths, contextOrLocals);
+
+  return purgeCloudflareCache(Array.from(paths), contextOrLocals);
 }
 
 /**
  * Purge Anime Page and related sub-tabs and catalog indexes
  */
 export async function purgeAnimeCache(slug: string, contextOrLocals?: any): Promise<PurgeCacheResult> {
+  invalidateAnimeCache();
   if (!slug) {
-    return purgeCloudflareCache(['/anime', '/anime/catalog', '/'], contextOrLocals);
+    return purgeCloudflareCache(['/anime', '/anime/catalog', '/', '/sitemap.xml'], contextOrLocals);
   }
 
   const cleanSlug = slug.trim().toLowerCase();
@@ -235,52 +281,127 @@ export async function purgeAnimeCache(slug: string, contextOrLocals?: any): Prom
     ...tabs.map((tab) => `/anime/${cleanSlug}/${tab}`),
     '/anime',
     '/anime/catalog',
-    '/'
+    '/',
+    '/sitemap.xml'
   ];
 
   return purgeCloudflareCache(paths, contextOrLocals);
 }
 
 /**
- * Helper to resolve anime slug (from ID or slug) and purge all associated edge cache URLs.
+ * Helper to resolve anime slug, franchise connections, and vibe tags,
+ * and purge all associated edge cache URLs across Cloudflare.
  */
 export async function purgeAnimeCacheByIdOrSlug(
   idOrSlug: string,
   contextOrLocals?: any
 ): Promise<PurgeCacheResult> {
+  invalidateAnimeCache();
   if (!idOrSlug) {
-    return purgeCloudflareCache(['/anime', '/anime/catalog', '/'], contextOrLocals);
+    return purgeAnimeCache('', contextOrLocals);
   }
 
-  let resolvedSlug = idOrSlug.trim().toLowerCase();
+  const paths = new Set<string>(['/anime', '/anime/catalog', '/', '/sitemap.xml']);
+  let resolvedSlug = String(idOrSlug).trim().toLowerCase();
+  let franchiseId: string | null = null;
+  let animeId = String(idOrSlug).trim();
 
   try {
     const db = await getDatabase(contextOrLocals);
-    const row = await db.queryOne('SELECT slug FROM anime WHERE id = ? OR slug = ? LIMIT 1', idOrSlug, idOrSlug);
+    const row = await db.queryOne('SELECT id, slug, franchise_id FROM anime WHERE id = ? OR slug = ? LIMIT 1', idOrSlug, idOrSlug);
     if (row && row.slug) {
-      resolvedSlug = row.slug.trim().toLowerCase();
+      resolvedSlug = String(row.slug).trim().toLowerCase();
+      franchiseId = row.franchise_id || null;
+      animeId = row.id;
+    }
+
+    // Query associated vibe tags to purge corresponding vibe catalog pages
+    const vibeRows = await db.query(`
+      SELECT v.slug FROM anime_vibes av
+      JOIN vibes v ON v.id = av.vibe_id
+      WHERE av.anime_id = ?
+    `, animeId);
+
+    if (Array.isArray(vibeRows)) {
+      for (const vr of vibeRows) {
+        if (vr?.slug) paths.add(`/anime/tag/${String(vr.slug).trim().toLowerCase()}`);
+      }
+    }
+
+    // If part of a franchise, also purge sibling franchise anime watch order tabs
+    if (franchiseId) {
+      const siblingRows = await db.query(`
+        SELECT slug FROM anime WHERE franchise_id = ? AND slug != ?
+      `, franchiseId, resolvedSlug);
+      if (Array.isArray(siblingRows)) {
+        for (const sr of siblingRows) {
+          if (sr?.slug) {
+            const sibSlug = String(sr.slug).trim().toLowerCase();
+            paths.add(`/anime/${sibSlug}`);
+            paths.add(`/anime/${sibSlug}/watch-order`);
+          }
+        }
+      }
     }
   } catch (err) {
-    console.warn('[Cache Purge] Could not query anime slug for ID:', idOrSlug, err);
+    console.warn('[Cache Purge] Could not query anime details for ID:', idOrSlug, err);
   }
 
-  return purgeAnimeCache(resolvedSlug, contextOrLocals);
+  const tabs = [
+    'watch-order',
+    'filler-list',
+    'characters',
+    'review',
+    'lessons',
+    'source',
+    'power-system',
+    'universe',
+    'recommendations'
+  ];
+
+  paths.add(`/anime/${resolvedSlug}`);
+  for (const tab of tabs) {
+    paths.add(`/anime/${resolvedSlug}/${tab}`);
+  }
+
+  return purgeCloudflareCache(Array.from(paths), contextOrLocals);
 }
 
 /**
- * Purge Blog Posts and Blog Index
+ * Purge Blog Posts, Blog Index, and linked anime entry pages
  */
 export async function purgeBlogCache(slug?: string | null, contextOrLocals?: any): Promise<PurgeCacheResult> {
-  const paths = ['/blog', '/'];
-  if (slug && typeof slug === 'string') {
-    paths.push(`/blog/${slug.trim().toLowerCase()}`);
+  invalidateBlogCache();
+  const paths = new Set<string>(['/blog', '/', '/sitemap.xml']);
+
+  if (slug && typeof slug === 'string' && slug.trim().length > 0) {
+    const cleanSlug = slug.trim().toLowerCase();
+    paths.add(`/blog/${cleanSlug}`);
+
+    try {
+      const db = await getDatabase(contextOrLocals);
+      const linked = await db.query(`
+        SELECT a.slug FROM blog_post_anime bpa
+        JOIN blog_posts bp ON bp.id = bpa.post_id
+        JOIN anime a ON a.id = bpa.anime_id
+        WHERE bp.slug = ? OR bp.id = ?
+      `, cleanSlug, cleanSlug);
+
+      if (Array.isArray(linked)) {
+        for (const l of linked) {
+          if (l?.slug) paths.add(`/anime/${String(l.slug).trim().toLowerCase()}`);
+        }
+      }
+    } catch {}
   }
-  return purgeCloudflareCache(paths, contextOrLocals);
+
+  return purgeCloudflareCache(Array.from(paths), contextOrLocals);
 }
 
 /**
- * Purge Full Site (Entire Cloudflare Edge Cache)
+ * Purge Full Site (Entire Cloudflare Edge Cache) and all in-memory caches
  */
 export async function purgeEntireSiteCache(contextOrLocals?: any): Promise<PurgeCacheResult> {
+  invalidateAllCaches();
   return purgeCloudflareCache({ purgeEverything: true, contextOrLocals });
 }

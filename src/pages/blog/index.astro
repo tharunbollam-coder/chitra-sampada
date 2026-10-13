@@ -5,6 +5,8 @@ import BlogPostCard from '../../components/BlogPostCard.astro';
 import { getAllBlogPosts } from '../../lib/d1.js';
 import { siteConfig } from '../../config/site.js';
 
+export const prerender = false;
+
 const posts = await getAllBlogPosts(Astro.locals);
 
 Astro.response.headers.set('Cache-Control', 'public, max-age=0, must-revalidate, s-maxage=86400');

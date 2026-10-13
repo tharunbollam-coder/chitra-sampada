@@ -5,6 +5,8 @@ import { getBlogPostBySlug } from '../../lib/d1.js';
 import { siteConfig } from '../../config/site.js';
 import { marked } from 'marked';
 
+export const prerender = false;
+
 const { slug } = Astro.params;
 if (!slug) {
   return new Response('Blog post not found', { status: 404 });

@@ -299,14 +299,20 @@ export async function saveAnimeCore(data, contextOrLocals = null) {
     : (Number(existing?.filler_percentage) || 0);
 
   const finalOriginalTitle = originalTitle !== undefined ? String(originalTitle) : (existing?.original_title ?? '');
-  const finalStatus = (status !== undefined && status !== null)
+  const finalStatus = (status !== undefined && status !== null && status !== '')
     ? String(status).trim()
-    : (existing?.status ?? '');
+    : (existing?.status ?? (finalType === 'movie' ? 'Completed' : ''));
   const finalPoster = poster !== undefined ? String(poster) : (existing?.poster ?? '');
   const finalBackdrop = backdrop !== undefined ? String(backdrop) : (existing?.backdrop ?? '');
   const finalAddedDate = addedDate || existing?.added_date || new Date().toISOString().split('T')[0];
   const finalLastUpdated = lastUpdated || new Date().toISOString().split('T')[0];
-  const finalHonestyStatus = honestyStatus || existing?.honesty_status || 'watched';
+  let cleanHonestyStatus = (honestyStatus || existing?.honesty_status || 'watched').trim().toLowerCase();
+  if (cleanHonestyStatus === 'plan_to_watch') cleanHonestyStatus = 'watchlist';
+  if (cleanHonestyStatus === 'dropped') cleanHonestyStatus = 'reference';
+  if (!['watched', 'watchlist', 'reference'].includes(cleanHonestyStatus)) {
+    cleanHonestyStatus = 'watched';
+  }
+  const finalHonestyStatus = cleanHonestyStatus;
   const finalSynopsis = synopsis !== undefined ? String(synopsis) : (existing?.synopsis ?? '');
 
   if (existing) {

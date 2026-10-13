@@ -7,13 +7,16 @@ import AnnouncementBanner from '../components/AnnouncementBanner.astro';
 import { getCompactAnimeList, getHomepageAnnouncement } from '../lib/d1.js';
 import { siteConfig } from '../config/site.js';
 
+export const prerender = false;
+
 const animeList = await getCompactAnimeList(Astro.locals);
 const announcement = await getHomepageAnnouncement(Astro.locals);
 
 Astro.response.headers.set('Cache-Control', 'public, max-age=0, must-revalidate, s-maxage=86400');
 
-// Top titles for the homepage spotlight
-const spotlightAnime = animeList.filter((a: any) => a.trending).slice(0, 4);
+// Top titles for the homepage spotlight (prefers trending, falls back to latest additions)
+const trendingAnime = animeList.filter((a: any) => a.trending);
+const spotlightAnime = (trendingAnime.length > 0 ? trendingAnime : animeList).slice(0, 4);
 ---
 
 <BaseLayout title={siteConfig.name} description={siteConfig.description} showWellnessNote={true}>
