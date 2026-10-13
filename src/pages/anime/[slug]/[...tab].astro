@@ -29,6 +29,8 @@ if (!anime) {
 Astro.response.headers.set('Cache-Control', 'public, max-age=0, must-revalidate, s-maxage=86400');
 
 const availableTabs = getAvailableTabs(anime) || [];
+const hasTabs = availableTabs.length > 0;
+const TopSectionTag = hasTabs ? 'section' : 'main';
 const defaultTabKey = getDefaultTabKey(anime, availableTabs) || null;
 
 // If a specific tab is requested in the URL path, ensure it exists in availableTabs
@@ -265,7 +267,10 @@ if (anime.honestyStatus === 'watched' && anime.personalRating !== undefined && a
     <script type="application/ld+json" set:html={JSON.stringify(entitySchema)} />
   </Fragment>
 
-  <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-10">
+  <div class:list={[
+    'max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12',
+    hasTabs ? 'space-y-10' : 'space-y-6'
+  ]}>
 
     <nav class="flex items-center justify-between gap-3 border-b border-slate-200 pb-4 min-w-0" aria-label="Breadcrumb">
       <!-- Full breadcrumbs on desktop/tablet (sm+); condensed on mobile -->
@@ -308,7 +313,7 @@ if (anime.honestyStatus === 'watched' && anime.personalRating !== undefined && a
     </nav>
 
     <!-- 2. SHARED TOP SECTION (Fixed across all sub-pages/tabs) -->
-    <section class="space-y-6">
+    <TopSectionTag class="space-y-6">
       <div class="grid grid-cols-1 md:grid-cols-12 gap-8 items-start">
         
         <!-- Framed Poster Artwork -->
@@ -571,10 +576,10 @@ if (anime.honestyStatus === 'watched' && anime.personalRating !== undefined && a
         </div>
 
       </div>
-    </section>
+    </TopSectionTag>
 
     <!-- 3. SECONDARY HORIZONTAL TAB NAVIGATION (STICKY / FULL WIDTH) -->
-    {availableTabs.length > 0 && (
+    {hasTabs && (
       <section id="tab-navigation" class="sticky top-18 z-40 bg-white/95 backdrop-blur-md border-y border-slate-200 py-3 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 shadow-2xs scroll-mt-20">
         <div class="max-w-7xl mx-auto flex items-center justify-between gap-4">
           
@@ -614,8 +619,8 @@ if (anime.honestyStatus === 'watched' && anime.personalRating !== undefined && a
     )}
 
     <!-- 4. DYNAMIC BOTTOM SECTION -->
-    <main class="min-h-[250px] relative">
-      {availableTabs.length > 0 && activeTabKey && (
+    {hasTabs && activeTabKey && (
+      <main class="min-h-[250px] relative">
         <div class="tab-panels">
           <div
             id={`panel-${activeTabKey}`}
@@ -634,14 +639,22 @@ if (anime.honestyStatus === 'watched' && anime.personalRating !== undefined && a
             {activeTabKey === 'recommendations' && <TabRecommendations anime={anime} />}
           </div>
         </div>
-      )}
 
-      <!-- Related Blog Posts / Articles discussing this anime -->
+        <!-- Related Blog Posts / Articles discussing this anime -->
+        <RelatedBlogPosts animeId={anime.id} animeTitle={anime.title} />
+      </main>
+    )}
+
+    <!-- Related Blog Posts / Articles discussing this anime (when zero tabs are active) -->
+    {!hasTabs && (
       <RelatedBlogPosts animeId={anime.id} animeTitle={anime.title} />
-    </main>
+    )}
 
     <!-- 5. END-OF-PAGE BUTTON (Back to Anime Home + Explore Full Catalog) -->
-    <footer class="pt-8 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4">
+    <footer class:list={[
+      'border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4',
+      hasTabs ? 'pt-8' : 'pt-6'
+    ]}>
       <p class="text-sm text-slate-500 font-normal text-center sm:text-left">
         Finished reading this section? Explore other anime titles and watch orders.
       </p>
