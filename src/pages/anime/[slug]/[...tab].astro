@@ -28,8 +28,8 @@ if (!anime) {
 
 Astro.response.headers.set('Cache-Control', 'public, max-age=0, must-revalidate, s-maxage=86400');
 
-const availableTabs = getAvailableTabs(anime);
-const defaultTabKey = getDefaultTabKey(anime, availableTabs) || 'watch-order';
+const availableTabs = getAvailableTabs(anime) || [];
+const defaultTabKey = getDefaultTabKey(anime, availableTabs) || null;
 
 // If a specific tab is requested in the URL path, ensure it exists in availableTabs
 if (tab && !availableTabs.some((t: any) => t.key === tab)) {
@@ -56,7 +56,7 @@ function formatRuntime(runtimeMinutes: any) {
   const remainingMins = mins % 60;
   return remainingMins > 0 ? `${hours}h ${remainingMins}m` : `${hours}h`;
 }
-const activeTab = availableTabs.find((t: any) => t.key === activeTabKey) || availableTabs[0];
+const activeTab = availableTabs.find((t: any) => t.key === activeTabKey) || availableTabs[0] || null;
 
 function getAirStatusDetails(status: any) {
   const s = (status || '').trim();
@@ -574,63 +574,67 @@ if (anime.honestyStatus === 'watched' && anime.personalRating !== undefined && a
     </section>
 
     <!-- 3. SECONDARY HORIZONTAL TAB NAVIGATION (STICKY / FULL WIDTH) -->
-    <section id="tab-navigation" class="sticky top-18 z-40 bg-white/95 backdrop-blur-md border-y border-slate-200 py-3 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 shadow-2xs scroll-mt-20">
-      <div class="max-w-7xl mx-auto flex items-center justify-between gap-4">
-        
-        <!-- Tab Navigation Links -->
-        <div class="flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar py-0.5" id="anime-tabs-nav">
-          {availableTabs.map((tab) => {
-            const isActive = tab.key === activeTab?.key;
-            const tabUrl = `/anime/${anime.slug}/${tab.key}`;
+    {availableTabs.length > 0 && (
+      <section id="tab-navigation" class="sticky top-18 z-40 bg-white/95 backdrop-blur-md border-y border-slate-200 py-3 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 shadow-2xs scroll-mt-20">
+        <div class="max-w-7xl mx-auto flex items-center justify-between gap-4">
+          
+          <!-- Tab Navigation Links -->
+          <div class="flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar py-0.5" id="anime-tabs-nav">
+            {availableTabs.map((tab) => {
+              const isActive = tab.key === activeTab?.key;
+              const tabUrl = `/anime/${anime.slug}/${tab.key}`;
 
-            return (
-              <a
-                href={tabUrl}
-                data-tab-link={tab.key}
-                data-astro-history="replace"
-                class:list={[
-                  'anime-tab-link px-3.5 sm:px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap transition-all duration-150 shrink-0 select-none flex items-center gap-1.5 cursor-pointer',
-                  isActive
-                    ? 'active-tab bg-[#6366F1] text-white shadow-sm shadow-indigo-500/20'
-                    : 'inactive-tab bg-white hover:bg-slate-100 text-slate-600 hover:text-slate-900 border border-slate-200/80'
-                ]}
-              >
-                <span>{tab.label}</span>
-                {tab.count !== undefined && (
-                  <span class:list={[
-                    'tab-counter text-[10px] font-bold px-1.5 py-0.2 rounded-full',
-                    isActive ? 'bg-[#4338CA] text-white' : 'bg-slate-100 text-slate-500'
-                  ]}>
-                    {tab.count}
-                  </span>
-                )}
-              </a>
-            );
-          })}
+              return (
+                <a
+                  href={tabUrl}
+                  data-tab-link={tab.key}
+                  data-astro-history="replace"
+                  class:list={[
+                    'anime-tab-link px-3.5 sm:px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap transition-all duration-150 shrink-0 select-none flex items-center gap-1.5 cursor-pointer',
+                    isActive
+                      ? 'active-tab bg-[#6366F1] text-white shadow-sm shadow-indigo-500/20'
+                      : 'inactive-tab bg-white hover:bg-slate-100 text-slate-600 hover:text-slate-900 border border-slate-200/80'
+                  ]}
+                >
+                  <span>{tab.label}</span>
+                  {tab.count !== undefined && (
+                    <span class:list={[
+                      'tab-counter text-[10px] font-bold px-1.5 py-0.2 rounded-full',
+                      isActive ? 'bg-[#4338CA] text-white' : 'bg-slate-100 text-slate-500'
+                    ]}>
+                      {tab.count}
+                    </span>
+                  )}
+                </a>
+              );
+            })}
+          </div>
         </div>
-      </div>
-    </section>
+      </section>
+    )}
 
     <!-- 4. DYNAMIC BOTTOM SECTION -->
     <main class="min-h-[250px] relative">
-      <div class="tab-panels">
-        <div
-          id={`panel-${activeTabKey}`}
-          class="tab-panel transition-opacity duration-150 block"
-          data-panel={activeTabKey}
-          role="tabpanel"
-        >
-          {activeTabKey === 'watch-order' && <TabWatchOrder anime={anime} />}
-          {activeTabKey === 'filler-list' && <TabFillerList anime={anime} />}
-          {activeTabKey === 'characters' && <TabCharacters anime={anime} />}
-          {activeTabKey === 'source' && <TabSource anime={anime} />}
-          {activeTabKey === 'power-system' && <TabPowerSystem anime={anime} />}
-          {activeTabKey === 'review' && <TabReview anime={anime} />}
-          {activeTabKey === 'lessons' && <TabLessons anime={anime} />}
-          {activeTabKey === 'universe' && <TabUniverse anime={anime} />}
-          {activeTabKey === 'recommendations' && <TabRecommendations anime={anime} />}
+      {availableTabs.length > 0 && activeTabKey && (
+        <div class="tab-panels">
+          <div
+            id={`panel-${activeTabKey}`}
+            class="tab-panel transition-opacity duration-150 block"
+            data-panel={activeTabKey}
+            role="tabpanel"
+          >
+            {activeTabKey === 'watch-order' && <TabWatchOrder anime={anime} />}
+            {activeTabKey === 'filler-list' && <TabFillerList anime={anime} />}
+            {activeTabKey === 'characters' && <TabCharacters anime={anime} />}
+            {activeTabKey === 'source' && <TabSource anime={anime} />}
+            {activeTabKey === 'power-system' && <TabPowerSystem anime={anime} />}
+            {activeTabKey === 'review' && <TabReview anime={anime} />}
+            {activeTabKey === 'lessons' && <TabLessons anime={anime} />}
+            {activeTabKey === 'universe' && <TabUniverse anime={anime} />}
+            {activeTabKey === 'recommendations' && <TabRecommendations anime={anime} />}
+          </div>
         </div>
-      </div>
+      )}
 
       <!-- Related Blog Posts / Articles discussing this anime -->
       <RelatedBlogPosts animeId={anime.id} animeTitle={anime.title} />

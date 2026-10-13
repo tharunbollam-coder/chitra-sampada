@@ -1129,21 +1129,11 @@ export function getAvailableTabs(anime) {
     tabs.push({ key: 'recommendations', label: 'Shows Like This', count: anime.recommendations.length });
   }
 
-  // Fallback: If no custom section tabs have data or are enabled (e.g. newly created movie or entry),
-  // guarantee at least the primary overview/watch-order tab is available so UI tabs never break or render blank
-  if (tabs.length === 0) {
-    tabs.push({
-      key: 'watch-order',
-      label: anime?.type === 'movie' ? 'Movie Info' : 'Watch Order'
-    });
-  }
-
   return tabs;
 }
 
 /**
  * Fetch all blog posts from D1 SQLite (optionally including drafts)
-/**
  * @param {any} [optionsOrContext]
  * @param {any} [contextOrLocals]
  */
@@ -1337,12 +1327,12 @@ export async function getAnimeBySlugOrId(slugOrId, contextOrLocals = null) {
  * @param {any} [availableTabs]
  */
 export function getDefaultTabKey(_anime, availableTabs) {
-  if (!availableTabs || availableTabs.length === 0) return 'watch-order';
+  if (!availableTabs || availableTabs.length === 0) return null;
   const reviewTab = availableTabs.find((t) => t.key === 'review');
   if (reviewTab) {
     return 'review';
   }
-  return availableTabs[0].key || 'watch-order';
+  return availableTabs[0]?.key || null;
 }
 
 /**
