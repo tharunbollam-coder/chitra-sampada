@@ -486,9 +486,7 @@ export async function handleAdminApi({ request, locals, url, params }) {
         }
         const trimmedKey = key.trim();
         const result = await setSiteSetting(trimmedKey, value ?? '', locals);
-        if (trimmedKey === 'homepage_announcement' || trimmedKey === 'thought_of_the_week') {
-          await purgeHomepageCache(locals);
-        }
+        await purgeHomepageCache(locals);
         return jsonResponse({ success: true, message: 'Setting saved successfully', data: result });
       }
     }

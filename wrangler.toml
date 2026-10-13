@@ -1,11 +1,14 @@
-﻿name = "chitra-sampada"
+name = "chitra-sampada"
 compatibility_date = "2026-09-18"
 
-[cache]
-enabled = true
 
 # Cloudflare D1 Database Binding
 [[d1_databases]]
 binding = "DB"
 database_name = "chitra-sampada-db"
 database_id = "841c7352-3807-4634-bfb2-f6842fe96506"
+
+[vars]
+PUBLIC_SITE_URL = "https://chitrasampada.com"
+CLOUDFLARE_ZONE_ID = "cc8324c00d976c043a712bbeeaead711"
+

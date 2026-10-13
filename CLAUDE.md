@@ -89,3 +89,7 @@ Consult these guides before working on related tasks:
 - [Adding or managing content](https://docs.astro.build/en/guides/content-collections/)
 - [Adding styles or using Tailwind](https://docs.astro.build/en/guides/styling/)
 - [Supporting multiple languages](https://docs.astro.build/en/guides/internationalization/)
+
+5. **Zero Secret Hardcoding:**
+   - NEVER hardcode API keys, auth tokens, passwords, or values from `.env` into tracked source code (`.ts`, `.js`, `wrangler.toml`).
+   - Secrets must ONLY be accessed dynamically via environment variables (`runtime.env` or `process.env`).

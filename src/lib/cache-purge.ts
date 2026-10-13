@@ -31,6 +31,9 @@ export interface PurgeCacheResult {
   error?: string;
 }
 
+const DEFAULT_ZONE_ID = 'cc8324c00d976c043a712bbeeaead711';
+const DEFAULT_SITE_URL = 'https://chitrasampada.com';
+
 /**
  * Extract Cloudflare credentials and public site URL from Cloudflare Workers env and fallbacks.
  */
@@ -38,42 +41,52 @@ export function getCloudflareConfig(contextOrLocals?: any): CloudflareConfig {
   const procEnv = typeof process !== 'undefined' ? process.env : {};
   const metaEnv: Record<string, any> = (typeof import.meta !== 'undefined' && import.meta.env ? import.meta.env : {}) as Record<string, any>;
   const cfEnv: Record<string, any> = (typeof env !== 'undefined' && env) ? env : {};
-  const localsEnv: Record<string, any> = (contextOrLocals && typeof contextOrLocals === 'object' && contextOrLocals.env) ? contextOrLocals.env : {};
+  const localsEnv: Record<string, any> = (
+    contextOrLocals?.runtime?.env ||
+    contextOrLocals?.locals?.runtime?.env ||
+    contextOrLocals?.env ||
+    contextOrLocals?.locals?.env ||
+    {}
+  );
   const globalEnv: Record<string, any> = (typeof globalThis !== 'undefined' && (globalThis as any).env) ? (globalThis as any).env : {};
 
   const zoneId = (
+    localsEnv.CLOUDFLARE_ZONE_ID ||
     cfEnv.CLOUDFLARE_ZONE_ID ||
     procEnv.CLOUDFLARE_ZONE_ID ||
-    localsEnv.CLOUDFLARE_ZONE_ID ||
     metaEnv.CLOUDFLARE_ZONE_ID ||
     globalEnv.CLOUDFLARE_ZONE_ID ||
-    ''
-  ).toString().trim() || undefined;
+    DEFAULT_ZONE_ID
+  ).toString().trim();
 
-  const apiToken = (
-    cfEnv.CLOUDFLARE_API_TOKEN ||
-    procEnv.CLOUDFLARE_API_TOKEN ||
+  const rawApiToken = (
+    contextOrLocals?.runtime?.env?.CLOUDFLARE_API_TOKEN ||
+    contextOrLocals?.locals?.runtime?.env?.CLOUDFLARE_API_TOKEN ||
     localsEnv.CLOUDFLARE_API_TOKEN ||
+    procEnv.CLOUDFLARE_API_TOKEN ||
+    cfEnv.CLOUDFLARE_API_TOKEN ||
     metaEnv.CLOUDFLARE_API_TOKEN ||
     globalEnv.CLOUDFLARE_API_TOKEN ||
     ''
-  ).toString().trim() || undefined;
+  ).toString().trim();
+
+  const apiToken = rawApiToken || undefined;
 
   let siteUrl = (
+    localsEnv.PUBLIC_SITE_URL ||
     cfEnv.PUBLIC_SITE_URL ||
     procEnv.PUBLIC_SITE_URL ||
-    localsEnv.PUBLIC_SITE_URL ||
     metaEnv.PUBLIC_SITE_URL ||
     siteConfig.siteUrl ||
-    'https://chitrasampada.com'
-  ).toString().trim();
-  siteUrl = siteUrl.replace(/\/+$/, '');
+    DEFAULT_SITE_URL
+  ).toString().trim().replace(/\/+$/, '');
 
   return { zoneId, apiToken, siteUrl };
 }
 
 /**
  * Normalizes relative paths to full canonical URLs using the configured public site URL.
+ * Automatically purges both trailing-slash and non-trailing-slash variants for Cloudflare edge cache key matching.
  */
 export function canonicalizePaths(paths: (string | null | undefined)[], siteUrl: string): string[] {
   const cleanBase = siteUrl.replace(/\/+$/, '');
@@ -86,14 +99,31 @@ export function canonicalizePaths(paths: (string | null | undefined)[], siteUrl:
 
     if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
       urlSet.add(trimmed);
+      if (trimmed.startsWith(cleanBase)) {
+        const pathPart = trimmed.slice(cleanBase.length);
+        const isFile = /\.[a-z0-9]+$/i.test(pathPart);
+        if (!isFile) {
+          if (trimmed.endsWith('/')) {
+            urlSet.add(trimmed.replace(/\/+$/, ''));
+          } else {
+            urlSet.add(`${trimmed}/`);
+          }
+        }
+      }
       continue;
     }
 
     const path = trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
     if (path === '/') {
       urlSet.add(`${cleanBase}/`);
+      urlSet.add(cleanBase);
     } else {
-      urlSet.add(`${cleanBase}${path}`);
+      const cleanPath = path.replace(/\/+$/, '');
+      const isFile = /\.[a-z0-9]+$/i.test(cleanPath);
+      urlSet.add(`${cleanBase}${cleanPath}`);
+      if (!isFile) {
+        urlSet.add(`${cleanBase}${cleanPath}/`);
+      }
     }
   }
 
@@ -122,6 +152,15 @@ export async function purgeCloudflareCache(
       locals = pathsOrOptions.contextOrLocals || contextOrLocals;
     }
 
+    // Invalidate Workers runtime cache if active
+    try {
+      const ctx = locals?.runtime?.ctx || locals?.ctx || contextOrLocals?.runtime?.ctx;
+      if (ctx?.cache && typeof ctx.cache.purge === 'function') {
+        await ctx.cache.purge({ purgeEverything: true });
+        console.log('[Cache Purge] Successfully purged Workers runtime cache.');
+      }
+    } catch {}
+
     const { zoneId, apiToken, siteUrl } = getCloudflareConfig(locals);
 
     if (!zoneId || !apiToken) {
@@ -129,9 +168,9 @@ export async function purgeCloudflareCache(
         '[Cache Purge] Cloudflare CLOUDFLARE_ZONE_ID or CLOUDFLARE_API_TOKEN is not defined. Skipping edge cache purge.'
       );
       return {
-        success: true,
+        success: false,
         skipped: true,
-        reason: 'Cloudflare credentials not configured in environment'
+        error: 'Cloudflare credentials not configured in environment'
       };
     }
 
@@ -200,7 +239,7 @@ export async function purgeCloudflareCache(
 export async function purgeHomepageCache(contextOrLocals?: any): Promise<PurgeCacheResult> {
   invalidateSiteSettingsCache();
   invalidateAnimeCache();
-  return purgeCloudflareCache(['/', '/sitemap.xml'], contextOrLocals);
+  return purgeCloudflareCache(['/', '/anime', '/sitemap.xml'], contextOrLocals);
 }
 
 /**

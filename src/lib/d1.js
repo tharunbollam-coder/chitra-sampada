@@ -213,50 +213,36 @@ export async function getDatabase(contextOrLocals = null) {
   return wrapped;
 }
 
-let animeCache = {
-  data: null,
-  timestamp: 0
-};
-
-let compactAnimeCache = {
-  data: null,
-  timestamp: 0
-};
-
-let blogCache = {
-  data: null,
-  timestamp: 0
-};
-
-let siteSettingsCache = {
-  data: new Map(),
-  timestamp: 0
-};
-
-let vibesCache = {
-  data: null,
-  timestamp: 0
-};
+function getRequestCache(contextOrLocals) {
+  if (!contextOrLocals || typeof contextOrLocals !== 'object') return null;
+  const target = contextOrLocals.locals || contextOrLocals;
+  if (!target.__chitraRequestCache) {
+    target.__chitraRequestCache = new Map();
+  }
+  return target.__chitraRequestCache;
+}
 
 export { optimizeTmdbPoster } from './image-utils.js';
 
-export function invalidateAnimeCache() {
-  animeCache.data = null;
-  animeCache.timestamp = 0;
-  compactAnimeCache.data = null;
-  compactAnimeCache.timestamp = 0;
+export function invalidateAnimeCache(contextOrLocals = null) {
+  const reqCache = getRequestCache(contextOrLocals);
+  if (reqCache) {
+    reqCache.delete('anime');
+    reqCache.delete('compactAnime');
+  }
 }
 
 /**
  * Fetch lightweight compact anime list for card grids, catalog listings, and vibe pages.
  * Queries ONLY essential card columns (omits heavy reviews, lore, character lists,
  * watch orders, related universe media, blog linkages, and streaming platform records).
+ * Uses request-scoped deduplication so components in the same request share data without redundant D1 queries.
  * @param {any} [contextOrLocals]
  */
 export async function getCompactAnimeList(contextOrLocals = null) {
-  const now = Date.now();
-  if (compactAnimeCache.data && (now - compactAnimeCache.timestamp < 30000)) {
-    return compactAnimeCache.data;
+  const reqCache = getRequestCache(contextOrLocals);
+  if (reqCache?.has('compactAnime')) {
+    return reqCache.get('compactAnime');
   }
 
   const db = await getDatabase(contextOrLocals);
@@ -337,42 +323,53 @@ export async function getCompactAnimeList(contextOrLocals = null) {
     };
   });
 
-  compactAnimeCache.data = formatted;
-  compactAnimeCache.timestamp = Date.now();
+  if (reqCache) {
+    reqCache.set('compactAnime', formatted);
+  }
   return formatted;
 }
 
-export function invalidateBlogCache() {
-  blogCache.data = null;
-  blogCache.timestamp = 0;
+export function invalidateBlogCache(contextOrLocals = null) {
+  const reqCache = getRequestCache(contextOrLocals);
+  if (reqCache) {
+    reqCache.delete('blog_published');
+    reqCache.delete('blog_all');
+  }
 }
 
-export function invalidateSiteSettingsCache() {
-  siteSettingsCache.data.clear();
-  siteSettingsCache.timestamp = 0;
+export function invalidateSiteSettingsCache(contextOrLocals = null) {
+  const reqCache = getRequestCache(contextOrLocals);
+  if (reqCache) {
+    for (const key of reqCache.keys()) {
+      if (key.startsWith('setting:')) reqCache.delete(key);
+    }
+  }
 }
 
-export function invalidateVibesCache() {
-  vibesCache.data = null;
-  vibesCache.timestamp = 0;
+export function invalidateVibesCache(contextOrLocals = null) {
+  const reqCache = getRequestCache(contextOrLocals);
+  if (reqCache) {
+    reqCache.delete('vibes');
+  }
 }
 
-export function invalidateAllCaches() {
-  invalidateAnimeCache();
-  invalidateBlogCache();
-  invalidateSiteSettingsCache();
-  invalidateVibesCache();
+export function invalidateAllCaches(contextOrLocals = null) {
+  const reqCache = getRequestCache(contextOrLocals);
+  if (reqCache) {
+    reqCache.clear();
+  }
 }
 
 /**
  * Fetch all anime from D1 (or local D1 SQLite during build/prerender)
  * Formatted with camelCase properties matching the UI expectations.
+ * Uses request-scoped deduplication so components in the same request share data without redundant D1 queries.
  * @param {any} [contextOrLocals]
  */
 export async function getAllAnime(contextOrLocals = null) {
-  const now = Date.now();
-  if (animeCache.data && (now - animeCache.timestamp < 30000)) {
-    return animeCache.data;
+  const reqCache = getRequestCache(contextOrLocals);
+  if (reqCache?.has('anime')) {
+    return reqCache.get('anime');
   }
 
   const db = await getDatabase(contextOrLocals);
@@ -719,8 +716,9 @@ export async function getAllAnime(contextOrLocals = null) {
     };
   });
 
-  animeCache.data = formattedAnime;
-  animeCache.timestamp = Date.now();
+  if (reqCache) {
+    reqCache.set('anime', formattedAnime);
+  }
   return formattedAnime;
 }
 
@@ -1166,9 +1164,10 @@ export async function getAllBlogPosts(optionsOrContext = {}, contextOrLocals = n
     }
   }
 
-  const now = Date.now();
-  if (!includeDrafts && blogCache.data && (now - blogCache.timestamp < 30000)) {
-    return blogCache.data;
+  const reqCache = getRequestCache(ctx);
+  const cacheKey = includeDrafts ? 'blog_all' : 'blog_published';
+  if (reqCache?.has(cacheKey)) {
+    return reqCache.get(cacheKey);
   }
 
   const db = await getDatabase(ctx);
@@ -1227,9 +1226,8 @@ export async function getAllBlogPosts(optionsOrContext = {}, contextOrLocals = n
     };
   });
 
-  if (!includeDrafts) {
-    blogCache.data = formattedPosts;
-    blogCache.timestamp = Date.now();
+  if (reqCache) {
+    reqCache.set(cacheKey, formattedPosts);
   }
 
   return formattedPosts;
@@ -1355,16 +1353,18 @@ export function getDefaultTabKey(_anime, availableTabs) {
  */
 export async function getSiteSetting(key, defaultValue = null, contextOrLocals = null) {
   if (!key) return defaultValue;
-  const now = Date.now();
-  if (siteSettingsCache.data.has(key) && (now - siteSettingsCache.timestamp < 60000)) {
-    return siteSettingsCache.data.get(key);
+  const reqCache = getRequestCache(contextOrLocals);
+  const cacheKey = `setting:${key}`;
+  if (reqCache?.has(cacheKey)) {
+    return reqCache.get(cacheKey);
   }
   try {
     const db = await getDatabase(contextOrLocals);
     const row = await db.queryOne(`SELECT value FROM site_settings WHERE key = ?`, key);
     const val = row?.value ?? defaultValue;
-    siteSettingsCache.data.set(key, val);
-    siteSettingsCache.timestamp = Date.now();
+    if (reqCache) {
+      reqCache.set(cacheKey, val);
+    }
     return val;
   } catch (err) {
     console.warn(`[getSiteSetting] Failed to fetch setting '${key}':`, err?.message || err);
@@ -1449,9 +1449,9 @@ export async function setHomepageAnnouncement(data, contextOrLocals = null) {
  * @param {any} [contextOrLocals]
  */
 export async function getAllVibes(contextOrLocals = null) {
-  const now = Date.now();
-  if (vibesCache.data && (now - vibesCache.timestamp < 30000)) {
-    return vibesCache.data;
+  const reqCache = getRequestCache(contextOrLocals);
+  if (reqCache?.has('vibes')) {
+    return reqCache.get('vibes');
   }
 
   const db = await getDatabase(contextOrLocals);
@@ -1479,8 +1479,9 @@ export async function getAllVibes(contextOrLocals = null) {
     updatedAt: r.updated_at
   }));
 
-  vibesCache.data = formatted;
-  vibesCache.timestamp = now;
+  if (reqCache) {
+    reqCache.set('vibes', formatted);
+  }
   return formatted;
 }
 
