@@ -9,8 +9,10 @@ import { siteConfig } from '../config/site.js';
 
 export const prerender = false;
 
-const animeList = await getCompactAnimeList(Astro.locals);
-const announcement = await getHomepageAnnouncement(Astro.locals);
+const [animeList, announcement] = await Promise.all([
+  getCompactAnimeList(Astro.locals),
+  getHomepageAnnouncement(Astro.locals)
+]);
 
 Astro.response.headers.set('Cache-Control', 'public, max-age=0, must-revalidate, s-maxage=86400');
 

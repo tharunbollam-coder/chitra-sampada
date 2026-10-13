@@ -7,8 +7,10 @@ import { siteConfig } from '../../config/site.js';
 
 export const prerender = false;
 
-const animeList = await getCompactAnimeList(Astro.locals);
-const vibes = await getAllVibes(Astro.locals);
+const [animeList, vibes] = await Promise.all([
+  getCompactAnimeList(Astro.locals),
+  getAllVibes(Astro.locals)
+]);
 
 Astro.response.headers.set('Cache-Control', 'public, max-age=0, must-revalidate, s-maxage=86400');
 

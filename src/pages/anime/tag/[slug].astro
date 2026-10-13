@@ -2,7 +2,7 @@
 // src/pages/anime/tag/[slug].astro
 import BaseLayout from '../../../layouts/BaseLayout.astro';
 import AnimeCard from '../../../components/AnimeCard.astro';
-import { getCompactAnimeList, getVibeBySlug, getAllVibes } from '../../../lib/d1.js';
+import { getCompactAnimeList, getAllVibes } from '../../../lib/d1.js';
 import { siteConfig } from '../../../config/site.js';
 
 export const prerender = false;
@@ -11,13 +11,17 @@ const { slug } = Astro.params;
 if (!slug) {
   return new Response('Not Found', { status: 404 });
 }
-const vibe = await getVibeBySlug(slug, Astro.locals);
+
+const [allVibes, animeList] = await Promise.all([
+  getAllVibes(Astro.locals),
+  getCompactAnimeList(Astro.locals)
+]);
+
+const vibe = allVibes.find((v: any) => v.slug === slug || v.id === slug);
 
 if (!vibe) {
   return new Response('Not Found', { status: 404 });
 }
-
-const animeList = await getCompactAnimeList(Astro.locals);
 
 // Filter matching anime for this vibe
 const matchingAnime = animeList.filter((a: any) => a.vibes && a.vibes.includes(vibe.id));
@@ -36,7 +40,6 @@ const referenceCount = matchingAnime.filter((a: any) => a.honestyStatus === 'ref
 const zeroFillerCount = matchingAnime.filter((a: any) => a.fillerPercentage === 0).length;
 
 // Other vibes for quick browsing (only vibes that have at least one matching anime)
-const allVibes = await getAllVibes(Astro.locals);
 const otherVibes = allVibes.filter((v: any) => v.slug !== vibe.slug && animeList.some((a: any) => a.vibes && a.vibes.includes(v.id)));
 
 const siteOrigin = (siteConfig.siteUrl || (Astro.site ? Astro.site.origin : 'https://chitrasampada.com')).replace(/\/+$/, '');

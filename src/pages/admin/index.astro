@@ -20,9 +20,13 @@ interface AnimeRecord {
   [key: string]: any;
 }
 
-// Load anime list dynamically
-const animeList: AnimeRecord[] = (await getAllAnime(Astro.locals)) || [];
-const currentQuote: string = (await getSiteSetting('thought_of_the_week', 'Plant a tree if you get the chance — future you will thank present you.', Astro.locals)) || '';
+// Load anime list and settings concurrently
+const [animeListResult, currentQuoteResult] = await Promise.all([
+  getAllAnime(Astro.locals),
+  getSiteSetting('thought_of_the_week', 'Plant a tree if you get the chance — future you will thank present you.', Astro.locals)
+]);
+const animeList: AnimeRecord[] = (animeListResult as AnimeRecord[]) || [];
+const currentQuote: string = (currentQuoteResult as string) || '';
 
 const totalAnime: number = animeList.length;
 const totalWatched: number = animeList.filter((a: AnimeRecord) => a.honestyStatus === 'watched').length;

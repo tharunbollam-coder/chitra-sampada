@@ -1329,8 +1329,7 @@ export async function getBlogPostsForAnime(animeId, contextOrLocals = null) {
  */
 export async function getAnimeBySlugOrId(slugOrId, contextOrLocals = null) {
   if (!slugOrId) return null;
-  const list = await getAllAnime(contextOrLocals);
-  return list.find(a => a.slug === slugOrId || a.id === slugOrId || (a.aliases && a.aliases.includes(slugOrId))) || null;
+  return await getAnimeDetailBySlugOrId(slugOrId, contextOrLocals);
 }
 
 /**

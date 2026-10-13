@@ -69,10 +69,17 @@ export async function handleAdminApi({ request, locals, url, params }) {
     // -------------------------------------------------------------
     if (route === 'meta' && method === 'GET') {
       const db = await getDatabase(locals);
-      const genreRows = await db.query('SELECT DISTINCT genre FROM anime_genres ORDER BY genre ASC');
-      const animeList = await db.query('SELECT id, title, slug, year, status FROM anime ORDER BY title ASC');
-      const franchiseList = await db.query('SELECT id, name FROM franchises ORDER BY name ASC');
-      const vibesList = await getAllAdminVibes(locals).catch(() => []);
+      const [genresRes, animeRes, franchisesRes, vibesRes] = await Promise.allSettled([
+        db.query('SELECT DISTINCT genre FROM anime_genres ORDER BY genre ASC'),
+        db.query('SELECT id, title, slug, year, status FROM anime ORDER BY title ASC'),
+        db.query('SELECT id, name FROM franchises ORDER BY name ASC'),
+        getAllAdminVibes(locals)
+      ]);
+
+      const genreRows = genresRes.status === 'fulfilled' && Array.isArray(genresRes.value) ? genresRes.value : [];
+      const animeList = animeRes.status === 'fulfilled' && Array.isArray(animeRes.value) ? animeRes.value : [];
+      const franchiseList = franchisesRes.status === 'fulfilled' && Array.isArray(franchisesRes.value) ? franchisesRes.value : [];
+      const vibesList = vibesRes.status === 'fulfilled' && Array.isArray(vibesRes.value) ? vibesRes.value : [];
 
       return jsonResponse({
         success: true,

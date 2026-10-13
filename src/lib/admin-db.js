@@ -17,20 +17,35 @@ export async function getAnimeById(idOrSlug, contextOrLocals = null) {
   if (!animeRow) return null;
 
   const actualId = animeRow.id;
-  const aliases = (await db.query(`SELECT alias FROM anime_aliases WHERE anime_id = ?`, actualId)).map(r => r.alias);
-  const genres = (await db.query(`SELECT genre FROM anime_genres WHERE anime_id = ?`, actualId)).map(r => r.genre);
-  const vibes = (await db.query(`SELECT vibe_id FROM anime_vibes WHERE anime_id = ?`, actualId)).map(r => r.vibe_id);
-  
-  let fillerRows = [];
-  try {
-    fillerRows = await db.query(`
-      SELECT * 
-      FROM anime_filler_ranges 
-      WHERE anime_id = ?
-    `, actualId);
-  } catch (err) {
-    console.warn("Failed to query anime_filler_ranges in getAnimeById:", err?.message || err);
-  }
+
+  const [
+    aliasesRes,
+    genresRes,
+    vibesRes,
+    fillerRes,
+    charsRes,
+    mediaRes,
+    recsRes,
+    streamingRes
+  ] = await Promise.allSettled([
+    db.query(`SELECT alias FROM anime_aliases WHERE anime_id = ?`, actualId),
+    db.query(`SELECT genre FROM anime_genres WHERE anime_id = ?`, actualId),
+    db.query(`SELECT vibe_id FROM anime_vibes WHERE anime_id = ?`, actualId),
+    db.query(`SELECT * FROM anime_filler_ranges WHERE anime_id = ?`, actualId),
+    db.query(`SELECT id, rank, name, category, role, commentary FROM anime_characters WHERE anime_id = ? ORDER BY rank ASC`, actualId),
+    db.query(`SELECT id, section, title, badge, link_slug as linkSlug, editorial_note as editorialNote, item_order as itemOrder FROM anime_related_media WHERE anime_id = ? ORDER BY item_order ASC, id ASC`, actualId),
+    db.query(`SELECT id, target_anime_id as targetAnimeId, category_badge as categoryBadge, editorial_note as editorialNote, item_order as itemOrder FROM anime_recommendations WHERE anime_id = ? ORDER BY item_order ASC, id ASC`, actualId),
+    db.query(`SELECT id, platform_name as platformName, stream_url as streamUrl, logo_url as logoUrl, note, display_order as displayOrder, is_active as isActive FROM anime_streaming_platforms WHERE anime_id = ? ORDER BY display_order ASC, id ASC`, actualId)
+  ]);
+
+  const aliases = aliasesRes.status === 'fulfilled' && Array.isArray(aliasesRes.value) ? aliasesRes.value.map(r => r.alias) : [];
+  const genres = genresRes.status === 'fulfilled' && Array.isArray(genresRes.value) ? genresRes.value.map(r => r.genre) : [];
+  const vibes = vibesRes.status === 'fulfilled' && Array.isArray(vibesRes.value) ? vibesRes.value.map(r => r.vibe_id) : [];
+  const fillerRows = fillerRes.status === 'fulfilled' && Array.isArray(fillerRes.value) ? fillerRes.value : [];
+  const characters = charsRes.status === 'fulfilled' && Array.isArray(charsRes.value) ? charsRes.value : [];
+  const relatedMedia = mediaRes.status === 'fulfilled' && Array.isArray(mediaRes.value) ? mediaRes.value : [];
+  const recommendations = recsRes.status === 'fulfilled' && Array.isArray(recsRes.value) ? recsRes.value : [];
+  const streamingPlatforms = streamingRes.status === 'fulfilled' && Array.isArray(streamingRes.value) ? streamingRes.value : [];
 
   const getEp = (t) => {
     const row = fillerRows.find(r => r.type === t);
@@ -62,49 +77,6 @@ export async function getAnimeById(idOrSlug, contextOrLocals = null) {
     ? Math.round((countFiller / totalBreakdownEpisodes) * 100)
     : (animeRow.filler_percentage || 0);
   const effectiveEpisodes = totalBreakdownEpisodes > 0 ? totalBreakdownEpisodes : animeRow.episodes;
-
-  const characters = await db.query(`
-    SELECT id, rank, name, category, role, commentary 
-    FROM anime_characters 
-    WHERE anime_id = ? 
-    ORDER BY rank ASC
-  `, actualId);
-
-  let relatedMedia = [];
-  try {
-    relatedMedia = await db.query(`
-      SELECT id, section, title, badge, link_slug as linkSlug, editorial_note as editorialNote, item_order as itemOrder
-      FROM anime_related_media
-      WHERE anime_id = ?
-      ORDER BY item_order ASC, id ASC
-    `, actualId);
-  } catch (err) {
-    console.warn("Failed to query anime_related_media in getAnimeById:", err?.message || err);
-  }
-
-  let recommendations = [];
-  try {
-    recommendations = await db.query(`
-      SELECT id, target_anime_id as targetAnimeId, category_badge as categoryBadge, editorial_note as editorialNote, item_order as itemOrder
-      FROM anime_recommendations
-      WHERE anime_id = ?
-      ORDER BY item_order ASC, id ASC
-    `, actualId);
-  } catch (err) {
-    console.warn("Failed to query anime_recommendations in getAnimeById:", err?.message || err);
-  }
-
-  let streamingPlatforms = [];
-  try {
-    streamingPlatforms = await db.query(`
-      SELECT id, platform_name as platformName, stream_url as streamUrl, logo_url as logoUrl, note, display_order as displayOrder, is_active as isActive
-      FROM anime_streaming_platforms
-      WHERE anime_id = ?
-      ORDER BY display_order ASC, id ASC
-    `, actualId);
-  } catch (err) {
-    console.warn("Failed to query anime_streaming_platforms in getAnimeById:", err?.message || err);
-  }
 
   const reviewText = animeRow.review_paragraphs || '';
   const powerText = animeRow.power_system_paragraphs || '';

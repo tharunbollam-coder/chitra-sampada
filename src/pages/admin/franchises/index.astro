@@ -2,10 +2,12 @@
 // src/pages/admin/franchises/index.astro
 import AdminLayout from '../../../layouts/AdminLayout.astro';
 import { getAllFranchises } from '../../../lib/admin-db.js';
-import { getAllAnime } from '../../../lib/d1.js';
+import { getCompactAnimeList } from '../../../lib/d1.js';
 
-const franchises = await getAllFranchises(Astro.locals);
-const animeList = await getAllAnime(Astro.locals);
+const [franchises, animeList] = await Promise.all([
+  getAllFranchises(Astro.locals),
+  getCompactAnimeList(Astro.locals)
+]);
 ---
 
 <AdminLayout title="Franchises & Watch Orders" activeSection="franchises">

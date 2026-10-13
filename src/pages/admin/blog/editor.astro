@@ -2,17 +2,15 @@
 // src/pages/admin/blog/editor.astro
 import AdminLayout from '../../../layouts/AdminLayout.astro';
 import { getAdminBlogPostById } from '../../../lib/admin-db.js';
-import { getAllAnime } from '../../../lib/d1.js';
+import { getCompactAnimeList } from '../../../lib/d1.js';
 
 const url = new URL(Astro.request.url);
 const postId = url.searchParams.get('id');
 
-let post = null;
-if (postId) {
-  post = await getAdminBlogPostById(postId, Astro.locals);
-}
-
-const animeList = await getAllAnime(Astro.locals);
+const [post, animeList] = await Promise.all([
+  postId ? getAdminBlogPostById(postId, Astro.locals) : Promise.resolve(null),
+  getCompactAnimeList(Astro.locals)
+]);
 
 const isNew = !post;
 const todayStr = new Date().toISOString().split('T')[0];
