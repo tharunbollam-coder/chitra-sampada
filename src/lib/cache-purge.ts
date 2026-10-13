@@ -1,7 +1,6 @@
 // src/lib/cache-purge.ts
 // Centralized Cloudflare Edge Cache Purge Utility
 
-import { env } from 'cloudflare:workers';
 import { siteConfig } from '../config/site.js';
 import {
   getDatabase,
@@ -35,48 +34,51 @@ const DEFAULT_ZONE_ID = 'cc8324c00d976c043a712bbeeaead711';
 const DEFAULT_SITE_URL = 'https://chitrasampada.com';
 
 /**
+ * Safely resolves environment variables and Cloudflare bindings.
+ * Dynamically imports 'cloudflare:workers' env with fallback to process.env and import.meta.env.
+ * Never accesses Astro.locals.runtime or context.runtime (removed in Astro v6).
+ */
+export async function resolveEnv(contextOrLocals?: any): Promise<Record<string, any>> {
+  let cfEnv: Record<string, any> = {};
+  try {
+    const cf = await import('cloudflare:workers');
+    if (cf?.env && typeof cf.env === 'object') {
+      cfEnv = cf.env;
+    }
+  } catch {}
+
+  const procEnv: Record<string, any> = (typeof process !== 'undefined' && process.env) ? process.env : {};
+  const metaEnv: Record<string, any> = (typeof import.meta !== 'undefined' && (import.meta as any).env) ? (import.meta as any).env : {};
+  const globalEnv: Record<string, any> = (typeof globalThis !== 'undefined' && (globalThis as any).env) ? (globalThis as any).env : {};
+  const localsEnv: Record<string, any> = (contextOrLocals && typeof contextOrLocals === 'object' && contextOrLocals.env) ? contextOrLocals.env : {};
+
+  return {
+    ...globalEnv,
+    ...metaEnv,
+    ...procEnv,
+    ...localsEnv,
+    ...cfEnv
+  };
+}
+
+/**
  * Extract Cloudflare credentials and public site URL from Cloudflare Workers env and fallbacks.
  */
-export function getCloudflareConfig(contextOrLocals?: any): CloudflareConfig {
-  const procEnv = typeof process !== 'undefined' ? process.env : {};
-  const metaEnv: Record<string, any> = (typeof import.meta !== 'undefined' && import.meta.env ? import.meta.env : {}) as Record<string, any>;
-  const cfEnv: Record<string, any> = (typeof env !== 'undefined' && env) ? env : {};
-  const localsEnv: Record<string, any> = (
-    contextOrLocals?.runtime?.env ||
-    contextOrLocals?.locals?.runtime?.env ||
-    contextOrLocals?.env ||
-    contextOrLocals?.locals?.env ||
-    {}
-  );
-  const globalEnv: Record<string, any> = (typeof globalThis !== 'undefined' && (globalThis as any).env) ? (globalThis as any).env : {};
+export async function getCloudflareConfig(contextOrLocals?: any): Promise<CloudflareConfig> {
+  const envMap = await resolveEnv(contextOrLocals);
 
   const zoneId = (
-    localsEnv.CLOUDFLARE_ZONE_ID ||
-    cfEnv.CLOUDFLARE_ZONE_ID ||
-    procEnv.CLOUDFLARE_ZONE_ID ||
-    metaEnv.CLOUDFLARE_ZONE_ID ||
-    globalEnv.CLOUDFLARE_ZONE_ID ||
+    envMap.CLOUDFLARE_ZONE_ID ||
     DEFAULT_ZONE_ID
   ).toString().trim();
 
-  const rawApiToken = (
-    contextOrLocals?.runtime?.env?.CLOUDFLARE_API_TOKEN ||
-    contextOrLocals?.locals?.runtime?.env?.CLOUDFLARE_API_TOKEN ||
-    localsEnv.CLOUDFLARE_API_TOKEN ||
-    procEnv.CLOUDFLARE_API_TOKEN ||
-    cfEnv.CLOUDFLARE_API_TOKEN ||
-    metaEnv.CLOUDFLARE_API_TOKEN ||
-    globalEnv.CLOUDFLARE_API_TOKEN ||
+  const apiToken = (
+    envMap.CLOUDFLARE_API_TOKEN ||
     ''
-  ).toString().trim();
-
-  const apiToken = rawApiToken || undefined;
+  ).toString().trim() || undefined;
 
   let siteUrl = (
-    localsEnv.PUBLIC_SITE_URL ||
-    cfEnv.PUBLIC_SITE_URL ||
-    procEnv.PUBLIC_SITE_URL ||
-    metaEnv.PUBLIC_SITE_URL ||
+    envMap.PUBLIC_SITE_URL ||
     siteConfig.siteUrl ||
     DEFAULT_SITE_URL
   ).toString().trim().replace(/\/+$/, '');
@@ -154,14 +156,14 @@ export async function purgeCloudflareCache(
 
     // Invalidate Workers runtime cache if active
     try {
-      const ctx = locals?.runtime?.ctx || locals?.ctx || contextOrLocals?.runtime?.ctx;
-      if (ctx?.cache && typeof ctx.cache.purge === 'function') {
-        await ctx.cache.purge({ purgeEverything: true });
+      const cf = await import('cloudflare:workers');
+      if (cf && typeof (cf as any).cache?.purge === 'function') {
+        await (cf as any).cache.purge({ purgeEverything: true });
         console.log('[Cache Purge] Successfully purged Workers runtime cache.');
       }
     } catch {}
 
-    const { zoneId, apiToken, siteUrl } = getCloudflareConfig(locals);
+    const { zoneId, apiToken, siteUrl } = await getCloudflareConfig(locals);
 
     if (!zoneId || !apiToken) {
       console.warn(

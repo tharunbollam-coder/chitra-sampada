@@ -92,4 +92,4 @@ Consult these guides before working on related tasks:
 
 5. **Zero Secret Hardcoding:**
    - NEVER hardcode API keys, auth tokens, passwords, or values from `.env` into tracked source code (`.ts`, `.js`, `wrangler.toml`).
-   - Secrets must ONLY be accessed dynamically via environment variables (`runtime.env` or `process.env`).
+   - Secrets must ONLY be accessed dynamically via environment variables (`cloudflare:workers` `env` or `process.env`).

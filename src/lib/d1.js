@@ -1152,7 +1152,7 @@ export async function getAllBlogPosts(optionsOrContext = {}, contextOrLocals = n
   let ctx = contextOrLocals;
 
   if (optionsOrContext) {
-    if (optionsOrContext.runtime || optionsOrContext.locals || optionsOrContext.env || optionsOrContext.DB || optionsOrContext.prepare) {
+    if (optionsOrContext.locals || optionsOrContext.env || optionsOrContext.DB || optionsOrContext.prepare) {
       ctx = optionsOrContext;
     } else {
       if (typeof optionsOrContext.includeDrafts === 'boolean') {
@@ -1244,7 +1244,7 @@ export async function getBlogPostBySlug(slug, optionsOrContext = {}, contextOrLo
 
   let includeDrafts = false;
   let ctx = contextOrLocals;
-  if (optionsOrContext?.runtime || optionsOrContext?.locals || optionsOrContext?.env || optionsOrContext?.DB || optionsOrContext?.prepare) {
+  if (optionsOrContext?.locals || optionsOrContext?.env || optionsOrContext?.DB || optionsOrContext?.prepare) {
     ctx = optionsOrContext;
   } else if (typeof optionsOrContext?.includeDrafts === 'boolean') {
     includeDrafts = optionsOrContext.includeDrafts;
