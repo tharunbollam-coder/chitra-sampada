@@ -14,6 +14,7 @@ interface AnimeRecord {
   status?: string;
   honestyStatus?: string;
   personalRating?: number | string | null;
+  addedDate?: string;
   lastUpdated?: string;
   trending?: boolean | number;
   fillerPercentage?: number;
@@ -25,8 +26,18 @@ const [animeListResult, currentQuoteResult] = await Promise.all([
   getAllAnime(Astro.locals),
   getSiteSetting('thought_of_the_week', 'Plant a tree if you get the chance — future you will thank present you.', Astro.locals)
 ]);
-const animeList: AnimeRecord[] = (animeListResult as AnimeRecord[]) || [];
+const animeListRaw: AnimeRecord[] = (animeListResult as AnimeRecord[]) || [];
 const currentQuote: string = (currentQuoteResult as string) || '';
+
+// Default sort: most recently added anime at the top (latest addedDate / created_at)
+const animeList: AnimeRecord[] = [...animeListRaw].sort((a, b) => {
+  const dateA = a.addedDate || a.created_at || '';
+  const dateB = b.addedDate || b.created_at || '';
+  if (dateA && dateB) return dateB.localeCompare(dateA);
+  if (dateA) return -1;
+  if (dateB) return 1;
+  return 0;
+});
 
 const totalAnime: number = animeList.length;
 const totalWatched: number = animeList.filter((a: AnimeRecord) => a.honestyStatus === 'watched').length;
@@ -150,20 +161,42 @@ const totalTrending: number = animeList.filter((a: AnimeRecord) => Boolean(a.tre
     </div>
   </div>
 
-  <!-- Search and Filter Bar -->
-  <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 mb-6">
-    <div class="relative">
-      <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-        </svg>
+  <!-- Search and Sort Filter Bar -->
+  <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3.5 sm:p-4 mb-6 shadow-sm">
+    <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+      <!-- Search Input -->
+      <div class="relative flex-1 min-w-0">
+        <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
+          <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+        </div>
+        <input
+          type="text"
+          id="anime-search"
+          placeholder="Filter anime by title, ID, or slug..."
+          class="w-full pl-10 pr-4 py-2 sm:py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-white placeholder-slate-500 text-xs sm:text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition"
+        />
       </div>
-      <input
-        type="text"
-        id="anime-search"
-        placeholder="Filter anime by title, ID, or slug..."
-        class="w-full pl-10 pr-4 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-white placeholder-slate-500 text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition"
-      />
+
+      <!-- Quick Sort Filter -->
+      <div class="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+        <label for="anime-sort" class="text-xs font-semibold text-slate-400 uppercase tracking-wider shrink-0 flex items-center gap-1.5">
+          <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12" />
+          </svg>
+          <span>Sort:</span>
+        </label>
+        <select
+          id="anime-sort"
+          class="px-3 py-2 sm:py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-xs sm:text-sm font-medium text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition cursor-pointer"
+        >
+          <option value="recent-added" selected>Recently Added</option>
+          <option value="recent-updated">Recently Updated</option>
+          <option value="title-az">Title (A–Z)</option>
+          <option value="highest-rated">Highest Rated</option>
+        </select>
+      </div>
     </div>
   </div>
 
@@ -176,22 +209,34 @@ const totalTrending: number = animeList.filter((a: AnimeRecord) => Boolean(a.tre
             <th scope="col" class="py-3.5 px-4 sm:px-6">Title & ID</th>
             <th scope="col" class="py-3.5 px-4 hidden sm:table-cell">Year & Eps</th>
             <th scope="col" class="py-3.5 px-4">Status & Honesty</th>
-            <th scope="col" class="py-3.5 px-4 hidden md:table-cell">Rating</th>
+            <th scope="col" class="py-3.5 px-4 hidden md:table-cell">Added</th>
             <th scope="col" class="py-3.5 px-4 hidden lg:table-cell">Updated</th>
             <th scope="col" class="py-3.5 px-4 text-right">Actions</th>
           </tr>
         </thead>
         <tbody id="anime-tbody" class="divide-y divide-slate-800/80 font-normal">
           {animeList.map((anime: AnimeRecord) => (
-            <tr class="hover:bg-slate-800/40 transition anime-row" data-search={`${anime.title} ${anime.id} ${anime.slug}`.toLowerCase()}>
+            <tr
+              class="hover:bg-slate-800/40 transition anime-row"
+              data-search={`${anime.title} ${anime.id} ${anime.slug}`.toLowerCase()}
+              data-title={anime.title?.toLowerCase() || ''}
+              data-added={anime.addedDate || anime.created_at || ''}
+              data-updated={anime.lastUpdated || ''}
+              data-rating={anime.personalRating !== null && anime.personalRating !== undefined ? anime.personalRating : -1}
+            >
               <td class="py-4 px-4 sm:px-6">
-                <div class="font-semibold text-white text-base leading-snug flex items-center gap-2">
+                <div class="font-semibold text-white text-base leading-snug flex flex-wrap items-center gap-2">
                   <span>{anime.title}</span>
                   {anime.type === 'movie' && (
-                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-950/80 text-purple-300 border border-purple-800/80">
+                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-950/80 text-purple-300 border border-purple-800/80 shrink-0">
                       Movie
                     </span>
                   )}
+                  {anime.personalRating !== null && anime.personalRating !== undefined && anime.personalRating !== '' ? (
+                    <span class="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-amber-950/70 text-amber-300 border border-amber-700/60 shrink-0 shadow-xs" title={`Rating: ${anime.personalRating}/10`}>
+                      <span class="text-amber-400">★</span> {anime.personalRating}
+                    </span>
+                  ) : null}
                 </div>
                 <div class="flex items-center gap-2 mt-1 text-xs text-slate-400 font-mono">
                   <span>id: {anime.id}</span>
@@ -225,14 +270,10 @@ const totalTrending: number = animeList.filter((a: AnimeRecord) => Boolean(a.tre
                   )}
                 </div>
               </td>
-              <td class="py-4 px-4 hidden md:table-cell">
-                {anime.personalRating !== null && anime.personalRating !== undefined ? (
-                  <span class="font-semibold text-amber-400">★ {anime.personalRating}/10</span>
-                ) : (
-                  <span class="text-slate-500">—</span>
-                )}
+              <td class="py-4 px-4 hidden md:table-cell text-xs text-slate-400 whitespace-nowrap">
+                {anime.addedDate || '—'}
               </td>
-              <td class="py-4 px-4 hidden lg:table-cell text-xs text-slate-400">
+              <td class="py-4 px-4 hidden lg:table-cell text-xs text-slate-400 whitespace-nowrap">
                 {anime.lastUpdated || '—'}
               </td>
               <td class="py-4 px-4 text-right whitespace-nowrap">
@@ -288,31 +329,72 @@ const totalTrending: number = animeList.filter((a: AnimeRecord) => Boolean(a.tre
     </div>
   </div>
 
-  <!-- Client search and delete logic -->
+  <!-- Client search, sort, and delete logic -->
   <script is:inline>
-    // Real-time title & slug search filter
+    // Real-time title & slug search filter and dropdown sorting
     const searchInput = document.getElementById('anime-search');
-    const rows = document.querySelectorAll('.anime-row');
+    const sortSelect = document.getElementById('anime-sort');
+    const tbody = document.getElementById('anime-tbody');
     const noResults = document.getElementById('no-filter-results');
 
-    if (searchInput) {
-      searchInput.addEventListener('input', (e) => {
-        const query = e.target.value.trim().toLowerCase();
-        let visibleCount = 0;
+    function filterRows() {
+      const query = (searchInput ? searchInput.value : '').trim().toLowerCase();
+      let visibleCount = 0;
+      const allRows = document.querySelectorAll('.anime-row');
 
-        rows.forEach((row) => {
-          const text = row.getAttribute('data-search') || '';
-          if (!query || text.includes(query)) {
-            row.style.display = '';
-            visibleCount++;
-          } else {
-            row.style.display = 'none';
-          }
-        });
-
-        if (noResults) {
-          noResults.classList.toggle('hidden', visibleCount > 0);
+      allRows.forEach((row) => {
+        const text = row.getAttribute('data-search') || '';
+        if (!query || text.includes(query)) {
+          row.style.display = '';
+          visibleCount++;
+        } else {
+          row.style.display = 'none';
         }
+      });
+
+      if (noResults) {
+        noResults.classList.toggle('hidden', visibleCount > 0);
+      }
+    }
+
+    function applySort(sortKey) {
+      if (!tbody) return;
+      const rowsArray = Array.from(tbody.querySelectorAll('.anime-row'));
+
+      rowsArray.sort((a, b) => {
+        if (sortKey === 'recent-added') {
+          const dateA = a.getAttribute('data-added') || '';
+          const dateB = b.getAttribute('data-added') || '';
+          if (dateA && dateB) return dateB.localeCompare(dateA);
+          return dateA ? -1 : (dateB ? 1 : 0);
+        } else if (sortKey === 'recent-updated') {
+          const dateA = a.getAttribute('data-updated') || '';
+          const dateB = b.getAttribute('data-updated') || '';
+          if (dateA && dateB) return dateB.localeCompare(dateA);
+          return dateA ? -1 : (dateB ? 1 : 0);
+        } else if (sortKey === 'title-az') {
+          const titleA = a.getAttribute('data-title') || '';
+          const titleB = b.getAttribute('data-title') || '';
+          return titleA.localeCompare(titleB);
+        } else if (sortKey === 'highest-rated') {
+          const rateA = parseFloat(a.getAttribute('data-rating') || '-1');
+          const rateB = parseFloat(b.getAttribute('data-rating') || '-1');
+          return rateB - rateA;
+        }
+        return 0;
+      });
+
+      rowsArray.forEach(row => tbody.appendChild(row));
+    }
+
+    if (searchInput) {
+      searchInput.addEventListener('input', filterRows);
+    }
+
+    if (sortSelect) {
+      sortSelect.addEventListener('change', (e) => {
+        applySort(e.target.value);
+        filterRows();
       });
     }
 
@@ -339,6 +421,7 @@ const totalTrending: number = animeList.filter((a: AnimeRecord) => Boolean(a.tre
             // Remove row from table
             const row = btn.closest('tr');
             if (row) row.remove();
+            filterRows();
           } else {
             window.showAdminToast(data.error || 'Failed to delete anime', 'error');
           }

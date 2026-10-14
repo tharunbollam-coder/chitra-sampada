@@ -33,300 +33,288 @@ const [franchises, animeList] = await Promise.all([
     </div>
   </div>
 
-  <!-- Franchise Creation Form (Collapsible Modal or Banner) -->
-  <div id="new-franchise-panel" class="hidden my-6 p-4 sm:p-6 bg-slate-900 border border-indigo-500/50 rounded-2xl shadow-xl">
-    <div class="flex items-center justify-between mb-4">
-      <h2 class="text-lg font-bold text-white font-heading">Create New Franchise</h2>
-      <button type="button" id="btn-close-new-panel" class="text-slate-400 hover:text-white">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-      </button>
-    </div>
-    <form id="form-new-franchise" class="space-y-4">
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div>
-          <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5" for="new-f-id">
-            Franchise ID <span class="text-rose-400">*</span>
-          </label>
-          <input
-            type="text"
-            id="new-f-id"
-            placeholder="e.g. frieren, naruto, fate"
-            required
-            class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-sm font-mono text-white focus:outline-none focus:border-indigo-500"
-          />
-        </div>
-        <div>
-          <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5" for="new-f-name">
-            Franchise Name <span class="text-rose-400">*</span>
-          </label>
-          <input
-            type="text"
-            id="new-f-name"
-            placeholder="e.g. Frieren Franchise, Fate Series"
-            required
-            class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-sm text-white focus:outline-none focus:border-indigo-500"
-          />
-        </div>
-      </div>
-      <div>
-        <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5" for="new-f-desc">
-          Description (Optional)
-        </label>
-        <textarea
-          id="new-f-desc"
-          rows="2"
-          placeholder="Summary of the franchise and continuity..."
-          class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-sm text-white focus:outline-none focus:border-indigo-500"
-        ></textarea>
-      </div>
-      <div class="flex justify-end gap-3 pt-2">
-        <button
-          type="button"
-          id="btn-cancel-new"
-          class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-sm font-medium transition"
-        >
-          Cancel
-        </button>
-        <button
-          type="submit"
-          class="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-sm font-semibold transition"
-        >
-          Create Franchise
-        </button>
-      </div>
-    </form>
-  </div>
-
   <!-- Franchises List -->
   <div class="mt-8 space-y-6" id="franchises-list">
-    {franchises.map((franchise: any) => (
-      <div
-        class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-sm franchise-card"
-        data-franchise-id={franchise.id}
-      >
-        <!-- Franchise Header Bar -->
-        <div class="p-4 sm:p-6 bg-slate-900/90 border-b border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <div class="flex items-center gap-3">
-              <h2 class="text-xl font-bold font-heading text-white">{franchise.name}</h2>
-              <span class="text-xs font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">
-                {franchise.id}
-              </span>
-            </div>
-            {franchise.description && (
-              <p class="text-xs text-slate-400 mt-1 max-w-2xl">{franchise.description}</p>
-            )}
-          </div>
-
-          <div class="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              class="btn-save-franchise inline-flex items-center gap-1.5 px-3.5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-xl shadow-sm transition"
-              data-id={franchise.id}
-            >
-              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-              </svg>
-              <span>Save Changes</span>
-            </button>
-            <button
-              type="button"
-              class="btn-delete-franchise p-2 text-slate-400 hover:text-rose-400 hover:bg-rose-950/30 rounded-xl transition"
-              data-id={franchise.id}
-              data-name={franchise.name}
-              title="Delete franchise"
-            >
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-              </svg>
-            </button>
-          </div>
-        </div>
-
-        <!-- Inline feedback banner -->
-        <div class="franchise-feedback hidden mx-4 sm:mx-6 mt-4 p-3 rounded-xl text-xs sm:text-sm font-medium border"></div>
-
-        <!-- Watch Order Steps Section -->
-        <div class="p-4 sm:p-6">
-          <div class="flex items-center justify-between mb-4">
+    {franchises.map((franchise: any) => {
+      const stepCount = franchise.steps?.length || 0;
+      return (
+        <div
+          class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-sm franchise-card"
+          data-franchise-id={franchise.id}
+        >
+          <!-- Franchise Header Bar (Clickable Accordion Header) -->
+          <div
+            class="franchise-card-header p-4 sm:p-6 bg-slate-900/90 hover:bg-slate-850/60 transition cursor-pointer select-none flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+          >
             <div>
-              <h3 class="text-sm font-semibold text-slate-300 uppercase tracking-wider">Chronological Watch Roadmap</h3>
-              <p class="text-xs text-slate-500 mt-0.5">Use the Up/Down buttons to reorder entries on any device.</p>
+              <div class="flex items-center gap-3">
+                <h2 class="text-xl font-bold font-heading text-white">{franchise.name}</h2>
+                <span class="text-xs font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">
+                  {franchise.id}
+                </span>
+              </div>
+              {franchise.description && (
+                <p class="franchise-desc-display text-xs text-slate-400 mt-1 max-w-2xl">{franchise.description}</p>
+              )}
             </div>
-            <button
-              type="button"
-              class="btn-add-step text-xs px-3 py-1.5 bg-indigo-600/20 text-indigo-300 border border-indigo-500/40 rounded-lg hover:bg-indigo-600/30 font-semibold flex items-center gap-1 shrink-0"
-              data-franchise-id={franchise.id}
-            >
-              + Add Step
-            </button>
+
+            <div class="flex items-center gap-2.5 shrink-0 self-end sm:self-center">
+              <span class="step-count-badge text-xs px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 font-medium border border-slate-700/80">
+                {stepCount} {stepCount === 1 ? 'Step' : 'Steps'}
+              </span>
+
+              <button
+                type="button"
+                class="btn-delete-franchise p-2 text-slate-400 hover:text-rose-400 hover:bg-rose-950/30 rounded-xl transition cursor-pointer"
+                data-id={franchise.id}
+                data-name={franchise.name}
+                title="Delete franchise"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </button>
+
+              <svg
+                class="w-5 h-5 text-slate-400 transform transition-transform duration-200 franchise-chevron"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
           </div>
 
-          <div class="space-y-2.5 steps-container" data-franchise-id={franchise.id}>
-            {franchise.steps.map((step: any, idx: number) => (
-              <div class="p-3 bg-slate-950 border border-slate-800 rounded-xl step-row space-y-2">
-                <div class="flex flex-wrap sm:flex-nowrap items-center gap-2">
-                  <!-- Reorder Controls: Up / Down -->
-                  <div class="flex items-center gap-1.5 shrink-0">
-                    <div class="flex flex-col gap-0.5 shrink-0">
-                      <button
-                        type="button"
-                        class="btn-step-up p-1 text-slate-400 hover:text-white hover:bg-slate-800 rounded transition"
-                        title="Move step up"
-                      >
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"/></svg>
-                      </button>
-                      <button
-                        type="button"
-                        class="btn-step-down p-1 text-slate-400 hover:text-white hover:bg-slate-800 rounded transition"
-                        title="Move step down"
-                      >
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
-                      </button>
+          <!-- Watch Order Steps Section (Collapsible Body, Collapsed by Default) -->
+          <div class="franchise-card-body p-4 sm:p-6 border-t border-slate-800/80 hidden">
+            <div class="flex items-center justify-between mb-4">
+              <div>
+                <h3 class="text-sm font-semibold text-slate-300 uppercase tracking-wider">Chronological Watch Roadmap</h3>
+                <p class="text-xs text-slate-500 mt-0.5">Use the Up/Down buttons to reorder entries on any device.</p>
+              </div>
+            </div>
+
+            <div class="space-y-2.5 steps-container" data-franchise-id={franchise.id}>
+              {franchise.steps.map((step: any, idx: number) => (
+                <div class="p-3 bg-slate-950 border border-slate-800 rounded-xl step-row space-y-2">
+                  <div class="flex flex-wrap sm:flex-nowrap items-center gap-2">
+                    <!-- Reorder Controls: Up / Down -->
+                    <div class="flex items-center gap-1.5 shrink-0">
+                      <div class="flex flex-col gap-0.5 shrink-0">
+                        <button
+                          type="button"
+                          class="btn-step-up p-1 text-slate-400 hover:text-white hover:bg-slate-800 rounded transition cursor-pointer"
+                          title="Move step up"
+                        >
+                          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"/></svg>
+                        </button>
+                        <button
+                          type="button"
+                          class="btn-step-down p-1 text-slate-400 hover:text-white hover:bg-slate-800 rounded transition cursor-pointer"
+                          title="Move step down"
+                        >
+                          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                        </button>
+                      </div>
+
+                      <!-- Step index badge -->
+                      <span class="w-6 h-6 rounded bg-slate-800 text-slate-300 font-bold text-xs flex items-center justify-center shrink-0 step-number-badge">
+                        {idx + 1}
+                      </span>
                     </div>
 
-                    <!-- Step index badge -->
-                    <span class="w-6 h-6 rounded bg-slate-800 text-slate-300 font-bold text-xs flex items-center justify-center shrink-0 step-number-badge">
-                      {idx + 1}
-                    </span>
-                  </div>
-
-                  <!-- Title -->
-                  <input
-                    type="text"
-                    value={step.title}
-                    placeholder="Entry Title (e.g. Season 1)"
-                    class="step-title flex-1 min-w-[150px] px-3 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-xs sm:text-sm text-white font-medium"
-                    required
-                  />
-
-                  <!-- Type, Episodes, Delete button wrapper -->
-                  <div class="flex items-center gap-1.5 shrink-0 ml-auto sm:ml-0">
-                    <select class="step-type px-2.5 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-xs text-white shrink-0">
-                      <option value="TV Series" selected={step.type === 'TV Series'}>TV Series</option>
-                      <option value="Movie" selected={step.type === 'Movie'}>Movie</option>
-                      <option value="OVA" selected={step.type === 'OVA'}>OVA</option>
-                      <option value="Special" selected={step.type === 'Special'}>Special</option>
-                    </select>
-
+                    <!-- Title -->
                     <input
                       type="text"
-                      value={step.episodes}
-                      placeholder="28 eps"
-                      class="step-episodes w-16 sm:w-20 px-2 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-xs text-white"
+                      value={step.title}
+                      placeholder="Entry Title (e.g. Season 1)"
+                      class="step-title flex-1 min-w-[150px] px-3 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-xs sm:text-sm text-white font-medium"
+                      required
                     />
 
-                    <button
-                      type="button"
-                      class="btn-remove-step p-1.5 text-slate-500 hover:text-rose-400 rounded-lg hover:bg-slate-800 transition shrink-0"
-                      title="Remove step"
-                    >
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                    </button>
-                  </div>
-                </div>
+                    <!-- Type, Episodes, Delete button wrapper -->
+                    <div class="flex items-center gap-1.5 shrink-0 ml-auto sm:ml-0">
+                      <select class="step-type px-2.5 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-xs text-white shrink-0">
+                        <option value="TV Series" selected={step.type === 'TV Series'}>TV Series</option>
+                        <option value="Movie" selected={step.type === 'Movie'}>Movie</option>
+                        <option value="OVA" selected={step.type === 'OVA'}>OVA</option>
+                        <option value="Special" selected={step.type === 'Special'}>Special</option>
+                      </select>
 
-                <!-- Secondary details: Linked Anime ID & Note -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pl-0 sm:pl-9">
-                  <div>
-                    <select class="step-anime-id w-full px-2.5 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs text-slate-300">
-                      <option value="">Link to Catalog Anime (Optional)</option>
-                      {animeList.map((a: any) => (
-                        <option value={a.id} selected={step.animeId === a.id}>
-                          {a.title} ({a.id})
-                        </option>
-                      ))}
-                    </select>
+                      <input
+                        type="text"
+                        value={step.episodes}
+                        placeholder="28 eps"
+                        class="step-episodes w-16 sm:w-20 px-2 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-xs text-white"
+                      />
+
+                      <button
+                        type="button"
+                        class="btn-remove-step p-1.5 text-slate-500 hover:text-rose-400 rounded-lg hover:bg-slate-800 transition shrink-0 cursor-pointer"
+                        title="Remove step"
+                      >
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                      </button>
+                    </div>
                   </div>
-                  <div>
-                    <input
-                      type="text"
-                      value={step.note || ''}
-                      placeholder="Viewing note (e.g. Canon, optional, start here)"
-                      class="step-note w-full px-2.5 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs text-slate-300"
-                    />
+
+                  <!-- Secondary details: Linked Anime ID & Note -->
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pl-0 sm:pl-9">
+                    <div>
+                      <select class="step-anime-id w-full px-2.5 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs text-slate-300">
+                        <option value="">Link to Catalog Anime (Optional)</option>
+                        {animeList.map((a: any) => (
+                          <option value={a.id} selected={step.animeId === a.id}>
+                            {a.title} ({a.id})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <input
+                        type="text"
+                        value={step.note || ''}
+                        placeholder="Viewing note (e.g. Canon, optional, start here)"
+                        class="step-note w-full px-2.5 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs text-slate-300"
+                      />
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-            {franchise.steps.length === 0 && (
-              <div class="no-steps-placeholder text-center py-6 border border-dashed border-slate-800 rounded-xl text-xs text-slate-500">
-                No roadmap steps added yet. Click "+ Add Step" to begin.
-              </div>
-            )}
+              ))}
+              {franchise.steps.length === 0 && (
+                <div class="no-steps-placeholder text-center py-6 border border-dashed border-slate-800 rounded-xl text-xs text-slate-500">
+                  No roadmap steps added yet. Click "+ Add Step" to begin.
+                </div>
+              )}
+            </div>
+
+            <!-- Bottom actions: Add Step & Save Roadmap -->
+            <div class="mt-4 pt-3 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-3">
+              <button
+                type="button"
+                class="btn-add-step text-xs px-3.5 py-2 bg-indigo-600/20 text-indigo-300 border border-indigo-500/40 rounded-xl hover:bg-indigo-600/30 font-semibold flex items-center gap-1.5 shrink-0 cursor-pointer transition"
+                data-franchise-id={franchise.id}
+              >
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                <span>+ Add Step</span>
+              </button>
+
+              <button
+                type="button"
+                class="btn-save-franchise inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-xl shadow-sm transition cursor-pointer"
+                data-id={franchise.id}
+              >
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                <span>Save Changes</span>
+              </button>
+            </div>
           </div>
         </div>
-      </div>
-    ))}
+      );
+    })}
 
-    {franchises.length === 0 && (
-      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-12 text-center text-slate-400">
-        No franchises registered yet. Click "New Franchise" to create your first watch roadmap!
-      </div>
-    )}
+    <div
+      id="no-franchises-msg"
+      class={`bg-slate-900 border border-slate-800 rounded-2xl p-12 text-center text-slate-400 ${franchises.length === 0 ? '' : 'hidden'}`}
+    >
+      No franchises registered yet. Click "New Franchise" to create your first watch roadmap!
+    </div>
   </div>
 
-  <!-- Client-side Logic for Step Reordering, Adding, and Saving -->
+  <!-- Client-side Logic for Step Reordering, Adding, Collapsible Accordion, and Top Prepending -->
   <script is:inline define:vars={{ animeCatalog: animeList.map((a: any) => ({ id: a.id, title: a.title, type: a.type, episodes: a.episodes, runtime: a.runtime })) }}>
-    // Toggle New Franchise form
-    const btnCreate = document.getElementById('btn-create-franchise');
-    const panelNew = document.getElementById('new-franchise-panel');
-    const btnCloseNew = document.getElementById('btn-close-new-panel');
-    const btnCancelNew = document.getElementById('btn-cancel-new');
+    // Helper: Escape HTML strings for dynamic templates
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
 
-    btnCreate.addEventListener('click', () => panelNew.classList.remove('hidden'));
-    btnCloseNew.addEventListener('click', () => panelNew.classList.add('hidden'));
-    btnCancelNew.addEventListener('click', () => panelNew.classList.add('hidden'));
-
-    // Handle New Franchise Form Submit
-    const formNew = document.getElementById('form-new-franchise');
-    formNew.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const id = document.getElementById('new-f-id').value.trim();
-      const name = document.getElementById('new-f-name').value.trim();
-      const description = document.getElementById('new-f-desc').value.trim();
-
-      const submitBtn = formNew.querySelector('button[type="submit"]');
-      const origHtml = submitBtn ? submitBtn.innerHTML : '';
-      if (submitBtn) {
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = `<svg class="animate-spin w-4 h-4 text-white inline-block mr-1.5" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg><span>Creating...</span>`;
-      }
-
-      try {
-        const res = await fetch('/api/admin/franchises', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id, name, description, steps: [] })
-        });
-        const data = await res.json();
-        if (data.success) {
-          window.showAdminToast(`Created franchise "${name}"`, 'success');
-          window.location.reload();
-        } else {
-          window.showAdminToast(data.error || 'Failed to create franchise', 'error');
-        }
-      } catch (err) {
-        window.showAdminToast('Network error: ' + err.message, 'error');
-      } finally {
-        if (submitBtn) {
-          submitBtn.disabled = false;
-          submitBtn.innerHTML = origHtml;
-        }
-      }
-    });
-
-    // Helper: update step number badges
+    // Helper: update step number badges and franchise card step count
     function refreshStepNumbers(container) {
       const rows = container.querySelectorAll('.step-row');
       rows.forEach((row, i) => {
         const badge = row.querySelector('.step-number-badge');
-        if (badge) badge.textContent = i + 1;
+        if (badge) badge.textContent = String(i + 1);
       });
       const placeholder = container.querySelector('.no-steps-placeholder');
       if (placeholder) {
         placeholder.style.display = rows.length === 0 ? '' : 'none';
       }
+      const card = container.closest('.franchise-card');
+      if (card) {
+        const countBadge = card.querySelector('.step-count-badge');
+        if (countBadge) {
+          countBadge.textContent = `${rows.length} ${rows.length === 1 ? 'Step' : 'Steps'}`;
+        }
+      }
+    }
+
+    // Helper: Build a new step row element
+    function createStepRow(step = {}, num = 1) {
+      const div = document.createElement('div');
+      div.className = 'p-3 bg-slate-950 border border-slate-800 rounded-xl step-row space-y-2';
+
+      let animeOptions = '<option value="">Link to Catalog Anime (Optional)</option>';
+      animeCatalog.forEach((a) => {
+        const isSel = step.animeId && String(step.animeId) === String(a.id) ? 'selected' : '';
+        animeOptions += `<option value="${escapeHtml(a.id)}" ${isSel}>${escapeHtml(a.title)} (${escapeHtml(a.id)})</option>`;
+      });
+
+      const stepTitle = escapeHtml(step.title || '');
+      const stepType = step.type || 'TV Series';
+      const stepEpisodes = escapeHtml(step.episodes || '');
+      const stepNote = escapeHtml(step.note || '');
+
+      div.innerHTML = `
+        <div class="flex flex-wrap sm:flex-nowrap items-center gap-2">
+          <div class="flex items-center gap-1.5 shrink-0">
+            <div class="flex flex-col gap-0.5 shrink-0">
+              <button type="button" class="btn-step-up p-1 text-slate-400 hover:text-white hover:bg-slate-800 rounded transition cursor-pointer" title="Move step up">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"/></svg>
+              </button>
+              <button type="button" class="btn-step-down p-1 text-slate-400 hover:text-white hover:bg-slate-800 rounded transition cursor-pointer" title="Move step down">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+              </button>
+            </div>
+            <span class="w-6 h-6 rounded bg-slate-800 text-slate-300 font-bold text-xs flex items-center justify-center shrink-0 step-number-badge">
+              ${num}
+            </span>
+          </div>
+          <input type="text" value="${stepTitle}" placeholder="Entry Title (e.g. Season 1)" class="step-title flex-1 min-w-[150px] px-3 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-xs sm:text-sm text-white font-medium" required />
+          <div class="flex items-center gap-1.5 shrink-0 ml-auto sm:ml-0">
+            <select class="step-type px-2.5 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-xs text-white shrink-0">
+              <option value="TV Series" ${stepType === 'TV Series' ? 'selected' : ''}>TV Series</option>
+              <option value="Movie" ${stepType === 'Movie' ? 'selected' : ''}>Movie</option>
+              <option value="OVA" ${stepType === 'OVA' ? 'selected' : ''}>OVA</option>
+              <option value="Special" ${stepType === 'Special' ? 'selected' : ''}>Special</option>
+            </select>
+            <input type="text" value="${stepEpisodes}" placeholder="12 eps" class="step-episodes w-16 sm:w-20 px-2 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-xs text-white" />
+            <button type="button" class="btn-remove-step p-1.5 text-slate-500 hover:text-rose-400 rounded-lg hover:bg-slate-800 transition shrink-0 cursor-pointer" title="Remove step">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+            </button>
+          </div>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pl-0 sm:pl-9">
+          <div>
+            <select class="step-anime-id w-full px-2.5 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs text-slate-300">
+              ${animeOptions}
+            </select>
+          </div>
+          <div>
+            <input type="text" value="${stepNote}" placeholder="Viewing note (e.g. Canon, optional, start here)" class="step-note w-full px-2.5 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs text-slate-300" />
+          </div>
+        </div>
+      `;
+
+      return div;
     }
 
     // Auto-populate Step metadata when an Anime is selected from dropdown
@@ -384,162 +372,110 @@ const [franchises, animeList] = await Promise.all([
       }
     });
 
-    // Add Step to Franchise
-    document.querySelectorAll('.btn-add-step').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        const fid = btn.getAttribute('data-franchise-id');
-        const container = document.querySelector(`.steps-container[data-franchise-id="${fid}"]`);
+    // -----------------------------------------------------------------
+    // Unified Event Delegation on #franchises-list
+    // -----------------------------------------------------------------
+    const franchisesList = document.getElementById('franchises-list');
+
+    franchisesList.addEventListener('click', async (e) => {
+      // 1. Accordion Toggle on Card Header
+      const header = e.target.closest('.franchise-card-header');
+      if (header && !e.target.closest('button, input, select, textarea, a')) {
+        const card = header.closest('.franchise-card');
+        if (card) {
+          const body = card.querySelector('.franchise-card-body');
+          const chevron = header.querySelector('.franchise-chevron');
+          if (body) {
+            const isHidden = body.classList.contains('hidden');
+            body.classList.toggle('hidden', !isHidden);
+            if (chevron) chevron.classList.toggle('rotate-180', isHidden);
+          }
+        }
+        return;
+      }
+
+      // 2. Add Step
+      const addStepBtn = e.target.closest('.btn-add-step');
+      if (addStepBtn) {
+        const card = addStepBtn.closest('.franchise-card');
+        if (!card) return;
+        const container = card.querySelector('.steps-container');
         if (!container) return;
 
+        const placeholder = container.querySelector('.no-steps-placeholder');
+        if (placeholder) placeholder.style.display = 'none';
+
         const nextNum = container.querySelectorAll('.step-row').length + 1;
-        const div = document.createElement('div');
-        div.className = 'p-3 bg-slate-950 border border-slate-800 rounded-xl step-row space-y-2';
-
-        let animeOptions = `<option value="">Link to Catalog Anime (Optional)</option>`;
-        animeCatalog.forEach(a => {
-          animeOptions += `<option value="${a.id}">${a.title} (${a.id})</option>`;
-        });
-
-        div.innerHTML = `
-          <div class="flex flex-wrap sm:flex-nowrap items-center gap-2">
-            <div class="flex items-center gap-1.5 shrink-0">
-              <div class="flex flex-col gap-0.5 shrink-0">
-                <button type="button" class="btn-step-up p-1 text-slate-400 hover:text-white hover:bg-slate-800 rounded transition" title="Move step up">
-                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"/></svg>
-                </button>
-                <button type="button" class="btn-step-down p-1 text-slate-400 hover:text-white hover:bg-slate-800 rounded transition" title="Move step down">
-                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
-                </button>
-              </div>
-              <span class="w-6 h-6 rounded bg-slate-800 text-slate-300 font-bold text-xs flex items-center justify-center shrink-0 step-number-badge">
-                ${nextNum}
-              </span>
-            </div>
-            <input type="text" placeholder="Entry Title (e.g. Season 2)" class="step-title flex-1 min-w-[150px] px-3 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-xs sm:text-sm text-white font-medium" required />
-            <div class="flex items-center gap-1.5 shrink-0 ml-auto sm:ml-0">
-              <select class="step-type px-2.5 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-xs text-white shrink-0">
-                <option value="TV Series">TV Series</option>
-                <option value="Movie">Movie</option>
-                <option value="OVA">OVA</option>
-                <option value="Special">Special</option>
-              </select>
-              <input type="text" placeholder="12 eps" class="step-episodes w-16 sm:w-20 px-2 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-xs text-white" />
-              <button type="button" class="btn-remove-step p-1.5 text-slate-500 hover:text-rose-400 rounded-lg hover:bg-slate-800 transition shrink-0" title="Remove step">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-              </button>
-            </div>
-          </div>
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pl-0 sm:pl-9">
-            <div>
-              <select class="step-anime-id w-full px-2.5 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs text-slate-300">
-                ${animeOptions}
-              </select>
-            </div>
-            <div>
-              <input type="text" placeholder="Viewing note (e.g. Canon, optional, start here)" class="step-note w-full px-2.5 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs text-slate-300" />
-            </div>
-          </div>
-        `;
-
-        container.appendChild(div);
+        const stepRow = createStepRow({}, nextNum);
+        container.appendChild(stepRow);
         refreshStepNumbers(container);
-      });
-    });
 
-    // Delegation for Up/Down/Remove within steps containers
-    document.querySelectorAll('.steps-container').forEach((container) => {
-      container.addEventListener('click', (e) => {
-        const upBtn = e.target.closest('.btn-step-up');
-        const downBtn = e.target.closest('.btn-step-down');
-        const removeBtn = e.target.closest('.btn-remove-step');
+        const titleInput = stepRow.querySelector('.step-title');
+        if (titleInput) titleInput.focus();
+        return;
+      }
 
-        if (upBtn) {
-          const row = upBtn.closest('.step-row');
+      // 3. Move Step Up
+      const upBtn = e.target.closest('.btn-step-up');
+      if (upBtn) {
+        const row = upBtn.closest('.step-row');
+        const container = row?.closest('.steps-container');
+        if (row && container) {
           const prev = row.previousElementSibling;
           if (prev && prev.classList.contains('step-row')) {
             container.insertBefore(row, prev);
             refreshStepNumbers(container);
           }
-        } else if (downBtn) {
-          const row = downBtn.closest('.step-row');
+        }
+        return;
+      }
+
+      // 4. Move Step Down
+      const downBtn = e.target.closest('.btn-step-down');
+      if (downBtn) {
+        const row = downBtn.closest('.step-row');
+        const container = row?.closest('.steps-container');
+        if (row && container) {
           const next = row.nextElementSibling;
           if (next && next.classList.contains('step-row')) {
             container.insertBefore(next, row);
             refreshStepNumbers(container);
           }
-        } else if (removeBtn) {
-          const row = removeBtn.closest('.step-row');
+        }
+        return;
+      }
+
+      // 5. Remove Step
+      const removeBtn = e.target.closest('.btn-remove-step');
+      if (removeBtn) {
+        const row = removeBtn.closest('.step-row');
+        const container = row?.closest('.steps-container');
+        if (row && container) {
           row.remove();
           refreshStepNumbers(container);
         }
-      });
-    });
+        return;
+      }
 
-    // Save Franchise handler
-    document.querySelectorAll('.btn-save-franchise').forEach((btn) => {
-      btn.addEventListener('click', async () => {
-        const id = btn.getAttribute('data-id');
-        const card = document.querySelector(`.franchise-card[data-franchise-id="${id}"]`);
-        const feedback = card.querySelector('.franchise-feedback');
-        const container = card.querySelector('.steps-container');
+      // 6. Delete or Discard Franchise
+      const delBtn = e.target.closest('.btn-delete-franchise');
+      if (delBtn) {
+        const card = delBtn.closest('.franchise-card');
+        if (!card) return;
 
-        const stepRows = container.querySelectorAll('.step-row');
-        const steps = [];
-        stepRows.forEach((row) => {
-          const title = row.querySelector('.step-title').value.trim();
-          const type = row.querySelector('.step-type').value;
-          const episodes = row.querySelector('.step-episodes').value.trim();
-          const animeId = row.querySelector('.step-anime-id').value || null;
-          const note = row.querySelector('.step-note').value.trim() || null;
-
-          if (title) {
-            steps.push({ title, type, episodes, animeId, note });
+        // If uncommitted draft, discard immediately
+        if (card.dataset.isDraft === 'true') {
+          card.remove();
+          const remaining = franchisesList.querySelectorAll('.franchise-card');
+          if (remaining.length === 0) {
+            const emptyMsg = document.getElementById('no-franchises-msg');
+            if (emptyMsg) emptyMsg.classList.remove('hidden');
           }
-        });
-
-        feedback.classList.remove('hidden', 'bg-rose-950/80', 'border-rose-700', 'text-rose-300', 'bg-emerald-950/80', 'border-emerald-700', 'text-emerald-300');
-
-        const origHtml = btn.innerHTML;
-        btn.disabled = true;
-        btn.innerHTML = `<svg class="animate-spin w-3.5 h-3.5 text-white inline-block mr-1.5" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg><span>Saving...</span>`;
-
-        try {
-          const res = await fetch('/api/admin/franchises', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              id,
-              name: card.querySelector('h2').textContent.trim(),
-              description: card.querySelector('p')?.textContent.trim() || '',
-              steps
-            })
-          });
-
-          const data = await res.json();
-          if (data.success) {
-            feedback.classList.add('bg-emerald-950/80', 'border-emerald-700', 'text-emerald-300');
-            feedback.textContent = `✓ Watch roadmap saved successfully (${steps.length} steps)!`;
-            window.showAdminToast(`Saved franchise "${id}"`, 'success');
-          } else {
-            feedback.classList.add('bg-rose-950/80', 'border-rose-700', 'text-rose-300');
-            feedback.textContent = 'Error: ' + data.error;
-            window.showAdminToast(data.error || 'Failed to save franchise', 'error');
-          }
-        } catch (err) {
-          feedback.classList.add('bg-rose-950/80', 'border-rose-700', 'text-rose-300');
-          feedback.textContent = 'Network error: ' + err.message;
-        } finally {
-          btn.disabled = false;
-          btn.innerHTML = origHtml;
+          return;
         }
-      });
-    });
 
-    // Delete Franchise
-    document.querySelectorAll('.btn-delete-franchise').forEach((btn) => {
-      btn.addEventListener('click', async () => {
-        const id = btn.getAttribute('data-id');
-        const name = btn.getAttribute('data-name') || id;
+        const id = delBtn.getAttribute('data-id') || card.getAttribute('data-franchise-id');
+        const name = delBtn.getAttribute('data-name') || card.querySelector('h2')?.textContent || id;
 
         if (!confirm(`Are you sure you want to delete the franchise "${name}" and all its watch order steps?`)) {
           return;
@@ -555,15 +491,258 @@ const [franchises, animeList] = await Promise.all([
           const data = await res.json();
           if (data.success) {
             window.showAdminToast(data.message || `Deleted franchise "${name}"`, 'success');
-            const card = document.querySelector(`.franchise-card[data-franchise-id="${id}"]`);
-            if (card) card.remove();
+            card.remove();
+            const remaining = franchisesList.querySelectorAll('.franchise-card');
+            if (remaining.length === 0) {
+              const emptyMsg = document.getElementById('no-franchises-msg');
+              if (emptyMsg) emptyMsg.classList.remove('hidden');
+            }
           } else {
             window.showAdminToast(data.error || 'Failed to delete franchise', 'error');
           }
         } catch (err) {
           window.showAdminToast('Network error: ' + err.message, 'error');
         }
+        return;
+      }
+
+      // 7. Save Franchise
+      const saveBtn = e.target.closest('.btn-save-franchise');
+      if (saveBtn) {
+        const card = saveBtn.closest('.franchise-card');
+        if (!card) return;
+        const container = card.querySelector('.steps-container');
+        if (!container) return;
+
+        const idInput = card.querySelector('.franchise-id-input');
+        const nameInput = card.querySelector('.franchise-name-input');
+        const descInput = card.querySelector('.franchise-desc-input');
+
+        const id = (idInput ? idInput.value : card.getAttribute('data-franchise-id') || '').trim();
+        const name = (nameInput ? nameInput.value : card.querySelector('h2')?.textContent || '').trim();
+        const description = (descInput ? descInput.value : card.querySelector('.franchise-desc-display')?.textContent || '').trim();
+
+        if (!id || !name) {
+          window.showAdminToast('Franchise ID and Name are required.', 'error');
+          if (nameInput && !name) nameInput.focus();
+          else if (idInput && !id) idInput.focus();
+          return;
+        }
+
+        const stepRows = container.querySelectorAll('.step-row');
+        const steps = [];
+        stepRows.forEach((row) => {
+          const title = row.querySelector('.step-title')?.value.trim();
+          const type = row.querySelector('.step-type')?.value;
+          const episodes = row.querySelector('.step-episodes')?.value.trim() || '';
+          const animeId = row.querySelector('.step-anime-id')?.value || null;
+          const note = row.querySelector('.step-note')?.value.trim() || null;
+
+          if (title) {
+            steps.push({ title, type, episodes, animeId, note });
+          }
+        });
+
+        const origHtml = saveBtn.innerHTML;
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = `<svg class="animate-spin w-3.5 h-3.5 text-white inline-block mr-1.5" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg><span>Saving...</span>`;
+
+        try {
+          const res = await fetch('/api/admin/franchises', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id, name, description, steps })
+          });
+
+          const data = await res.json();
+          if (data.success) {
+            // If card was draft, transition to persistent card display
+            if (card.dataset.isDraft === 'true') {
+              card.removeAttribute('data-is-draft');
+              card.className = 'bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-sm franchise-card';
+              card.setAttribute('data-franchise-id', id);
+
+              const headerLeft = card.querySelector('.franchise-card-header > div:first-child');
+              if (headerLeft) {
+                headerLeft.className = '';
+                headerLeft.innerHTML = `
+                  <div class="flex items-center gap-3">
+                    <h2 class="text-xl font-bold font-heading text-white">${escapeHtml(name)}</h2>
+                    <span class="text-xs font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">
+                      ${escapeHtml(id)}
+                    </span>
+                  </div>
+                  ${description ? `<p class="franchise-desc-display text-xs text-slate-400 mt-1 max-w-2xl">${escapeHtml(description)}</p>` : ''}
+                `;
+              }
+
+              const delBtn = card.querySelector('.btn-delete-franchise');
+              if (delBtn) {
+                delBtn.setAttribute('data-id', id);
+                delBtn.setAttribute('data-name', name);
+                delBtn.setAttribute('title', 'Delete franchise');
+              }
+
+              const addBtn = card.querySelector('.btn-add-step');
+              if (addBtn) addBtn.setAttribute('data-franchise-id', id);
+              saveBtn.setAttribute('data-id', id);
+              container.setAttribute('data-franchise-id', id);
+            }
+
+            saveBtn.disabled = false;
+            saveBtn.classList.remove('bg-indigo-600', 'hover:bg-indigo-500');
+            saveBtn.classList.add('bg-emerald-600', 'hover:bg-emerald-500', 'text-white');
+            saveBtn.innerHTML = `<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg><span>Saved ✓</span>`;
+            setTimeout(() => {
+              saveBtn.classList.remove('bg-emerald-600', 'hover:bg-emerald-500');
+              saveBtn.classList.add('bg-indigo-600', 'hover:bg-indigo-500');
+              saveBtn.innerHTML = `<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg><span>Save Changes</span>`;
+            }, 2500);
+
+            window.showAdminToast(`✓ Watch roadmap saved successfully (${steps.length} steps)!`, 'success');
+          } else {
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = origHtml;
+            window.showAdminToast(data.error || 'Failed to save franchise', 'error');
+          }
+        } catch (err) {
+          saveBtn.disabled = false;
+          saveBtn.innerHTML = origHtml;
+          window.showAdminToast('Network error: ' + err.message, 'error');
+        }
+        return;
+      }
+    });
+
+    // -----------------------------------------------------------------
+    // Prepend New Franchise Draft Card at Top (Index 0)
+    // -----------------------------------------------------------------
+    const btnCreate = document.getElementById('btn-create-franchise');
+    btnCreate.addEventListener('click', () => {
+      // Focus existing draft card if already open
+      const existingDraft = document.querySelector('.franchise-card[data-is-draft="true"]');
+      if (existingDraft) {
+        const body = existingDraft.querySelector('.franchise-card-body');
+        const chevron = existingDraft.querySelector('.franchise-chevron');
+        if (body && body.classList.contains('hidden')) {
+          body.classList.remove('hidden');
+          if (chevron) chevron.classList.add('rotate-180');
+        }
+        existingDraft.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        existingDraft.querySelector('.franchise-name-input')?.focus();
+        return;
+      }
+
+      const card = document.createElement('div');
+      card.className = 'bg-slate-900 border-2 border-indigo-500/60 rounded-2xl overflow-hidden shadow-lg franchise-card ring-1 ring-indigo-500/30';
+      card.setAttribute('data-is-draft', 'true');
+      card.setAttribute('data-franchise-id', '');
+
+      card.innerHTML = `
+        <!-- Franchise Header Bar (Clickable Accordion Header) -->
+        <div class="franchise-card-header p-4 sm:p-6 bg-slate-900/90 hover:bg-slate-850/60 transition cursor-pointer select-none flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+          <div class="flex-1 min-w-0 w-full">
+            <div class="flex flex-wrap items-center gap-3">
+              <input
+                type="text"
+                placeholder="Franchise Name (e.g. Solo Leveling, Fate Series)"
+                class="franchise-name-input px-3.5 py-2 bg-slate-950 border border-slate-700/80 focus:border-indigo-500 rounded-xl text-base sm:text-lg font-bold text-white placeholder-slate-500 focus:outline-none flex-1 min-w-[220px]"
+                required
+              />
+              <div class="flex items-center gap-1.5">
+                <span class="text-xs text-slate-400 font-mono">id:</span>
+                <input
+                  type="text"
+                  placeholder="solo-leveling"
+                  class="franchise-id-input px-2.5 py-1.5 bg-slate-950 border border-slate-700/80 focus:border-indigo-500 rounded-lg text-xs font-mono text-indigo-300 placeholder-slate-600 focus:outline-none w-36 sm:w-44"
+                  required
+                />
+              </div>
+            </div>
+            <input
+              type="text"
+              placeholder="Short summary of the franchise and continuity (optional)..."
+              class="franchise-desc-input w-full mt-2.5 px-3 py-1.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-300 placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+            />
+          </div>
+
+          <div class="flex items-center gap-2.5 shrink-0 self-end sm:self-center">
+            <span class="step-count-badge text-xs px-2.5 py-1 rounded-lg bg-indigo-950/60 text-indigo-300 font-medium border border-indigo-800/80">
+              0 Steps
+            </span>
+            <button
+              type="button"
+              class="btn-delete-franchise p-2 text-slate-400 hover:text-rose-400 hover:bg-rose-950/30 rounded-xl transition cursor-pointer"
+              title="Discard draft"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+            </button>
+            <svg class="w-5 h-5 text-slate-400 transform transition-transform duration-200 franchise-chevron rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+            </svg>
+          </div>
+        </div>
+
+        <!-- Watch Order Steps Section (Collapsible Body, Expanded by Default) -->
+        <div class="franchise-card-body p-4 sm:p-6 border-t border-slate-800/80">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h3 class="text-sm font-semibold text-slate-300 uppercase tracking-wider">Chronological Watch Roadmap</h3>
+              <p class="text-xs text-slate-500 mt-0.5">Use the Up/Down buttons to reorder entries on any device.</p>
+            </div>
+          </div>
+
+          <div class="space-y-2.5 steps-container">
+            <div class="no-steps-placeholder text-center py-6 border border-dashed border-slate-800 rounded-xl text-xs text-slate-500">
+              No roadmap steps added yet. Click "+ Add Step" to begin.
+            </div>
+          </div>
+
+          <!-- Bottom actions: Add Step & Save Roadmap -->
+          <div class="mt-4 pt-3 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-3">
+            <button
+              type="button"
+              class="btn-add-step text-xs px-3.5 py-2 bg-indigo-600/20 text-indigo-300 border border-indigo-500/40 rounded-xl hover:bg-indigo-600/30 font-semibold flex items-center gap-1.5 shrink-0 cursor-pointer transition"
+            >
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+              <span>+ Add Step</span>
+            </button>
+
+            <button
+              type="button"
+              class="btn-save-franchise inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-xl shadow-sm transition cursor-pointer"
+            >
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+              </svg>
+              <span>Save Changes</span>
+            </button>
+          </div>
+        </div>
+      `;
+
+      const emptyMsg = document.getElementById('no-franchises-msg');
+      if (emptyMsg) emptyMsg.classList.add('hidden');
+      franchisesList.prepend(card);
+
+      const nameInput = card.querySelector('.franchise-name-input');
+      const idInput = card.querySelector('.franchise-id-input');
+      let idManuallyEdited = false;
+      idInput?.addEventListener('input', () => { idManuallyEdited = true; });
+      nameInput?.addEventListener('input', () => {
+        if (!idManuallyEdited && idInput) {
+          idInput.value = nameInput.value
+            .toLowerCase()
+            .trim()
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/^-+|-+$/g, '');
+        }
       });
+
+      nameInput?.focus();
+      card.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
   </script>
 </AdminLayout>

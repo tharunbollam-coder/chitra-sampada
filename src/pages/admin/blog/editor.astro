@@ -70,8 +70,6 @@ const linkedAnimeIds = post ? post.linkedAnime.map((a: any) => a.id) : [];
 
   <!-- Editor Container -->
   <div class="mt-8">
-    <div id="blog-feedback" class="hidden mb-6 p-4 rounded-xl text-sm font-medium border"></div>
-
     <form id="form-blog" class="space-y-6">
       <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-6 space-y-5">
         <!-- Top metadata grid -->
@@ -237,7 +235,6 @@ const linkedAnimeIds = post ? post.linkedAnime.map((a: any) => a.id) : [];
     const contentInput = document.getElementById('blog-content');
     const wordBadge = document.getElementById('word-count-badge');
     const readBadge = document.getElementById('read-time-badge');
-    const feedback = document.getElementById('blog-feedback');
     const form = document.getElementById('form-blog');
     const btnSaveTop = document.getElementById('btn-save-blog-top');
 
@@ -281,7 +278,6 @@ const linkedAnimeIds = post ? post.linkedAnime.map((a: any) => a.id) : [];
     // Save handler
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
-      feedback.classList.remove('hidden', 'bg-rose-950/80', 'border-rose-700', 'text-rose-300', 'bg-emerald-950/80', 'border-emerald-700', 'text-emerald-300');
 
       const submitBtn = form.querySelector('button[type="submit"]');
       const origSubmitHtml = submitBtn ? submitBtn.innerHTML : '';
@@ -309,6 +305,8 @@ const linkedAnimeIds = post ? post.linkedAnime.map((a: any) => a.id) : [];
         linkedAnimeIds: checkedAnime
       };
 
+      let saveSuccess = false;
+
       try {
         const res = await fetch('/api/admin/blog', {
           method: 'POST',
@@ -318,9 +316,23 @@ const linkedAnimeIds = post ? post.linkedAnime.map((a: any) => a.id) : [];
 
         const data = await res.json();
         if (data.success) {
-          feedback.classList.add('bg-emerald-950/80', 'border-emerald-700', 'text-emerald-300');
-          feedback.textContent = `✓ Blog post "${payload.title}" saved successfully!`;
+          saveSuccess = true;
           window.showAdminToast(`Saved blog post "${payload.title}"`, 'success');
+
+          if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = `<span>Saved ✓</span>`;
+            setTimeout(() => {
+              if (submitBtn) submitBtn.innerHTML = origSubmitHtml;
+            }, 2500);
+          }
+          if (btnSaveTop) {
+            btnSaveTop.disabled = false;
+            btnSaveTop.innerHTML = `<span>Saved ✓</span>`;
+            setTimeout(() => {
+              if (btnSaveTop) btnSaveTop.innerHTML = origTopHtml;
+            }, 2500);
+          }
 
           if (isNewPost) {
             const newUrl = new URL(window.location);
@@ -328,21 +340,20 @@ const linkedAnimeIds = post ? post.linkedAnime.map((a: any) => a.id) : [];
             window.history.replaceState({}, '', newUrl);
           }
         } else {
-          feedback.classList.add('bg-rose-950/80', 'border-rose-700', 'text-rose-300');
-          feedback.textContent = 'Error: ' + data.error;
           window.showAdminToast(data.error || 'Failed to save blog post', 'error');
         }
       } catch (err) {
-        feedback.classList.add('bg-rose-950/80', 'border-rose-700', 'text-rose-300');
-        feedback.textContent = 'Network error: ' + err.message;
+        window.showAdminToast('Network error: ' + err.message, 'error');
       } finally {
-        if (submitBtn) {
-          submitBtn.disabled = false;
-          submitBtn.innerHTML = origSubmitHtml;
-        }
-        if (btnSaveTop) {
-          btnSaveTop.disabled = false;
-          btnSaveTop.innerHTML = origTopHtml;
+        if (!saveSuccess) {
+          if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = origSubmitHtml;
+          }
+          if (btnSaveTop) {
+            btnSaveTop.disabled = false;
+            btnSaveTop.innerHTML = origTopHtml;
+          }
         }
       }
     });
