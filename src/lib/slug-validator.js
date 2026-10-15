@@ -14,6 +14,8 @@ export function cleanSlug(val) {
   return String(val).trim().toLowerCase();
 }
 
+export const sanitizeSlug = cleanSlug;
+
 /**
  * Check if the given value (after trimming & lowercasing) matches the slug/ID rules:
  * - Lowercase alphanumeric characters and single hyphens only

@@ -38,7 +38,7 @@ import {
   purgeBlogCache,
   purgeEntireSiteCache
 } from './cache-purge.ts';
-import { cleanSlug, getSlugValidationError } from './slug-validator.js';
+import { sanitizeSlug, getSlugValidationError } from './slug-validator.js';
 
 function jsonResponse(data, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -152,25 +152,25 @@ export async function handleAdminApi({ request, locals, url, params }) {
       if (!slug?.trim()) return jsonResponse({ success: false, error: 'URL Slug is required' }, 400);
       if (!title?.trim()) return jsonResponse({ success: false, error: 'Title is required' }, 400);
 
-      const cleanId = cleanSlug(id);
-      const cleanSlugVal = cleanSlug(slug);
+      const cleanId = sanitizeSlug(id);
+      const cleanSlug = sanitizeSlug(slug);
 
       const idError = getSlugValidationError(cleanId, 'Internal ID');
       if (idError) {
         return jsonResponse({ success: false, error: idError }, 400);
       }
 
-      const slugError = getSlugValidationError(cleanSlugVal, 'URL Slug');
+      const slugError = getSlugValidationError(cleanSlug, 'URL Slug');
       if (slugError) {
         return jsonResponse({ success: false, error: slugError }, 400);
       }
 
       const db = await getDatabase(locals);
-      const existingSlug = await db.queryOne('SELECT id, title FROM anime WHERE slug = ? AND id != ?', cleanSlugVal, cleanId);
+      const existingSlug = await db.queryOne('SELECT id, title FROM anime WHERE slug = ? AND id != ?', cleanSlug, cleanId);
       if (existingSlug) {
         return jsonResponse({
           success: false,
-          error: `Slug "${cleanSlugVal}" is already used by anime "${existingSlug.title || existingSlug.id}"`
+          error: `Slug "${cleanSlug}" is already used by anime "${existingSlug.title || existingSlug.id}"`
         }, 400);
       }
 
@@ -351,12 +351,12 @@ export async function handleAdminApi({ request, locals, url, params }) {
         if (body.core.id) {
           const idError = getSlugValidationError(body.core.id, 'Internal ID');
           if (idError) return jsonResponse({ success: false, error: idError }, 400);
-          body.core.id = cleanSlug(body.core.id);
+          body.core.id = sanitizeSlug(body.core.id);
         }
         if (body.core.slug) {
           const slugError = getSlugValidationError(body.core.slug, 'URL Slug');
           if (slugError) return jsonResponse({ success: false, error: slugError }, 400);
-          body.core.slug = cleanSlug(body.core.slug);
+          body.core.slug = sanitizeSlug(body.core.slug);
         }
       }
       try {
@@ -394,7 +394,7 @@ export async function handleAdminApi({ request, locals, url, params }) {
         if (!id?.trim() || !name?.trim()) {
           return jsonResponse({ success: false, error: 'Franchise ID and Name are required' }, 400);
         }
-        const cleanId = cleanSlug(id);
+        const cleanId = sanitizeSlug(id);
         const idError = getSlugValidationError(cleanId, 'Franchise ID');
         if (idError) {
           return jsonResponse({ success: false, error: idError }, 400);
@@ -440,37 +440,37 @@ export async function handleAdminApi({ request, locals, url, params }) {
           return jsonResponse({ success: false, error: 'ID, Slug, Title, and Content are required.' }, 400);
         }
 
-        const cleanId = cleanSlug(id);
-        const cleanSlugVal = cleanSlug(slug);
+        const cleanId = sanitizeSlug(id);
+        const cleanSlug = sanitizeSlug(slug);
 
         const idError = getSlugValidationError(cleanId, 'Post ID');
         if (idError) {
           return jsonResponse({ success: false, error: idError }, 400);
         }
 
-        const slugError = getSlugValidationError(cleanSlugVal, 'Blog Slug');
+        const slugError = getSlugValidationError(cleanSlug, 'Blog Slug');
         if (slugError) {
           return jsonResponse({ success: false, error: slugError }, 400);
         }
 
         const db = await getDatabase(locals);
-        const existingSlug = await db.queryOne('SELECT id FROM blog_posts WHERE slug = ? AND id != ?', cleanSlugVal, cleanId);
+        const existingSlug = await db.queryOne('SELECT id FROM blog_posts WHERE slug = ? AND id != ?', cleanSlug, cleanId);
         if (existingSlug) {
           return jsonResponse({
             success: false,
-            error: `Slug "${cleanSlugVal}" is already in use by another blog post (${existingSlug.id})`
+            error: `Slug "${cleanSlug}" is already in use by another blog post (${existingSlug.id})`
           }, 400);
         }
 
         const result = await saveBlogPost({
           ...body,
           id: cleanId,
-          slug: cleanSlugVal,
+          slug: cleanSlug,
           title: title.trim(),
           content: content.trim(),
           lastUpdated: new Date().toISOString().split('T')[0]
         }, locals);
-        await purgeBlogCache(cleanSlugVal, locals);
+        await purgeBlogCache(cleanSlug, locals);
         return jsonResponse({ success: true, message: 'Blog post saved successfully', data: result });
       }
 

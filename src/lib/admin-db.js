@@ -3,7 +3,7 @@
 
 import { getDatabase, invalidateAnimeCache, invalidateBlogCache, invalidateVibesCache } from './d1.js';
 import { validateEpisodeString } from './filler-utils.js';
-import { cleanSlug, getSlugValidationError } from './slug-validator.js';
+import { sanitizeSlug, getSlugValidationError } from './slug-validator.js';
 
 /**
  * Fetch an anime entry by ID along with all its related normalized records.
@@ -216,31 +216,29 @@ export async function saveAnimeCore(data, contextOrLocals = null) {
     vibes = []
   } = data;
 
-  const cleanId = cleanSlug(id);
-  const cleanSlugVal = cleanSlug(slug);
+  const cleanId = sanitizeSlug(id);
+  const cleanSlug = sanitizeSlug(slug);
   const cleanTitle = String(title || '').trim();
 
-  if (!cleanId || !cleanSlugVal || !cleanTitle) {
+  if (!cleanId || !cleanSlug || !cleanTitle) {
     throw new Error('ID, Slug, and Title are required.');
   }
 
   const idError = getSlugValidationError(cleanId, 'Internal ID');
   if (idError) throw new Error(idError);
 
-  const slugError = getSlugValidationError(cleanSlugVal, 'URL Slug');
+  const slugError = getSlugValidationError(cleanSlug, 'URL Slug');
   if (slugError) throw new Error(slugError);
 
   // Slug uniqueness check against all other anime
   const slugConflict = await db.queryOne(
     `SELECT id, title FROM anime WHERE slug = ? AND id != ?`,
-    cleanSlugVal,
+    cleanSlug,
     cleanId
   );
   if (slugConflict) {
-    throw new Error(`The slug "${cleanSlugVal}" is already in use by anime "${slugConflict.title}".`);
+    throw new Error(`The slug "${cleanSlug}" is already in use by anime "${slugConflict.title}".`);
   }
-
-  const cleanSlug = cleanSlugVal;
 
   const existing = await db.queryOne(`SELECT * FROM anime WHERE id = ?`, cleanId);
 
@@ -732,9 +730,9 @@ export async function saveAnimeCharacters(animeId, characters = [], relatedPostS
     `, animeId, rank, char.name, char.category, char.role, char.commentary);
   }
 
-  const cleanSlug = relPost !== undefined ? (relPost ? String(relPost).trim() : null) : undefined;
-  if (cleanSlug !== undefined) {
-    await db.run(`UPDATE anime SET character_related_post_slug = ?, last_updated = date('now') WHERE id = ?`, cleanSlug, animeId);
+  const cleanPostSlug = relPost !== undefined ? (relPost ? String(relPost).trim() : null) : undefined;
+  if (cleanPostSlug !== undefined) {
+    await db.run(`UPDATE anime SET character_related_post_slug = ?, last_updated = date('now') WHERE id = ?`, cleanPostSlug, animeId);
   } else {
     await db.run(`UPDATE anime SET last_updated = date('now') WHERE id = ?`, animeId);
   }
@@ -917,7 +915,7 @@ export async function getAllFranchises(contextOrLocals = null) {
  */
 export async function saveFranchise({ id, name, description = '', steps = [] }, contextOrLocals = null) {
   const db = await getDatabase(contextOrLocals);
-  const cleanId = cleanSlug(id);
+  const cleanId = sanitizeSlug(id);
   const cleanName = String(name || '').trim();
   if (!cleanId || !cleanName) throw new Error('Franchise ID and Name are required.');
 
@@ -1019,19 +1017,19 @@ export async function getAdminBlogPostById(id, contextOrLocals = null) {
  */
 export async function saveBlogPost({ id, slug, title, excerpt, content, publishedDate, lastUpdated = '', status = 'published', linkedAnimeIds = [] }, contextOrLocals = null) {
   const db = await getDatabase(contextOrLocals);
-  const cleanId = cleanSlug(id);
-  const cleanSlugVal = cleanSlug(slug);
+  const cleanId = sanitizeSlug(id);
+  const cleanSlug = sanitizeSlug(slug);
   const cleanTitle = String(title || '').trim();
   const cleanContent = String(content || '').trim();
 
-  if (!cleanId || !cleanSlugVal || !cleanTitle || !cleanContent) {
+  if (!cleanId || !cleanSlug || !cleanTitle || !cleanContent) {
     throw new Error('ID, Slug, Title, and Content are required.');
   }
 
   const idError = getSlugValidationError(cleanId, 'Post ID');
   if (idError) throw new Error(idError);
 
-  const slugError = getSlugValidationError(cleanSlugVal, 'Blog Slug');
+  const slugError = getSlugValidationError(cleanSlug, 'Blog Slug');
   if (slugError) throw new Error(slugError);
 
   await db.run(`
@@ -1047,7 +1045,7 @@ export async function saveBlogPost({ id, slug, title, excerpt, content, publishe
       status = excluded.status
   `,
     cleanId,
-    cleanSlugVal,
+    cleanSlug,
     cleanTitle,
     excerpt ? excerpt.trim() : '',
     cleanContent,
@@ -1154,18 +1152,18 @@ export async function saveVibe(vibeData = {}, contextOrLocals = null) {
     throw new Error('Vibe name is required.');
   }
 
-  const cleanSlugVal = cleanSlug(slug);
-  if (!cleanSlugVal) {
+  const cleanSlug = sanitizeSlug(slug);
+  if (!cleanSlug) {
     throw new Error('Vibe slug is required.');
   }
 
-  const slugError = getSlugValidationError(cleanSlugVal, 'Vibe slug');
+  const slugError = getSlugValidationError(cleanSlug, 'Vibe slug');
   if (slugError) {
     throw new Error(slugError);
   }
 
   // ID determination: use provided id, or fallback to slug
-  const cleanId = cleanSlug(id || cleanSlugVal);
+  const cleanId = sanitizeSlug(id || cleanSlug);
   const idError = getSlugValidationError(cleanId, 'Vibe ID');
   if (idError) {
     throw new Error(idError);
@@ -1174,14 +1172,12 @@ export async function saveVibe(vibeData = {}, contextOrLocals = null) {
   // Check slug uniqueness against other vibes
   const conflict = await db.queryOne(
     `SELECT id, name FROM vibes WHERE slug = ? AND id != ?`,
-    cleanSlugVal,
+    cleanSlug,
     cleanId
   );
   if (conflict) {
-    throw new Error(`The slug "${cleanSlugVal}" is already in use by vibe "${conflict.name}".`);
+    throw new Error(`The slug "${cleanSlug}" is already in use by vibe "${conflict.name}".`);
   }
-
-  const cleanSlug = cleanSlugVal;
 
   const cleanTagline = tagline ? String(tagline).trim() : null;
   const cleanGroup = (groupLabel || group_label) ? String(groupLabel || group_label).trim() : null;
