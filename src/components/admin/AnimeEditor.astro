@@ -186,6 +186,7 @@ if (standardSourceTypes.includes(rawSourceType)) {
                 }`}
               />
               <span class="text-[11px] text-slate-500 mt-1 block">Unique key used across database tables.</span>
+              <p id="core-id-error" class="text-xs text-rose-400 mt-1.5 hidden"></p>
             </div>
 
             <!-- Slug -->
@@ -222,6 +223,7 @@ if (standardSourceTypes.includes(rawSourceType)) {
                 }`}
               />
               <span class="text-[11px] text-slate-500 mt-1 block" id="core-slug-help">Path on website: /anime/[slug]</span>
+              <p id="core-slug-error" class="text-xs text-rose-400 mt-1.5 hidden"></p>
             </div>
 
             <!-- Title -->
@@ -2145,6 +2147,91 @@ if (standardSourceTypes.includes(rawSourceType)) {
     const titleInput = document.getElementById('core-title');
     const slugInput = document.getElementById('core-slug');
     const idInput = document.getElementById('core-id');
+    const idErrorEl = document.getElementById('core-id-error');
+    const slugErrorEl = document.getElementById('core-slug-error');
+
+    const SLUG_REGEX = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
+    function validateSlugField(inputEl, errorEl, fieldLabel = 'Value', isRequired = true) {
+      if (!inputEl) return true;
+      const trimmed = inputEl.value.trim().toLowerCase();
+      inputEl.value = trimmed;
+
+      if (!trimmed) {
+        if (isRequired) {
+          if (errorEl) {
+            errorEl.textContent = `${fieldLabel} is required.`;
+            errorEl.classList.remove('hidden');
+          }
+          inputEl.classList.add('border-rose-500', 'focus:border-rose-500');
+          inputEl.classList.remove('border-slate-700/80');
+          return false;
+        } else {
+          if (errorEl) errorEl.classList.add('hidden');
+          inputEl.classList.remove('border-rose-500', 'focus:border-rose-500');
+          inputEl.classList.add('border-slate-700/80');
+          return true;
+        }
+      }
+
+      let errorMsg = null;
+      if (trimmed.startsWith('-') || trimmed.endsWith('-')) {
+        errorMsg = `${fieldLabel} cannot start or end with a hyphen.`;
+      } else if (trimmed.includes('--')) {
+        errorMsg = `${fieldLabel} cannot contain consecutive hyphens.`;
+      } else if (/[^a-z0-9-]/.test(trimmed)) {
+        errorMsg = `${fieldLabel} can only contain lowercase letters, numbers, and single hyphens (no spaces or special characters).`;
+      } else if (!SLUG_REGEX.test(trimmed)) {
+        errorMsg = `${fieldLabel} must only contain lowercase letters, numbers, and single hyphens.`;
+      }
+
+      if (errorMsg) {
+        if (errorEl) {
+          errorEl.textContent = errorMsg;
+          errorEl.classList.remove('hidden');
+        }
+        inputEl.classList.add('border-rose-500', 'focus:border-rose-500');
+        inputEl.classList.remove('border-slate-700/80');
+        return false;
+      }
+
+      if (errorEl) errorEl.classList.add('hidden');
+      inputEl.classList.remove('border-rose-500', 'focus:border-rose-500');
+      inputEl.classList.add('border-slate-700/80');
+      return true;
+    }
+
+    function bindSlugInputEvents(inputEl, errorEl, fieldLabel = 'Value', isRequired = true) {
+      if (!inputEl) return;
+      inputEl.addEventListener('input', () => {
+        const start = inputEl.selectionStart;
+        const end = inputEl.selectionEnd;
+        const lower = inputEl.value.toLowerCase();
+        if (inputEl.value !== lower) {
+          inputEl.value = lower;
+          if (start !== null && end !== null) {
+            inputEl.setSelectionRange(start, end);
+          }
+        }
+        if (errorEl && !errorEl.classList.contains('hidden')) {
+          validateSlugField(inputEl, errorEl, fieldLabel, isRequired);
+        }
+      });
+
+      inputEl.addEventListener('paste', () => {
+        setTimeout(() => {
+          inputEl.value = inputEl.value.trim().toLowerCase();
+          validateSlugField(inputEl, errorEl, fieldLabel, isRequired);
+        }, 0);
+      });
+
+      inputEl.addEventListener('blur', () => {
+        validateSlugField(inputEl, errorEl, fieldLabel, isRequired);
+      });
+    }
+
+    bindSlugInputEvents(idInput, idErrorEl, 'Internal ID', true);
+    bindSlugInputEvents(slugInput, slugErrorEl, 'URL Slug', true);
 
     if (titleInput && slugInput && idInput) {
       titleInput.addEventListener('input', () => {
@@ -2184,6 +2271,7 @@ if (standardSourceTypes.includes(rawSourceType)) {
       slugInput.className = 'w-full px-3.5 py-2.5 bg-slate-950/60 border border-slate-800 rounded-xl text-sm font-mono text-slate-400 cursor-not-allowed focus:outline-none transition';
       if (btnUnlockAnimeSlugLabel) btnUnlockAnimeSlugLabel.textContent = 'Edit Slug';
       if (btnUnlockAnimeSlug) btnUnlockAnimeSlug.classList.remove('hidden');
+      if (slugErrorEl) slugErrorEl.classList.add('hidden');
     }
 
     function unlockAnimeSlug() {
@@ -3008,12 +3096,16 @@ if (standardSourceTypes.includes(rawSourceType)) {
         return;
       }
 
-      const slugVal = document.getElementById('core-slug').value.trim();
-      const slugRegex = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
-      if (!slugRegex.test(slugVal)) {
-        window.showAdminToast('Invalid slug format. Use lowercase letters, numbers, and hyphens.', 'error');
+      const isIdValid = validateSlugField(idInput, idErrorEl, 'Internal ID', true);
+      const isSlugValid = validateSlugField(slugInput, slugErrorEl, 'URL Slug', true);
+      if (!isIdValid || !isSlugValid) {
+        if (!isIdValid && idInput) idInput.focus();
+        else if (!isSlugValid && slugInput) slugInput.focus();
+        window.showAdminToast('Please resolve slug / ID validation errors.', 'error');
         return;
       }
+
+      const slugVal = slugInput.value;
 
       const payload = {
         id: document.getElementById('core-id').value.trim(),
@@ -3569,7 +3661,8 @@ if (standardSourceTypes.includes(rawSourceType)) {
         const title = row.querySelector('.universe-input-title')?.value.trim();
         const section = row.querySelector('.universe-input-section')?.value;
         const badge = row.querySelector('.universe-input-badge')?.value;
-        const linkSlug = row.querySelector('.universe-input-slug')?.value.trim() || null;
+        const linkSlugRaw = row.querySelector('.universe-input-slug')?.value.trim().toLowerCase();
+        const linkSlug = linkSlugRaw || null;
         const editorialNote = row.querySelector('.universe-input-note')?.value.trim() || null;
         if (title && badge) {
           universe.push({ itemOrder: idx + 1, title, section, badge, linkSlug, editorialNote });
@@ -3751,14 +3844,16 @@ if (standardSourceTypes.includes(rawSourceType)) {
         return;
       }
 
-      const slugRegex = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
-      if (!slugRegex.test(slug)) {
-        alert('Invalid slug format in Section 1. Use lowercase letters, numbers, and hyphens (e.g. "frieren-beyond-journeys-end").');
+      const isIdValid = validateSlugField(idInput, idErrorEl, 'Internal ID', true);
+      const isSlugValid = validateSlugField(slugInput, slugErrorEl, 'URL Slug', true);
+      if (!isIdValid || !isSlugValid) {
         const target = document.getElementById('section-core-body');
         if (target && target.classList.contains('hidden')) {
           target.classList.remove('hidden');
         }
-        document.getElementById('core-slug')?.focus();
+        if (!isIdValid && idInput) idInput.focus();
+        else if (!isSlugValid && slugInput) slugInput.focus();
+        window.showAdminToast?.('Please resolve slug / ID validation errors in Section 1.', 'error') || alert('Please resolve slug / ID validation errors in Section 1.');
         return;
       }
 
@@ -3874,7 +3969,8 @@ if (standardSourceTypes.includes(rawSourceType)) {
         const title = row.querySelector('.universe-input-title')?.value.trim();
         const section = row.querySelector('.universe-input-section')?.value;
         const badge = row.querySelector('.universe-input-badge')?.value;
-        const linkSlug = row.querySelector('.universe-input-slug')?.value.trim() || null;
+        const linkSlugRaw = row.querySelector('.universe-input-slug')?.value.trim().toLowerCase();
+        const linkSlug = linkSlugRaw || null;
         const editorialNote = row.querySelector('.universe-input-note')?.value.trim() || null;
         if (title && badge) {
           universe.push({ itemOrder: idx + 1, title, section, badge, linkSlug, editorialNote });

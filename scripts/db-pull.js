@@ -20,6 +20,35 @@ const rootDir = path.resolve(__dirname, '..');
 const DB_NAME = 'chitra-sampada-db';
 const tempSqlFile = path.resolve(rootDir, `.tmp-d1-pull-${Date.now()}.sql`);
 const localD1StateDir = path.resolve(rootDir, '.wrangler', 'state', 'v3', 'd1');
+const envFile = path.resolve(rootDir, '.env');
+const envStashFile = path.resolve(rootDir, `.tmp-env-pull-${Date.now()}`);
+let envStashed = false;
+
+function stashEnv() {
+  if (fs.existsSync(envFile)) {
+    try {
+      fs.renameSync(envFile, envStashFile);
+      envStashed = true;
+    } catch (e) {
+      console.warn('      ⚠️  Could not temporarily stash .env:', e.message);
+    }
+  }
+}
+
+function restoreEnv() {
+  if (envStashed && fs.existsSync(envStashFile)) {
+    try {
+      fs.renameSync(envStashFile, envFile);
+      envStashed = false;
+    } catch (e) {
+      console.error('      ❌ Failed to restore .env:', e.message);
+    }
+  }
+}
+
+process.on('exit', restoreEnv);
+process.on('SIGINT', () => { restoreEnv(); process.exit(1); });
+process.on('SIGTERM', () => { restoreEnv(); process.exit(1); });
 
 // Hardcoded safety assertion: prevent any unauthorized database targets or upstream operations
 function assertSafetyGuardrails() {
@@ -50,6 +79,7 @@ async function main() {
   console.log('=============================================================\n');
 
   assertSafetyGuardrails();
+  stashEnv();
 
   try {
     // Step 1: Export from Remote Production D1 (Read-Only)
@@ -158,6 +188,8 @@ async function main() {
         // ignore cleanup error
       }
     }
+    // Always restore .env
+    restoreEnv();
   }
 }
 

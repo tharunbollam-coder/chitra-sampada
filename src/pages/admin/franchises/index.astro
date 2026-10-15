@@ -237,6 +237,86 @@ const [franchises, animeList] = await Promise.all([
         .replace(/'/g, '&#039;');
     }
 
+    const SLUG_REGEX = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
+    function validateSlugField(inputEl, errorEl, fieldLabel = 'Value', isRequired = true) {
+      if (!inputEl) return true;
+      const trimmed = inputEl.value.trim().toLowerCase();
+      inputEl.value = trimmed;
+
+      if (!trimmed) {
+        if (isRequired) {
+          if (errorEl) {
+            errorEl.textContent = `${fieldLabel} is required.`;
+            errorEl.classList.remove('hidden');
+          }
+          inputEl.classList.add('border-rose-500', 'focus:border-rose-500');
+          inputEl.classList.remove('border-slate-700/80');
+          return false;
+        } else {
+          if (errorEl) errorEl.classList.add('hidden');
+          inputEl.classList.remove('border-rose-500', 'focus:border-rose-500');
+          inputEl.classList.add('border-slate-700/80');
+          return true;
+        }
+      }
+
+      let errorMsg = null;
+      if (trimmed.startsWith('-') || trimmed.endsWith('-')) {
+        errorMsg = `${fieldLabel} cannot start or end with a hyphen.`;
+      } else if (trimmed.includes('--')) {
+        errorMsg = `${fieldLabel} cannot contain consecutive hyphens.`;
+      } else if (/[^a-z0-9-]/.test(trimmed)) {
+        errorMsg = `${fieldLabel} can only contain lowercase letters, numbers, and single hyphens (no spaces or special characters).`;
+      } else if (!SLUG_REGEX.test(trimmed)) {
+        errorMsg = `${fieldLabel} must only contain lowercase letters, numbers, and single hyphens.`;
+      }
+
+      if (errorMsg) {
+        if (errorEl) {
+          errorEl.textContent = errorMsg;
+          errorEl.classList.remove('hidden');
+        }
+        inputEl.classList.add('border-rose-500', 'focus:border-rose-500');
+        inputEl.classList.remove('border-slate-700/80');
+        return false;
+      }
+
+      if (errorEl) errorEl.classList.add('hidden');
+      inputEl.classList.remove('border-rose-500', 'focus:border-rose-500');
+      inputEl.classList.add('border-slate-700/80');
+      return true;
+    }
+
+    function bindSlugInputEvents(inputEl, errorEl, fieldLabel = 'Value', isRequired = true) {
+      if (!inputEl) return;
+      inputEl.addEventListener('input', () => {
+        const start = inputEl.selectionStart;
+        const end = inputEl.selectionEnd;
+        const lower = inputEl.value.toLowerCase();
+        if (inputEl.value !== lower) {
+          inputEl.value = lower;
+          if (start !== null && end !== null) {
+            inputEl.setSelectionRange(start, end);
+          }
+        }
+        if (errorEl && !errorEl.classList.contains('hidden')) {
+          validateSlugField(inputEl, errorEl, fieldLabel, isRequired);
+        }
+      });
+
+      inputEl.addEventListener('paste', () => {
+        setTimeout(() => {
+          inputEl.value = inputEl.value.trim().toLowerCase();
+          validateSlugField(inputEl, errorEl, fieldLabel, isRequired);
+        }, 0);
+      });
+
+      inputEl.addEventListener('blur', () => {
+        validateSlugField(inputEl, errorEl, fieldLabel, isRequired);
+      });
+    }
+
     // Helper: update step number badges and franchise card step count
     function refreshStepNumbers(container) {
       const rows = container.querySelectorAll('.step-row');
@@ -518,7 +598,20 @@ const [franchises, animeList] = await Promise.all([
         const nameInput = card.querySelector('.franchise-name-input');
         const descInput = card.querySelector('.franchise-desc-input');
 
-        const id = (idInput ? idInput.value : card.getAttribute('data-franchise-id') || '').trim();
+        let id = '';
+        if (idInput) {
+          const errEl = card.querySelector('.franchise-id-error');
+          const isIdValid = validateSlugField(idInput, errEl, 'Franchise ID', true);
+          if (!isIdValid) {
+            idInput.focus();
+            window.showAdminToast('Please resolve Franchise ID errors.', 'error');
+            return;
+          }
+          id = idInput.value;
+        } else {
+          id = (card.getAttribute('data-franchise-id') || '').trim();
+        }
+
         const name = (nameInput ? nameInput.value : card.querySelector('h2')?.textContent || '').trim();
         const description = (descInput ? descInput.value : card.querySelector('.franchise-desc-display')?.textContent || '').trim();
 
@@ -649,14 +742,17 @@ const [franchises, animeList] = await Promise.all([
                 class="franchise-name-input px-3.5 py-2 bg-slate-950 border border-slate-700/80 focus:border-indigo-500 rounded-xl text-base sm:text-lg font-bold text-white placeholder-slate-500 focus:outline-none flex-1 min-w-[220px]"
                 required
               />
-              <div class="flex items-center gap-1.5">
-                <span class="text-xs text-slate-400 font-mono">id:</span>
-                <input
-                  type="text"
-                  placeholder="solo-leveling"
-                  class="franchise-id-input px-2.5 py-1.5 bg-slate-950 border border-slate-700/80 focus:border-indigo-500 rounded-lg text-xs font-mono text-indigo-300 placeholder-slate-600 focus:outline-none w-36 sm:w-44"
-                  required
-                />
+              <div class="flex flex-col gap-1">
+                <div class="flex items-center gap-1.5">
+                  <span class="text-xs text-slate-400 font-mono">id:</span>
+                  <input
+                    type="text"
+                    placeholder="solo-leveling"
+                    class="franchise-id-input px-2.5 py-1.5 bg-slate-950 border border-slate-700/80 focus:border-indigo-500 rounded-lg text-xs font-mono text-indigo-300 placeholder-slate-600 focus:outline-none w-36 sm:w-44"
+                    required
+                  />
+                </div>
+                <p class="franchise-id-error text-[11px] text-rose-400 hidden"></p>
               </div>
             </div>
             <input
@@ -729,6 +825,10 @@ const [franchises, animeList] = await Promise.all([
 
       const nameInput = card.querySelector('.franchise-name-input');
       const idInput = card.querySelector('.franchise-id-input');
+      const idErrEl = card.querySelector('.franchise-id-error');
+      if (idInput) {
+        bindSlugInputEvents(idInput, idErrEl, 'Franchise ID', true);
+      }
       let idManuallyEdited = false;
       idInput?.addEventListener('input', () => { idManuallyEdited = true; });
       nameInput?.addEventListener('input', () => {

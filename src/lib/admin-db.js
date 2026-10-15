@@ -3,6 +3,7 @@
 
 import { getDatabase, invalidateAnimeCache, invalidateBlogCache, invalidateVibesCache } from './d1.js';
 import { validateEpisodeString } from './filler-utils.js';
+import { cleanSlug, getSlugValidationError } from './slug-validator.js';
 
 /**
  * Fetch an anime entry by ID along with all its related normalized records.
@@ -215,29 +216,31 @@ export async function saveAnimeCore(data, contextOrLocals = null) {
     vibes = []
   } = data;
 
-  const cleanId = String(id || '').trim().toLowerCase();
-  const cleanSlug = String(slug || '').trim().toLowerCase();
+  const cleanId = cleanSlug(id);
+  const cleanSlugVal = cleanSlug(slug);
   const cleanTitle = String(title || '').trim();
 
-  if (!cleanId || !cleanSlug || !cleanTitle) {
+  if (!cleanId || !cleanSlugVal || !cleanTitle) {
     throw new Error('ID, Slug, and Title are required.');
   }
 
-  // Slug format validation: lowercase alphanumeric with single hyphens
-  const slugRegex = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
-  if (!slugRegex.test(cleanSlug)) {
-    throw new Error('Invalid slug format. Use lowercase letters, numbers, and hyphens (e.g. "frieren-beyond-journeys-end").');
-  }
+  const idError = getSlugValidationError(cleanId, 'Internal ID');
+  if (idError) throw new Error(idError);
+
+  const slugError = getSlugValidationError(cleanSlugVal, 'URL Slug');
+  if (slugError) throw new Error(slugError);
 
   // Slug uniqueness check against all other anime
   const slugConflict = await db.queryOne(
     `SELECT id, title FROM anime WHERE slug = ? AND id != ?`,
-    cleanSlug,
+    cleanSlugVal,
     cleanId
   );
   if (slugConflict) {
-    throw new Error(`The slug "${cleanSlug}" is already in use by anime "${slugConflict.title}".`);
+    throw new Error(`The slug "${cleanSlugVal}" is already in use by anime "${slugConflict.title}".`);
   }
+
+  const cleanSlug = cleanSlugVal;
 
   const existing = await db.queryOne(`SELECT * FROM anime WHERE id = ?`, cleanId);
 
@@ -914,22 +917,27 @@ export async function getAllFranchises(contextOrLocals = null) {
  */
 export async function saveFranchise({ id, name, description = '', steps = [] }, contextOrLocals = null) {
   const db = await getDatabase(contextOrLocals);
-  if (!id || !name) throw new Error('Franchise ID and Name are required.');
+  const cleanId = cleanSlug(id);
+  const cleanName = String(name || '').trim();
+  if (!cleanId || !cleanName) throw new Error('Franchise ID and Name are required.');
+
+  const idError = getSlugValidationError(cleanId, 'Franchise ID');
+  if (idError) throw new Error(idError);
 
   await db.run(`
     INSERT INTO franchises (id, name, description) VALUES (?, ?, ?)
     ON CONFLICT(id) DO UPDATE SET name = excluded.name, description = excluded.description
-  `, id.trim(), name.trim(), description.trim());
+  `, cleanId, cleanName, description.trim());
 
   if (Array.isArray(steps)) {
-    await db.run(`DELETE FROM franchise_watch_order WHERE franchise_id = ?`, id);
+    await db.run(`DELETE FROM franchise_watch_order WHERE franchise_id = ?`, cleanId);
     for (let idx = 0; idx < steps.length; idx++) {
       const step = steps[idx];
       await db.run(`
         INSERT INTO franchise_watch_order (franchise_id, step_order, title, type, episodes, anime_id, note)
         VALUES (?, ?, ?, ?, ?, ?, ?)
       `,
-        id,
+        cleanId,
         idx + 1,
         String(step.title || '').trim(),
         String(step.type || 'TV Series').trim(),
@@ -941,7 +949,7 @@ export async function saveFranchise({ id, name, description = '', steps = [] }, 
   }
 
   invalidateAnimeCache();
-  return { success: true, id };
+  return { success: true, id: cleanId };
 }
 
 /**
@@ -1011,9 +1019,20 @@ export async function getAdminBlogPostById(id, contextOrLocals = null) {
  */
 export async function saveBlogPost({ id, slug, title, excerpt, content, publishedDate, lastUpdated = '', status = 'published', linkedAnimeIds = [] }, contextOrLocals = null) {
   const db = await getDatabase(contextOrLocals);
-  if (!id || !slug || !title || !content) {
+  const cleanId = cleanSlug(id);
+  const cleanSlugVal = cleanSlug(slug);
+  const cleanTitle = String(title || '').trim();
+  const cleanContent = String(content || '').trim();
+
+  if (!cleanId || !cleanSlugVal || !cleanTitle || !cleanContent) {
     throw new Error('ID, Slug, Title, and Content are required.');
   }
+
+  const idError = getSlugValidationError(cleanId, 'Post ID');
+  if (idError) throw new Error(idError);
+
+  const slugError = getSlugValidationError(cleanSlugVal, 'Blog Slug');
+  if (slugError) throw new Error(slugError);
 
   await db.run(`
     INSERT INTO blog_posts (id, slug, title, excerpt, content, published_date, last_updated, status)
@@ -1027,26 +1046,26 @@ export async function saveBlogPost({ id, slug, title, excerpt, content, publishe
       last_updated = excluded.last_updated,
       status = excluded.status
   `,
-    id.trim(),
-    slug.trim(),
-    title.trim(),
+    cleanId,
+    cleanSlugVal,
+    cleanTitle,
     excerpt ? excerpt.trim() : '',
-    content.trim(),
+    cleanContent,
     publishedDate || new Date().toISOString().split('T')[0],
     lastUpdated || new Date().toISOString().split('T')[0],
     status
   );
 
   // Sync linked anime
-  await db.run(`DELETE FROM blog_post_anime WHERE post_id = ?`, id);
+  await db.run(`DELETE FROM blog_post_anime WHERE post_id = ?`, cleanId);
   for (const animeId of linkedAnimeIds) {
     if (animeId && animeId.trim()) {
-      await db.run(`INSERT INTO blog_post_anime (post_id, anime_id) VALUES (?, ?)`, id, animeId.trim());
+      await db.run(`INSERT INTO blog_post_anime (post_id, anime_id) VALUES (?, ?)`, cleanId, animeId.trim());
     }
   }
 
   invalidateBlogCache();
-  return { success: true, id };
+  return { success: true, id: cleanId };
 }
 
 /**
@@ -1135,29 +1154,34 @@ export async function saveVibe(vibeData = {}, contextOrLocals = null) {
     throw new Error('Vibe name is required.');
   }
 
-  const cleanSlug = String(slug || '').trim().toLowerCase();
-  if (!cleanSlug) {
+  const cleanSlugVal = cleanSlug(slug);
+  if (!cleanSlugVal) {
     throw new Error('Vibe slug is required.');
   }
 
-  // Slug safety validation (lowercase alphanumeric with hyphens)
-  const slugRegex = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
-  if (!slugRegex.test(cleanSlug)) {
-    throw new Error('Invalid slug format. Use lowercase letters, numbers, and hyphens (e.g. "op-mc", "hidden-gems").');
+  const slugError = getSlugValidationError(cleanSlugVal, 'Vibe slug');
+  if (slugError) {
+    throw new Error(slugError);
   }
 
   // ID determination: use provided id, or fallback to slug
-  const cleanId = String(id || cleanSlug).trim().toLowerCase();
+  const cleanId = cleanSlug(id || cleanSlugVal);
+  const idError = getSlugValidationError(cleanId, 'Vibe ID');
+  if (idError) {
+    throw new Error(idError);
+  }
 
   // Check slug uniqueness against other vibes
   const conflict = await db.queryOne(
     `SELECT id, name FROM vibes WHERE slug = ? AND id != ?`,
-    cleanSlug,
+    cleanSlugVal,
     cleanId
   );
   if (conflict) {
-    throw new Error(`The slug "${cleanSlug}" is already in use by vibe "${conflict.name}".`);
+    throw new Error(`The slug "${cleanSlugVal}" is already in use by vibe "${conflict.name}".`);
   }
+
+  const cleanSlug = cleanSlugVal;
 
   const cleanTagline = tagline ? String(tagline).trim() : null;
   const cleanGroup = (groupLabel || group_label) ? String(groupLabel || group_label).trim() : null;

@@ -243,6 +243,7 @@ function getThemePill(theme: any) {
               class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-sm font-mono text-white focus:outline-none focus:border-indigo-500"
             />
             <p class="text-[11px] text-slate-500 mt-1">Used in URL: /anime/tag/[slug]</p>
+            <p id="create-v-slug-error" class="text-xs text-rose-400 mt-1.5 hidden"></p>
           </div>
         </div>
 
@@ -404,6 +405,7 @@ function getThemePill(theme: any) {
               />
             </div>
             <p class="text-[11px] text-slate-500 mt-1" id="slug-help-text">Slug is locked to prevent broken URL bookmarks and external backlinks.</p>
+            <p id="edit-v-slug-error" class="text-xs text-rose-400 mt-1.5 hidden"></p>
           </div>
         </div>
 
@@ -558,8 +560,93 @@ function getThemePill(theme: any) {
     const createName = document.getElementById('create-v-name');
     const createSlug = document.getElementById('create-v-slug');
     const editSlug = document.getElementById('edit-v-slug');
+    const createSlugErr = document.getElementById('create-v-slug-error');
+    const editSlugErr = document.getElementById('edit-v-slug-error');
     const btnUnlockSlug = document.getElementById('btn-unlock-slug');
     const btnUnlockSlugLabel = document.getElementById('btn-unlock-slug-label');
+
+    const SLUG_REGEX = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
+    function validateSlugField(inputEl, errorEl, fieldLabel = 'Value', isRequired = true) {
+      if (!inputEl) return true;
+      const trimmed = inputEl.value.trim().toLowerCase();
+      inputEl.value = trimmed;
+
+      if (!trimmed) {
+        if (isRequired) {
+          if (errorEl) {
+            errorEl.textContent = `${fieldLabel} is required.`;
+            errorEl.classList.remove('hidden');
+          }
+          inputEl.classList.add('border-rose-500', 'focus:border-rose-500');
+          inputEl.classList.remove('border-slate-700/80');
+          return false;
+        } else {
+          if (errorEl) errorEl.classList.add('hidden');
+          inputEl.classList.remove('border-rose-500', 'focus:border-rose-500');
+          inputEl.classList.add('border-slate-700/80');
+          return true;
+        }
+      }
+
+      let errorMsg = null;
+      if (trimmed.startsWith('-') || trimmed.endsWith('-')) {
+        errorMsg = `${fieldLabel} cannot start or end with a hyphen.`;
+      } else if (trimmed.includes('--')) {
+        errorMsg = `${fieldLabel} cannot contain consecutive hyphens.`;
+      } else if (/[^a-z0-9-]/.test(trimmed)) {
+        errorMsg = `${fieldLabel} can only contain lowercase letters, numbers, and single hyphens (no spaces or special characters).`;
+      } else if (!SLUG_REGEX.test(trimmed)) {
+        errorMsg = `${fieldLabel} must only contain lowercase letters, numbers, and single hyphens.`;
+      }
+
+      if (errorMsg) {
+        if (errorEl) {
+          errorEl.textContent = errorMsg;
+          errorEl.classList.remove('hidden');
+        }
+        inputEl.classList.add('border-rose-500', 'focus:border-rose-500');
+        inputEl.classList.remove('border-slate-700/80');
+        return false;
+      }
+
+      if (errorEl) errorEl.classList.add('hidden');
+      inputEl.classList.remove('border-rose-500', 'focus:border-rose-500');
+      inputEl.classList.add('border-slate-700/80');
+      return true;
+    }
+
+    function bindSlugInputEvents(inputEl, errorEl, fieldLabel = 'Value', isRequired = true) {
+      if (!inputEl) return;
+      inputEl.addEventListener('input', () => {
+        const start = inputEl.selectionStart;
+        const end = inputEl.selectionEnd;
+        const lower = inputEl.value.toLowerCase();
+        if (inputEl.value !== lower) {
+          inputEl.value = lower;
+          if (start !== null && end !== null) {
+            inputEl.setSelectionRange(start, end);
+          }
+        }
+        if (errorEl && !errorEl.classList.contains('hidden')) {
+          validateSlugField(inputEl, errorEl, fieldLabel, isRequired);
+        }
+      });
+
+      inputEl.addEventListener('paste', () => {
+        setTimeout(() => {
+          inputEl.value = inputEl.value.trim().toLowerCase();
+          validateSlugField(inputEl, errorEl, fieldLabel, isRequired);
+        }, 0);
+      });
+
+      inputEl.addEventListener('blur', () => {
+        validateSlugField(inputEl, errorEl, fieldLabel, isRequired);
+      });
+    }
+
+    bindSlugInputEvents(createSlug, createSlugErr, 'URL Slug', true);
+    bindSlugInputEvents(editSlug, editSlugErr, 'URL Slug', true);
 
     // Helper: auto-generate kebab slug
     function slugify(text) {
@@ -589,6 +676,8 @@ function getThemePill(theme: any) {
     document.getElementById('btn-open-create-vibe')?.addEventListener('click', () => {
       formCreate.reset();
       createSlugManuallyEdited = false;
+      if (createSlugErr) createSlugErr.classList.add('hidden');
+      createSlug.classList.remove('border-rose-500', 'focus:border-rose-500');
       modalCreate.classList.remove('hidden');
       createName.focus();
     });
@@ -618,6 +707,7 @@ function getThemePill(theme: any) {
       editSlug.readOnly = true;
       editSlug.className = 'w-full px-3.5 py-2.5 bg-slate-950/60 border border-slate-800 rounded-xl text-sm font-mono text-slate-400 cursor-not-allowed focus:outline-none transition';
       btnUnlockSlugLabel.textContent = 'Edit Slug';
+      if (editSlugErr) editSlugErr.classList.add('hidden');
     }
 
     function unlockEditSlug() {
@@ -674,6 +764,14 @@ function getThemePill(theme: any) {
     // Handle Create Vibe Form Submit
     formCreate?.addEventListener('submit', async (e) => {
       e.preventDefault();
+
+      const isSlugValid = validateSlugField(createSlug, createSlugErr, 'URL Slug', true);
+      if (!isSlugValid) {
+        createSlug.focus();
+        window.showAdminToast?.('Please resolve URL Slug errors before creating.', 'error');
+        return;
+      }
+
       const submitBtn = document.getElementById('btn-submit-create');
       submitBtn.disabled = true;
       submitBtn.textContent = 'Saving...';
@@ -712,6 +810,14 @@ function getThemePill(theme: any) {
     // Handle Edit Vibe Form Submit
     formEdit?.addEventListener('submit', async (e) => {
       e.preventDefault();
+
+      const isSlugValid = validateSlugField(editSlug, editSlugErr, 'URL Slug', true);
+      if (!isSlugValid) {
+        editSlug.focus();
+        window.showAdminToast?.('Please resolve URL Slug errors before saving.', 'error');
+        return;
+      }
+
       const submitBtn = document.getElementById('btn-submit-edit');
       submitBtn.disabled = true;
       submitBtn.textContent = 'Saving...';
@@ -719,7 +825,7 @@ function getThemePill(theme: any) {
       const payload = {
         id: document.getElementById('edit-v-id').value.trim(),
         name: document.getElementById('edit-v-name').value.trim(),
-        slug: document.getElementById('edit-v-slug').value.trim(),
+        slug: editSlug.value.trim(),
         tagline: document.getElementById('edit-v-tagline').value.trim(),
         groupLabel: document.getElementById('edit-v-group').value.trim(),
         colorTheme: document.getElementById('edit-v-color').value,

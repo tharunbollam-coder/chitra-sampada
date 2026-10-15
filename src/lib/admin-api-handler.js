@@ -38,6 +38,7 @@ import {
   purgeBlogCache,
   purgeEntireSiteCache
 } from './cache-purge.ts';
+import { cleanSlug, getSlugValidationError } from './slug-validator.js';
 
 function jsonResponse(data, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -147,28 +148,29 @@ export async function handleAdminApi({ request, locals, url, params }) {
       const body = await parseJsonBody(request);
       const { id, slug, title, year, episodes } = body;
 
-      if (!id?.trim()) return jsonResponse({ success: false, error: 'ID is required' }, 400);
-      if (!slug?.trim()) return jsonResponse({ success: false, error: 'Slug is required' }, 400);
+      if (!id?.trim()) return jsonResponse({ success: false, error: 'Internal ID is required' }, 400);
+      if (!slug?.trim()) return jsonResponse({ success: false, error: 'URL Slug is required' }, 400);
       if (!title?.trim()) return jsonResponse({ success: false, error: 'Title is required' }, 400);
 
-      const cleanId = id.trim().toLowerCase();
-      const cleanSlug = slug.trim().toLowerCase();
+      const cleanId = cleanSlug(id);
+      const cleanSlugVal = cleanSlug(slug);
 
-      // Slug format validation: lowercase alphanumeric with single hyphens
-      const slugRegex = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
-      if (!slugRegex.test(cleanSlug)) {
-        return jsonResponse({
-          success: false,
-          error: 'Invalid slug format. Use lowercase letters, numbers, and hyphens (e.g. "frieren-beyond-journeys-end").'
-        }, 400);
+      const idError = getSlugValidationError(cleanId, 'Internal ID');
+      if (idError) {
+        return jsonResponse({ success: false, error: idError }, 400);
+      }
+
+      const slugError = getSlugValidationError(cleanSlugVal, 'URL Slug');
+      if (slugError) {
+        return jsonResponse({ success: false, error: slugError }, 400);
       }
 
       const db = await getDatabase(locals);
-      const existingSlug = await db.queryOne('SELECT id, title FROM anime WHERE slug = ? AND id != ?', cleanSlug, cleanId);
+      const existingSlug = await db.queryOne('SELECT id, title FROM anime WHERE slug = ? AND id != ?', cleanSlugVal, cleanId);
       if (existingSlug) {
         return jsonResponse({
           success: false,
-          error: `Slug "${cleanSlug}" is already used by anime "${existingSlug.title || existingSlug.id}"`
+          error: `Slug "${cleanSlugVal}" is already used by anime "${existingSlug.title || existingSlug.id}"`
         }, 400);
       }
 
@@ -345,6 +347,18 @@ export async function handleAdminApi({ request, locals, url, params }) {
       if (!body || (!body.core && !body.animeId)) {
         return jsonResponse({ success: false, error: 'Valid anime payload is required' }, 400);
       }
+      if (body.core) {
+        if (body.core.id) {
+          const idError = getSlugValidationError(body.core.id, 'Internal ID');
+          if (idError) return jsonResponse({ success: false, error: idError }, 400);
+          body.core.id = cleanSlug(body.core.id);
+        }
+        if (body.core.slug) {
+          const slugError = getSlugValidationError(body.core.slug, 'URL Slug');
+          if (slugError) return jsonResponse({ success: false, error: slugError }, 400);
+          body.core.slug = cleanSlug(body.core.slug);
+        }
+      }
       try {
         const result = await saveAllAnime(body, locals);
         const targetIdOrSlug = body.core?.slug || body.animeId || body.core?.id;
@@ -380,8 +394,13 @@ export async function handleAdminApi({ request, locals, url, params }) {
         if (!id?.trim() || !name?.trim()) {
           return jsonResponse({ success: false, error: 'Franchise ID and Name are required' }, 400);
         }
-        const result = await saveFranchise(body, locals);
-        await purgeFranchiseCache(body.id, locals);
+        const cleanId = cleanSlug(id);
+        const idError = getSlugValidationError(cleanId, 'Franchise ID');
+        if (idError) {
+          return jsonResponse({ success: false, error: idError }, 400);
+        }
+        const result = await saveFranchise({ ...body, id: cleanId }, locals);
+        await purgeFranchiseCache(cleanId, locals);
         return jsonResponse({ success: true, message: 'Franchise saved successfully', data: result });
       }
 
@@ -421,27 +440,37 @@ export async function handleAdminApi({ request, locals, url, params }) {
           return jsonResponse({ success: false, error: 'ID, Slug, Title, and Content are required.' }, 400);
         }
 
-        const cleanId = id.trim();
-        const cleanSlug = slug.trim().toLowerCase();
+        const cleanId = cleanSlug(id);
+        const cleanSlugVal = cleanSlug(slug);
+
+        const idError = getSlugValidationError(cleanId, 'Post ID');
+        if (idError) {
+          return jsonResponse({ success: false, error: idError }, 400);
+        }
+
+        const slugError = getSlugValidationError(cleanSlugVal, 'Blog Slug');
+        if (slugError) {
+          return jsonResponse({ success: false, error: slugError }, 400);
+        }
 
         const db = await getDatabase(locals);
-        const existingSlug = await db.queryOne('SELECT id FROM blog_posts WHERE slug = ? AND id != ?', cleanSlug, cleanId);
+        const existingSlug = await db.queryOne('SELECT id FROM blog_posts WHERE slug = ? AND id != ?', cleanSlugVal, cleanId);
         if (existingSlug) {
           return jsonResponse({
             success: false,
-            error: `Slug "${cleanSlug}" is already in use by another blog post (${existingSlug.id})`
+            error: `Slug "${cleanSlugVal}" is already in use by another blog post (${existingSlug.id})`
           }, 400);
         }
 
         const result = await saveBlogPost({
           ...body,
           id: cleanId,
-          slug: cleanSlug,
+          slug: cleanSlugVal,
           title: title.trim(),
           content: content.trim(),
           lastUpdated: new Date().toISOString().split('T')[0]
         }, locals);
-        await purgeBlogCache(cleanSlug, locals);
+        await purgeBlogCache(cleanSlugVal, locals);
         return jsonResponse({ success: true, message: 'Blog post saved successfully', data: result });
       }
 

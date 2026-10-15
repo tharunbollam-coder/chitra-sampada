@@ -90,6 +90,7 @@ const linkedAnimeIds = post ? post.linkedAnime.map((a: any) => a.id) : [];
                 !isNew ? 'opacity-70 cursor-not-allowed border-slate-800' : 'border-slate-700/80 focus:border-indigo-500'
               }`}
             />
+            <p id="blog-id-error" class="text-xs text-rose-400 mt-1.5 hidden"></p>
           </div>
 
           <!-- Slug -->
@@ -105,6 +106,7 @@ const linkedAnimeIds = post ? post.linkedAnime.map((a: any) => a.id) : [];
               required
               class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-sm font-mono text-white focus:outline-none focus:border-indigo-500"
             />
+            <p id="blog-slug-error" class="text-xs text-rose-400 mt-1.5 hidden"></p>
           </div>
 
           <!-- Status & Date -->
@@ -244,6 +246,92 @@ const linkedAnimeIds = post ? post.linkedAnime.map((a: any) => a.id) : [];
       });
     }
 
+    const idErrorEl = document.getElementById('blog-id-error');
+    const slugErrorEl = document.getElementById('blog-slug-error');
+
+    const SLUG_REGEX = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
+    function validateSlugField(inputEl, errorEl, fieldLabel = 'Value', isRequired = true) {
+      if (!inputEl) return true;
+      const trimmed = inputEl.value.trim().toLowerCase();
+      inputEl.value = trimmed;
+
+      if (!trimmed) {
+        if (isRequired) {
+          if (errorEl) {
+            errorEl.textContent = `${fieldLabel} is required.`;
+            errorEl.classList.remove('hidden');
+          }
+          inputEl.classList.add('border-rose-500', 'focus:border-rose-500');
+          inputEl.classList.remove('border-slate-700/80');
+          return false;
+        } else {
+          if (errorEl) errorEl.classList.add('hidden');
+          inputEl.classList.remove('border-rose-500', 'focus:border-rose-500');
+          inputEl.classList.add('border-slate-700/80');
+          return true;
+        }
+      }
+
+      let errorMsg = null;
+      if (trimmed.startsWith('-') || trimmed.endsWith('-')) {
+        errorMsg = `${fieldLabel} cannot start or end with a hyphen.`;
+      } else if (trimmed.includes('--')) {
+        errorMsg = `${fieldLabel} cannot contain consecutive hyphens.`;
+      } else if (/[^a-z0-9-]/.test(trimmed)) {
+        errorMsg = `${fieldLabel} can only contain lowercase letters, numbers, and single hyphens (no spaces or special characters).`;
+      } else if (!SLUG_REGEX.test(trimmed)) {
+        errorMsg = `${fieldLabel} must only contain lowercase letters, numbers, and single hyphens.`;
+      }
+
+      if (errorMsg) {
+        if (errorEl) {
+          errorEl.textContent = errorMsg;
+          errorEl.classList.remove('hidden');
+        }
+        inputEl.classList.add('border-rose-500', 'focus:border-rose-500');
+        inputEl.classList.remove('border-slate-700/80');
+        return false;
+      }
+
+      if (errorEl) errorEl.classList.add('hidden');
+      inputEl.classList.remove('border-rose-500', 'focus:border-rose-500');
+      inputEl.classList.add('border-slate-700/80');
+      return true;
+    }
+
+    function bindSlugInputEvents(inputEl, errorEl, fieldLabel = 'Value', isRequired = true) {
+      if (!inputEl) return;
+      inputEl.addEventListener('input', () => {
+        const start = inputEl.selectionStart;
+        const end = inputEl.selectionEnd;
+        const lower = inputEl.value.toLowerCase();
+        if (inputEl.value !== lower) {
+          inputEl.value = lower;
+          if (start !== null && end !== null) {
+            inputEl.setSelectionRange(start, end);
+          }
+        }
+        if (errorEl && !errorEl.classList.contains('hidden')) {
+          validateSlugField(inputEl, errorEl, fieldLabel, isRequired);
+        }
+      });
+
+      inputEl.addEventListener('paste', () => {
+        setTimeout(() => {
+          inputEl.value = inputEl.value.trim().toLowerCase();
+          validateSlugField(inputEl, errorEl, fieldLabel, isRequired);
+        }, 0);
+      });
+
+      inputEl.addEventListener('blur', () => {
+        validateSlugField(inputEl, errorEl, fieldLabel, isRequired);
+      });
+    }
+
+    bindSlugInputEvents(idInput, idErrorEl, 'Post ID', true);
+    bindSlugInputEvents(slugInput, slugErrorEl, 'URL Slug', true);
+
     // Auto-generate slug from title for new posts
     if (isNewPost && titleInput && slugInput && idInput) {
       titleInput.addEventListener('input', () => {
@@ -278,6 +366,15 @@ const linkedAnimeIds = post ? post.linkedAnime.map((a: any) => a.id) : [];
     // Save handler
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
+
+      const isIdValid = validateSlugField(idInput, idErrorEl, 'Post ID', true);
+      const isSlugValid = validateSlugField(slugInput, slugErrorEl, 'URL Slug', true);
+      if (!isIdValid || !isSlugValid) {
+        if (!isIdValid && idInput) idInput.focus();
+        else if (!isSlugValid && slugInput) slugInput.focus();
+        window.showAdminToast?.('Please resolve Post ID or Slug errors before saving.', 'error');
+        return;
+      }
 
       const submitBtn = form.querySelector('button[type="submit"]');
       const origSubmitHtml = submitBtn ? submitBtn.innerHTML : '';
