@@ -21,7 +21,11 @@ const trendingAnime = animeList.filter((a: any) => a.trending);
 const spotlightAnime = (trendingAnime.length > 0 ? trendingAnime : animeList).slice(0, 4);
 ---
 
-<BaseLayout title={siteConfig.name} description={siteConfig.description} showWellnessNote={true}>
+<BaseLayout
+  title={siteConfig.name}
+  description="Honest anime companion with carefully researched watch orders, filler lists, and viewer context across watched titles, watchlist queues, and reference guides."
+  showWellnessNote={true}
+>
   <Fragment slot="structured-data">
     <script type="application/ld+json" set:html={JSON.stringify({
       "@context": "https://schema.org",

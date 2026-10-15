@@ -15,6 +15,7 @@ import StreamingAvailability from '../../../components/anime/StreamingAvailabili
 import RelatedBlogPosts from '../../../components/RelatedBlogPosts.astro';
 import { getAnimeDetailBySlugOrId, getAvailableTabs, getDefaultTabKey, optimizeTmdbPoster } from '../../../lib/d1.js';
 import { siteConfig } from '../../../config/site.js';
+import { buildAnimeTabMetadata } from '../../../lib/seo-utils.ts';
 
 export const prerender = false;
 
@@ -122,60 +123,7 @@ const lessonText = isWatched && rawLesson
 const siteOrigin = (siteConfig.siteUrl || (Astro.site ? Astro.site.origin : 'https://chitrasampada.com')).replace(/\/+$/, '');
 
 // Tab-Specific SEO Metadata & Canonical URLs
-let pageTitle: string;
-let pageDescription: string;
-let canonicalUrl: string;
-
-if (!tab) {
-  // Overview / My Take (/anime/[slug])
-  pageTitle = `${anime.title} — Review & Guide | Chitra Sampada`;
-  pageDescription = `Read honest review, rating, and details for ${anime.title} on Chitra Sampada.`;
-  canonicalUrl = `${siteOrigin}/anime/${anime.slug}`;
-} else if (tab === 'filler-list') {
-  // Filler List (/anime/[slug]/filler-list)
-  pageTitle = `${anime.title} Filler List & Canon Episode Guide | Chitra Sampada`;
-  pageDescription = `Complete filler episode list and canon guide for ${anime.title}. Find out which episodes to skip.`;
-  canonicalUrl = `${siteOrigin}/anime/${anime.slug}/filler-list`;
-} else if (tab === 'watch-order') {
-  // Watch Order (/anime/[slug]/watch-order)
-  pageTitle = `${anime.title} Watch Order & Chronological Guide | Chitra Sampada`;
-  pageDescription = `The optimal watch order for ${anime.title}, including all TV series, movies, and OVAs in order.`;
-  canonicalUrl = `${siteOrigin}/anime/${anime.slug}/watch-order`;
-} else if (tab === 'characters') {
-  // Characters (/anime/[slug]/characters)
-  pageTitle = `${anime.title} Characters & Cast | Chitra Sampada`;
-  pageDescription = `Meet the full character list and cast of ${anime.title}.`;
-  canonicalUrl = `${siteOrigin}/anime/${anime.slug}/characters`;
-} else if (tab === 'review') {
-  pageTitle = `${anime.title} — Review & Guide | Chitra Sampada`;
-  pageDescription = `Read honest review, rating, and details for ${anime.title} on Chitra Sampada.`;
-  canonicalUrl = `${siteOrigin}/anime/${anime.slug}/review`;
-} else if (tab === 'source') {
-  pageTitle = `${anime.title} Manga & Light Novel Source Guide | Chitra Sampada`;
-  pageDescription = `Manga and light novel source material guide for ${anime.title}. Chapter adaptation coverage and where to start reading.`;
-  canonicalUrl = `${siteOrigin}/anime/${anime.slug}/source`;
-} else if (tab === 'power-system') {
-  pageTitle = `${anime.title} Power System & Combat Lore | Chitra Sampada`;
-  pageDescription = `In-depth power system breakdown, combat mechanics, and worldbuilding lore for ${anime.title}.`;
-  canonicalUrl = `${siteOrigin}/anime/${anime.slug}/power-system`;
-} else if (tab === 'lessons') {
-  pageTitle = `${anime.title} Lessons & Reflections | Chitra Sampada`;
-  pageDescription = `Key takeaways and philosophical reflections learned from watching ${anime.title}.`;
-  canonicalUrl = `${siteOrigin}/anime/${anime.slug}/lessons`;
-} else if (tab === 'universe') {
-  pageTitle = `${anime.title} Universe & Franchise Media Directory | Chitra Sampada`;
-  pageDescription = `Complete franchise media directory for ${anime.title}. Official canon storylines, movies, spin-offs, and specials.`;
-  canonicalUrl = `${siteOrigin}/anime/${anime.slug}/universe`;
-} else if (tab === 'recommendations') {
-  pageTitle = `${anime.title} Recommendations & Similar Anime | Chitra Sampada`;
-  pageDescription = `Curated anime recommendations for fans of ${anime.title}. Similar themes, combat systems, and captivating stories.`;
-  canonicalUrl = `${siteOrigin}/anime/${anime.slug}/recommendations`;
-} else {
-  const currentTabLabel = activeTab?.label || 'Honest Guide';
-  pageTitle = `${anime.title} — ${currentTabLabel} | Chitra Sampada`;
-  pageDescription = `Complete guide for ${anime.title}. ${currentTabLabel} with honest, no-fluff viewer insights.`;
-  canonicalUrl = `${siteOrigin}/anime/${anime.slug}/${tab}`;
-}
+const { pageTitle, pageDescription, canonicalUrl } = buildAnimeTabMetadata(anime, tab, siteOrigin);
 
 // Structured Data Schemas
 const breadcrumbItems = [
@@ -216,19 +164,21 @@ const breadcrumbSchema = {
 
 const reviewBodyText = anime.review_paragraphs || (typeof anime.review?.paragraphs === 'string' ? anime.review.paragraphs : (anime.review?.text || '')) || anime.review?.heading || (anime.synopsis ? `${anime.title}: ${anime.synopsis}` : `${anime.title} guide`);
 
+const schemaType = isMovie ? 'Movie' : 'TVSeries';
+
 let entitySchema;
 if (anime.honestyStatus === 'watched' && anime.personalRating !== undefined && anime.personalRating !== null) {
   entitySchema = {
     "@context": "https://schema.org",
     "@type": "Review",
     "itemReviewed": {
-      "@type": "TVSeries",
+      "@type": schemaType,
       "name": anime.title,
       ...(anime.originalTitle ? { "alternateName": anime.originalTitle } : {}),
       ...(anime.poster ? { "image": anime.poster } : {}),
       ...(anime.synopsis ? { "description": anime.synopsis } : {}),
       ...(anime.year ? { "startDate": String(anime.year) } : {}),
-      ...(anime.episodes ? { "numberOfEpisodes": anime.episodes } : {})
+      ...(!isMovie && anime.episodes ? { "numberOfEpisodes": anime.episodes } : {})
     },
     "reviewRating": {
       "@type": "Rating",
@@ -251,18 +201,23 @@ if (anime.honestyStatus === 'watched' && anime.personalRating !== undefined && a
 } else {
   entitySchema = {
     "@context": "https://schema.org",
-    "@type": "TVSeries",
+    "@type": schemaType,
     "name": anime.title,
     ...(anime.originalTitle ? { "alternateName": anime.originalTitle } : {}),
     ...(anime.poster ? { "image": anime.poster } : {}),
     ...(anime.synopsis ? { "description": anime.synopsis } : {}),
     ...(anime.year ? { "startDate": String(anime.year) } : {}),
-    ...(anime.episodes ? { "numberOfEpisodes": anime.episodes } : {})
+    ...(!isMovie && anime.episodes ? { "numberOfEpisodes": anime.episodes } : {})
   };
 }
 ---
 
-<BaseLayout title={pageTitle} description={pageDescription} canonicalUrl={canonicalUrl}>
+<BaseLayout
+  title={pageTitle}
+  description={pageDescription}
+  canonicalUrl={canonicalUrl}
+  ogImage={anime.poster || undefined}
+>
   <Fragment slot="structured-data">
     <script type="application/ld+json" set:html={JSON.stringify(breadcrumbSchema)} />
     <script type="application/ld+json" set:html={JSON.stringify(entitySchema)} />

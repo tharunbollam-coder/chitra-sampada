@@ -11,8 +11,8 @@ const posts = await getAllBlogPosts(Astro.locals);
 
 Astro.response.headers.set('Cache-Control', 'public, max-age=0, must-revalidate, s-maxage=86400');
 
-const pageTitle = 'Articles & Insights';
-const pageDescription = `Honest anime commentary, filler breakdowns, and in-depth companion essays for real viewers from ${siteConfig.name}.`;
+const pageTitle = 'Anime Articles, Guides & Editorial Breakdowns';
+const pageDescription = 'Read honest anime articles, pacing breakdowns, watch order essays, and companion guides written with transparent, no-fluff editorial insight.';
 
 const siteOrigin = (siteConfig.siteUrl || (Astro.site ? Astro.site.origin : 'https://chitrasampada.com')).replace(/\/+$/, '');
 const canonicalUrl = `${siteOrigin}/blog`;

@@ -13,6 +13,8 @@ interface Props {
   ogImage?: string;
   canonicalUrl?: string;
   showWellnessNote?: boolean;
+  includeBrandSuffix?: boolean;
+  ogType?: 'website' | 'article';
 }
 
 const {
@@ -20,17 +22,19 @@ const {
   description = siteConfig.description,
   ogImage = '/cs.webp',
   canonicalUrl: propCanonicalUrl,
-  showWellnessNote
+  showWellnessNote,
+  includeBrandSuffix = false,
+  ogType = 'website'
 } = Astro.props;
 
 // Determine clean page title without redundant site name suffix
-let pageTitle;
-if (title === siteConfig.name) {
-  pageTitle = `${title} — ${siteConfig.subTagline}`;
-} else if (title.includes(siteConfig.name)) {
-  pageTitle = title;
-} else {
+let pageTitle: string;
+if (!title || title === siteConfig.name) {
+  pageTitle = `${siteConfig.name} — ${siteConfig.subTagline}`;
+} else if (includeBrandSuffix && !title.includes(siteConfig.name)) {
   pageTitle = `${title} | ${siteConfig.name}`;
+} else {
+  pageTitle = title;
 }
 
 const siteOrigin = siteConfig.siteUrl || (Astro.site ? Astro.site.origin : 'https://chitrasampada.com');
@@ -72,7 +76,8 @@ const resolvedOgImage = ogImage.startsWith('http') ? ogImage : new URL(ogImage, 
     <link rel="preconnect" href="https://image.tmdb.org" crossorigin />
 
     <!-- Open Graph / Facebook -->
-    <meta property="og:type" content="website" />
+    <meta property="og:type" content={ogType} />
+    <meta property="og:site_name" content={siteConfig.name} />
     <meta property="og:url" content={canonicalUrl} />
     <meta property="og:title" content={pageTitle} />
     <meta property="og:description" content={description} />

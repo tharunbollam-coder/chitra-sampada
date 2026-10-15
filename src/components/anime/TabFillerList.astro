@@ -117,15 +117,20 @@ function getEpisodeRanges(episodesStr: string | null | undefined): string[] {
           )}
         </div>
         <h2 class="font-heading text-xl sm:text-2xl font-bold text-[#0F172A]">
-          {hasBreakdownData ? 'Canon & Filler Episode Guide' : 'Canon & Timeline Guidance'}
+          {hasBreakdownData ? `${anime.title} Canon & Filler Guide` : `${anime.title} Canon & Timeline Guidance`}
         </h2>
         {hasBreakdownData ? (
-          <p class="text-xs sm:text-sm text-slate-600 font-normal mt-1.5 max-w-2xl leading-relaxed">
-            <strong class="text-slate-900 font-semibold">Manga Canon</strong> directly adapts the manga story, no additions. <strong class="text-slate-900 font-semibold">Anime Canon</strong> is official story content written or approved by the creator (not in the manga). <strong class="text-slate-900 font-semibold">Mixed Canon/Filler</strong> refers to single episodes that blend real story content with anime-only padding within the same episode. <strong class="text-slate-900 font-semibold">Filler</strong> is entirely anime-original and fully skippable.
-          </p>
+          <div class="mt-2 space-y-2 max-w-2xl">
+            <p class="text-xs sm:text-sm text-slate-700 font-normal leading-relaxed">
+              {anime.title} spans a total of {totalEpisodes} episode{totalEpisodes === 1 ? '' : 's'}{totalEpisodes > 0 ? (isZeroFiller ? ' with zero filler episodes' : `, including ${fillerCount} filler episode${fillerCount === 1 ? '' : 's'} (${fillerPercentage}% of the series) and ${canonEpisodes} primary canon episode${canonEpisodes === 1 ? '' : 's'}`) : ''}. Use this breakdown to skip non-canon content and follow the main storyline in order.
+            </p>
+            <p class="text-xs text-slate-500 font-normal leading-relaxed">
+              <strong class="text-slate-700 font-semibold">Manga Canon:</strong> adapts manga storyline. <strong class="text-slate-700 font-semibold">Anime Canon:</strong> creator-approved story content. <strong class="text-slate-700 font-semibold">Mixed:</strong> blends canon with anime padding. <strong class="text-slate-700 font-semibold">Filler:</strong> anime-original and skippable.
+            </p>
+          </div>
         ) : (
           <p class="text-xs sm:text-sm text-slate-600 font-normal mt-1.5 max-w-2xl leading-relaxed">
-            Editorial timeline placement and canon status guidance for this title.
+            Editorial timeline placement and canon status guidance for {anime.title}.
           </p>
         )}
       </div>

@@ -4,6 +4,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 import { getBlogPostBySlug } from '../../lib/d1.js';
 import { siteConfig } from '../../config/site.js';
 import { marked } from 'marked';
+import { buildBlogPostMetadata } from '../../lib/seo-utils.ts';
 
 export const prerender = false;
 
@@ -28,8 +29,7 @@ const formattedPubDate = !isNaN(pubDateObj.getTime())
   ? pubDateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
   : post.publishedDate;
 
-const pageTitle = post.title;
-const pageDescription = post.excerpt;
+const { pageTitle, pageDescription } = buildBlogPostMetadata(post);
 
 const siteOrigin = (siteConfig.siteUrl || (Astro.site ? Astro.site.origin : 'https://chitrasampada.com')).replace(/\/+$/, '');
 const canonicalUrl = `${siteOrigin}/blog/${post.slug}`;
@@ -63,7 +63,7 @@ const articleSchema = {
   "@context": "https://schema.org",
   "@type": "Article",
   "headline": post.title,
-  "description": post.excerpt,
+  "description": pageDescription,
   "datePublished": post.publishedDate,
   "dateModified": post.lastUpdated || post.publishedDate,
   "author": {
@@ -87,7 +87,7 @@ const articleSchema = {
 };
 ---
 
-<BaseLayout title={pageTitle} description={pageDescription} canonicalUrl={canonicalUrl}>
+<BaseLayout title={pageTitle} description={pageDescription} canonicalUrl={canonicalUrl} ogType="article">
   <Fragment slot="structured-data">
     <script type="application/ld+json" set:html={JSON.stringify(breadcrumbSchema)} />
     <script type="application/ld+json" set:html={JSON.stringify(articleSchema)} />

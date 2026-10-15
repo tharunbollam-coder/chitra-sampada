@@ -29,7 +29,7 @@ const breadcrumbSchema = {
 };
 ---
 
-<BaseLayout title={pageTitle} description={pageDescription}>
+<BaseLayout title={pageTitle} description={pageDescription} includeBrandSuffix={true}>
   <Fragment slot="structured-data">
     <script type="application/ld+json" set:html={JSON.stringify(breadcrumbSchema)} />
   </Fragment>

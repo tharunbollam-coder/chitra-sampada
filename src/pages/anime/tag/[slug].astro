@@ -4,6 +4,7 @@ import BaseLayout from '../../../layouts/BaseLayout.astro';
 import AnimeCard from '../../../components/AnimeCard.astro';
 import { getCompactAnimeList, getAllVibes } from '../../../lib/d1.js';
 import { siteConfig } from '../../../config/site.js';
+import { buildVibeMetadata } from '../../../lib/seo-utils.ts';
 
 export const prerender = false;
 
@@ -69,11 +70,13 @@ const breadcrumbSchema = {
     }
   ]
 };
+
+const { pageTitle, pageDescription } = buildVibeMetadata(vibe);
 ---
 
 <BaseLayout
-  title={vibe.pageTitle}
-  description={vibe.metaDescription}
+  title={pageTitle}
+  description={pageDescription}
   canonicalUrl={canonicalUrl}
 >
   <Fragment slot="structured-data">
