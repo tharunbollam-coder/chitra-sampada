@@ -230,6 +230,16 @@ Astro.response.headers.set('Cache-Control', 'private, no-cache, no-store, must-r
           }, duration);
         }
       };
+
+      // Globally prevent accidental form submission on Enter inside text inputs across all admin pages
+      document.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && e.target && e.target.tagName === 'INPUT') {
+          const form = e.target.closest('form');
+          if (form) {
+            e.preventDefault();
+          }
+        }
+      });
     </script>
   </body>
 </html>
