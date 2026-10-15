@@ -17,7 +17,8 @@ interface AnimeRecord {
   addedDate?: string;
   lastUpdated?: string;
   trending?: boolean | number;
-  fillerPercentage?: number;
+  hasFillerData?: boolean;
+  fillerPercentage?: number | null;
   [key: string]: any;
 }
 
@@ -249,7 +250,7 @@ const totalTrending: number = animeList.filter((a: AnimeRecord) => Boolean(a.tre
                 <div class="text-xs text-slate-400">
                   {anime.type === 'movie'
                     ? `Movie ${anime.runtime ? `(${anime.runtime}m)` : ''}`
-                    : `${anime.episodes} eps ${typeof anime.fillerPercentage === 'number' && anime.fillerPercentage > 0 ? `(${anime.fillerPercentage}% filler)` : ''}`}
+                    : `${anime.episodes} eps ${anime.hasFillerData && typeof anime.fillerPercentage === 'number' ? `(${anime.fillerPercentage}% filler)` : ''}`}
                 </div>
               </td>
               <td class="py-4 px-4">

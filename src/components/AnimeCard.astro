@@ -10,7 +10,8 @@ interface Props {
 
 const { anime, priority = false } = Astro.props;
 
-const isZeroFiller = anime.fillerPercentage === 0;
+const hasFillerData = Boolean(anime.hasFillerData ?? (anime.fillerList && anime.fillerList.totalEpisodes > 0 && anime.sectionVisibility?.fillerList !== false));
+const isZeroFiller = hasFillerData && anime.fillerPercentage === 0;
 const isMovie = anime.type === 'movie';
 
 // Format status styling
@@ -54,7 +55,7 @@ const formattedRating = hasRating ? (numRating % 1 === 0 ? numRating.toFixed(0) 
   class="group relative flex flex-row md:flex-col gap-3 md:gap-0 p-3 sm:p-3.5 md:p-4 rounded-2xl bg-white border border-slate-200/80 hover:border-slate-300 shadow-xs hover:shadow-md transition-all duration-300 hover:-translate-y-1 h-full items-start md:items-stretch"
   data-vibe={anime.vibes ? anime.vibes.join(' ') : ''}
   data-status={anime.honestyStatus}
-  data-filler={anime.fillerPercentage === 0 ? 'zero' : 'has-filler'}
+  data-filler={hasFillerData ? (isZeroFiller ? 'zero' : 'has-filler') : 'none'}
   data-type={anime.type || 'series'}
   data-community={anime.communitySuggested ? 'true' : 'false'}
   data-title={anime.title.toLowerCase()}
@@ -134,7 +135,7 @@ const formattedRating = hasRating ? (numRating % 1 === 0 ? numRating.toFixed(0) 
           <span class="text-[10px] font-bold px-2 py-0.5 rounded-full border tracking-wide select-none bg-purple-50 text-purple-700 border-purple-200">
             Movie
           </span>
-        ) : (
+        ) : hasFillerData ? (
           <span
             class:list={[
               'text-[10px] font-bold px-2 py-0.5 rounded-full border tracking-wide select-none',
@@ -145,7 +146,7 @@ const formattedRating = hasRating ? (numRating % 1 === 0 ? numRating.toFixed(0) 
           >
             {isZeroFiller ? '0% Filler' : `${anime.fillerPercentage}% Filler`}
           </span>
-        )}
+        ) : null}
 
         {displayStatus && (
           <span class:list={['text-[10px] font-semibold px-2 py-0.5 rounded border', statusBadgeClass]}>
@@ -186,7 +187,7 @@ const formattedRating = hasRating ? (numRating % 1 === 0 ? numRating.toFixed(0) 
             <span class="text-[10px] font-bold px-2 py-0.5 rounded-full border tracking-wide select-none bg-purple-50 text-purple-700 border-purple-200">
               Movie
             </span>
-          ) : (
+          ) : hasFillerData ? (
             <span
               class:list={[
                 'text-[10px] font-bold px-2.5 py-0.5 rounded-full border tracking-wide select-none',
@@ -197,7 +198,7 @@ const formattedRating = hasRating ? (numRating % 1 === 0 ? numRating.toFixed(0) 
             >
               {isZeroFiller ? '0% Filler' : `${anime.fillerPercentage}% Filler`}
             </span>
-          )}
+          ) : null}
         </div>
       </div>
 

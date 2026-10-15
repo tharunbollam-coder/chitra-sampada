@@ -3060,6 +3060,15 @@ if (standardSourceTypes.includes(rawSourceType)) {
       updateDependentSectionsState();
     }
 
+    // Prevent accidental form submission on Enter inside text inputs across all editor forms (e.g. typing titles or Japanese Romaji IME)
+    document.querySelectorAll('form[id^="form-"]').forEach((form) => {
+      form.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && e.target && e.target.tagName === 'INPUT') {
+          e.preventDefault();
+        }
+      });
+    });
+
     // -------------------------------------------------------------
     // 1. SAVE CORE
     // -------------------------------------------------------------

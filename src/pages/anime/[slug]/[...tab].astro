@@ -40,7 +40,8 @@ if (tab && !availableTabs.some((t: any) => t.key === tab)) {
 
 const activeTabKey = tab || defaultTabKey;
 
-const isZeroFiller = anime.fillerPercentage === 0;
+const hasFillerData = Boolean(anime.hasFillerData ?? (anime.fillerList && anime.fillerList.totalEpisodes > 0 && anime.sectionVisibility?.fillerList !== false));
+const isZeroFiller = hasFillerData && anime.fillerPercentage === 0;
 const isMovie = anime.type === 'movie';
 const isAiring = (anime.status || '').toLowerCase().includes('airing');
 const isUpcoming = (anime.status || '').toLowerCase().includes('upcoming');
@@ -405,7 +406,7 @@ if (anime.honestyStatus === 'watched' && anime.personalRating !== undefined && a
                 <span>🎬</span>
                 <span>{anime.movieCanonType ? (anime.movieCanonType === 'Canon' ? '★ Canon Storyline' : anime.movieCanonType) : 'Feature Film'}</span>
               </span>
-            ) : (
+            ) : hasFillerData ? (
               <span
                 class:list={[
                   'text-xs font-bold px-3 py-1 rounded-full border tracking-wide select-none',
@@ -416,7 +417,7 @@ if (anime.honestyStatus === 'watched' && anime.personalRating !== undefined && a
               >
                 {isZeroFiller ? '0% Filler (Pure Canon)' : `${anime.fillerPercentage}% Filler Content`}
               </span>
-            )}
+            ) : null}
 
             <!-- Community Suggested Badge -->
             {anime.communitySuggested && (

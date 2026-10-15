@@ -248,7 +248,7 @@ export async function getCompactAnimeList(contextOrLocals = null) {
   const db = await getDatabase(contextOrLocals);
 
   const [animeRes, genresRes, vibesRes, fillerRes] = await Promise.allSettled([
-    db.query(`SELECT id, slug, title, year, type, runtime, episodes, status, poster, honesty_status, filler_percentage, trending, community_suggested, personal_rating FROM anime ORDER BY year DESC, title ASC`),
+    db.query(`SELECT id, slug, title, year, type, runtime, episodes, status, poster, honesty_status, filler_percentage, section_visibility, trending, community_suggested, personal_rating FROM anime ORDER BY year DESC, title ASC`),
     db.query(`SELECT anime_id, genre FROM anime_genres`),
     db.query(`SELECT anime_id, vibe_id FROM anime_vibes`),
     db.query(`SELECT anime_id, type, episodes, episode_count FROM anime_filler_ranges`)
@@ -302,6 +302,16 @@ export async function getCompactAnimeList(contextOrLocals = null) {
       episodes = episodes || fillerInfo.totalCount;
     }
 
+    let isFillerSectionVisible = true;
+    if (row.section_visibility) {
+      try {
+        const vis = JSON.parse(row.section_visibility);
+        if (vis && vis.fillerList === false) isFillerSectionVisible = false;
+      } catch {}
+    }
+
+    const hasFillerData = Boolean(fillerInfo && fillerInfo.totalCount > 0 && isFillerSectionVisible);
+
     return {
       id: row.id,
       slug: row.slug,
@@ -315,7 +325,8 @@ export async function getCompactAnimeList(contextOrLocals = null) {
       personal_rating: (row.personal_rating !== null && row.personal_rating !== undefined && row.personal_rating !== '') ? Number(row.personal_rating) : undefined,
       poster: row.poster,
       honestyStatus: row.honesty_status,
-      fillerPercentage,
+      hasFillerData,
+      fillerPercentage: hasFillerData ? fillerPercentage : null,
       genres: genresMap.get(row.id) || [],
       vibes: vibesMap.get(row.id) || [],
       trending: Boolean(row.trending),
@@ -666,6 +677,8 @@ export async function getAllAnime(contextOrLocals = null) {
       };
     });
 
+    const hasFillerData = Boolean(fillerList && fillerList.totalEpisodes > 0 && sectionVisibility.fillerList !== false);
+
     return {
       id: row.id,
       slug: row.slug,
@@ -686,7 +699,8 @@ export async function getAllAnime(contextOrLocals = null) {
       addedDate: row.added_date,
       lastUpdated: row.last_updated,
       honestyStatus: row.honesty_status,
-      fillerPercentage: (fillerList && fillerList.totalEpisodes > 0) ? fillerList.fillerPercentage : row.filler_percentage,
+      hasFillerData,
+      fillerPercentage: hasFillerData ? fillerList.fillerPercentage : null,
       genres: genresMap.get(row.id) || [],
       vibes: vibesMap.get(row.id) || [],
       trending: Boolean(row.trending),
@@ -916,6 +930,8 @@ export async function getAnimeDetailBySlugOrId(slugOrId, contextOrLocals = null)
     const powerText = anime.power_system_paragraphs || '';
     const lessonTakeaway = anime.lesson_takeaway || '';
 
+    const hasFillerData = Boolean(fillerList && fillerList.totalEpisodes > 0 && sectionVisibility.fillerList !== false);
+
     return {
       id: anime.id,
       slug: anime.slug,
@@ -936,7 +952,8 @@ export async function getAnimeDetailBySlugOrId(slugOrId, contextOrLocals = null)
       addedDate: anime.added_date,
       lastUpdated: anime.last_updated,
       honestyStatus: anime.honesty_status,
-      fillerPercentage: fillerList?.totalEpisodes > 0 ? fillerList.fillerPercentage : anime.filler_percentage,
+      hasFillerData,
+      fillerPercentage: hasFillerData ? fillerList.fillerPercentage : null,
       genres: safeGenres.map((row) => row.genre),
       vibes: safeVibes.map((row) => row.vibe_id),
       trending: Boolean(anime.trending),

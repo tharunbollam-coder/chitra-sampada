@@ -18,7 +18,7 @@ Astro.response.headers.set('Cache-Control', 'public, max-age=0, must-revalidate,
 const watchedCount = animeList.filter((a: any) => a.honestyStatus === 'watched').length;
 const watchlistCount = animeList.filter((a: any) => a.honestyStatus === 'watchlist').length;
 const referenceCount = animeList.filter((a: any) => a.honestyStatus === 'reference').length;
-const zeroFillerCount = animeList.filter((a: any) => a.fillerPercentage === 0).length;
+const zeroFillerCount = animeList.filter((a: any) => a.hasFillerData && a.fillerPercentage === 0).length;
 const communityCount = animeList.filter((a: any) => a.communitySuggested).length;
 const seriesCount = animeList.filter((a: any) => (a.type || 'series') === 'series').length;
 const movieCount = animeList.filter((a: any) => a.type === 'movie').length;
