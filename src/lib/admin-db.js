@@ -199,7 +199,7 @@ export async function saveAnimeCore(data, contextOrLocals = null) {
     type = 'series',
     runtime = null,
     movieCanonType = null,
-    status = 'Finished',
+    status = undefined,
     honestyStatus = 'watched',
     personalRating = null,
     ageRating,
@@ -272,9 +272,13 @@ export async function saveAnimeCore(data, contextOrLocals = null) {
     : (Number(existing?.filler_percentage) || 0);
 
   const finalOriginalTitle = originalTitle !== undefined ? String(originalTitle) : (existing?.original_title ?? '');
-  const finalStatus = (status !== undefined && status !== null && status !== '')
-    ? String(status).trim()
-    : (existing?.status ?? (finalType === 'movie' ? 'Completed' : ''));
+  let finalStatus = '';
+  if (status !== undefined) {
+    const s = String(status || '').trim();
+    finalStatus = (s === '' || s.toLowerCase() === 'not specified') ? '' : s;
+  } else {
+    finalStatus = existing?.status ?? '';
+  }
   const finalPoster = poster !== undefined ? String(poster) : (existing?.poster ?? '');
   const finalBackdrop = backdrop !== undefined ? String(backdrop) : (existing?.backdrop ?? '');
   const finalAddedDate = addedDate || existing?.added_date || new Date().toISOString().split('T')[0];
@@ -901,31 +905,53 @@ export async function getAllFranchises(contextOrLocals = null) {
     });
   }
 
-  return franchises.map(f => ({
-    id: f.id,
-    name: f.name,
-    description: f.description || '',
-    steps: stepsMap.get(f.id) || []
-  }));
+  return franchises.map(f => {
+    const desc = f.description === 'Use the Up/Down buttons to reorder entries on any device.' ? '' : (f.description || '');
+    return {
+      id: f.id,
+      name: f.name,
+      description: desc,
+      steps: stepsMap.get(f.id) || []
+    };
+  });
 }
 
 /**
  * @param {any} franchiseData
  * @param {any} [contextOrLocals]
  */
-export async function saveFranchise({ id, name, description = '', steps = [] }, contextOrLocals = null) {
+export async function saveFranchise({ id, originalId, name, description = '', steps = [] }, contextOrLocals = null) {
   const db = await getDatabase(contextOrLocals);
   const cleanId = sanitizeSlug(id);
+  const cleanOriginalId = originalId ? sanitizeSlug(originalId) : null;
   const cleanName = String(name || '').trim();
+  let cleanDesc = description ? String(description).trim() : '';
+  if (cleanDesc === 'Use the Up/Down buttons to reorder entries on any device.') {
+    cleanDesc = '';
+  }
+
   if (!cleanId || !cleanName) throw new Error('Franchise ID and Name are required.');
 
   const idError = getSlugValidationError(cleanId, 'Franchise ID');
   if (idError) throw new Error(idError);
 
-  await db.run(`
-    INSERT INTO franchises (id, name, description) VALUES (?, ?, ?)
-    ON CONFLICT(id) DO UPDATE SET name = excluded.name, description = excluded.description
-  `, cleanId, cleanName, description.trim());
+  if (cleanOriginalId && cleanOriginalId !== cleanId) {
+    const existingNew = await db.queryOne('SELECT id FROM franchises WHERE id = ?', cleanId);
+    if (existingNew) {
+      throw new Error(`Franchise ID "${cleanId}" is already taken by another franchise.`);
+    }
+
+    // Safely cascade ID change across franchises, anime, and watch order steps without violating SQLite foreign key constraints
+    await db.run('INSERT INTO franchises (id, name, description) VALUES (?, ?, ?)', cleanId, cleanName, cleanDesc);
+    await db.run('UPDATE anime SET franchise_id = ? WHERE franchise_id = ?', cleanId, cleanOriginalId);
+    await db.run('DELETE FROM franchise_watch_order WHERE franchise_id = ?', cleanOriginalId);
+    await db.run('DELETE FROM franchises WHERE id = ?', cleanOriginalId);
+  } else {
+    await db.run(`
+      INSERT INTO franchises (id, name, description) VALUES (?, ?, ?)
+      ON CONFLICT(id) DO UPDATE SET name = excluded.name, description = excluded.description
+    `, cleanId, cleanName, cleanDesc);
+  }
 
   if (Array.isArray(steps)) {
     await db.run(`DELETE FROM franchise_watch_order WHERE franchise_id = ?`, cleanId);
@@ -947,7 +973,7 @@ export async function saveFranchise({ id, name, description = '', steps = [] }, 
   }
 
   invalidateAnimeCache();
-  return { success: true, id: cleanId };
+  return { success: true, id: cleanId, originalId: cleanOriginalId };
 }
 
 /**

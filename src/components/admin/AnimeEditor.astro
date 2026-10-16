@@ -351,7 +351,7 @@ if (standardSourceTypes.includes(rawSourceType)) {
                 name="status"
                 class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-sm text-white focus:outline-none focus:border-indigo-500"
               >
-                <option value="" selected={!anime?.status}>Not Specified (Optional)</option>
+                <option value="" selected={!anime?.status || anime?.status === 'Not Specified'}>Not Specified (Optional)</option>
                 <option value="Currently Airing" selected={anime?.status === 'Currently Airing'}>Currently Airing</option>
                 <option value="Upcoming" selected={anime?.status === 'Upcoming'}>Upcoming</option>
                 <option value="Season Finished" selected={anime?.status === 'Season Finished'}>Season Finished</option>
@@ -2828,7 +2828,7 @@ if (standardSourceTypes.includes(rawSourceType)) {
       updateMediaTypeUI();
 
       const statusEl = document.getElementById('core-status');
-      if (statusEl) statusEl.value = (a.status === 'Finished' ? 'Completed' : (a.status || ''));
+      if (statusEl) statusEl.value = (a.status === 'Finished' ? 'Completed' : ((a.status === 'Not Specified' || !a.status) ? '' : a.status));
 
       const honestyEl = document.getElementById('core-honesty');
       if (honestyEl && a.honestyStatus) honestyEl.value = a.honestyStatus;

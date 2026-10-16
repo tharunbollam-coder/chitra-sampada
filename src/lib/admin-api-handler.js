@@ -390,18 +390,26 @@ export async function handleAdminApi({ request, locals, url, params }) {
 
       if (method === 'POST') {
         const body = await parseJsonBody(request);
-        const { id, name } = body;
+        const { id, originalId, name } = body;
         if (!id?.trim() || !name?.trim()) {
           return jsonResponse({ success: false, error: 'Franchise ID and Name are required' }, 400);
         }
         const cleanId = sanitizeSlug(id);
+        const cleanOriginalId = originalId ? sanitizeSlug(originalId) : undefined;
         const idError = getSlugValidationError(cleanId, 'Franchise ID');
         if (idError) {
           return jsonResponse({ success: false, error: idError }, 400);
         }
-        const result = await saveFranchise({ ...body, id: cleanId }, locals);
-        await purgeFranchiseCache(cleanId, locals);
-        return jsonResponse({ success: true, message: 'Franchise saved successfully', data: result });
+        try {
+          const result = await saveFranchise({ ...body, id: cleanId, originalId: cleanOriginalId }, locals);
+          await purgeFranchiseCache(cleanId, locals);
+          if (cleanOriginalId && cleanOriginalId !== cleanId) {
+            await purgeFranchiseCache(cleanOriginalId, locals);
+          }
+          return jsonResponse({ success: true, message: 'Franchise saved successfully', data: result });
+        } catch (err) {
+          return jsonResponse({ success: false, error: err.message }, 400);
+        }
       }
 
       if (method === 'DELETE') {

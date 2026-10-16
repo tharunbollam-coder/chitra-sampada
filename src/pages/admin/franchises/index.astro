@@ -41,6 +41,7 @@ const [franchises, animeList] = await Promise.all([
         <div
           class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-sm franchise-card"
           data-franchise-id={franchise.id}
+          data-original-id={franchise.id}
         >
           <!-- Franchise Header Bar (Clickable Accordion Header) -->
           <div
@@ -48,12 +49,12 @@ const [franchises, animeList] = await Promise.all([
           >
             <div>
               <div class="flex items-center gap-3">
-                <h2 class="text-xl font-bold font-heading text-white">{franchise.name}</h2>
-                <span class="text-xs font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">
+                <h2 class="text-xl font-bold font-heading text-white franchise-name-display">{franchise.name}</h2>
+                <span class="text-xs font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700 franchise-id-display">
                   {franchise.id}
                 </span>
               </div>
-              {franchise.description && (
+              {franchise.description && franchise.description !== 'Use the Up/Down buttons to reorder entries on any device.' && (
                 <p class="franchise-desc-display text-xs text-slate-400 mt-1 max-w-2xl">{franchise.description}</p>
               )}
             </div>
@@ -88,6 +89,67 @@ const [franchises, animeList] = await Promise.all([
 
           <!-- Watch Order Steps Section (Collapsible Body, Collapsed by Default) -->
           <div class="franchise-card-body p-4 sm:p-6 border-t border-slate-800/80 hidden">
+            <!-- Franchise Core Information: Name, ID, & Description -->
+            <div class="p-4 bg-slate-950/60 border border-slate-800/90 rounded-xl mb-6 space-y-3.5">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                <!-- Franchise Name -->
+                <div>
+                  <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+                    Franchise Name <span class="text-rose-400">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={franchise.name}
+                    placeholder="Franchise Name (e.g. Dragon Ball Franchise)"
+                    class="franchise-name-input w-full px-3 py-2 bg-slate-900 border border-slate-700/80 rounded-xl text-sm text-white font-medium focus:outline-none focus:border-indigo-500"
+                    required
+                  />
+                </div>
+
+                <!-- Franchise ID with Lock Flow -->
+                <div>
+                  <div class="flex items-center justify-between mb-1.5">
+                    <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider">
+                      Franchise ID <span class="text-rose-400">*</span>
+                    </label>
+                    <button
+                      type="button"
+                      class="btn-unlock-franchise-id text-[11px] font-medium text-amber-400 hover:text-amber-300 transition cursor-pointer flex items-center gap-1"
+                      title="Unlock ID to edit"
+                    >
+                      <span>🔒</span>
+                      <span class="unlock-btn-text">Edit ID</span>
+                    </button>
+                  </div>
+                  <input
+                    type="text"
+                    value={franchise.id}
+                    placeholder="dragon-ball"
+                    readonly
+                    class="franchise-id-input w-full px-3 py-2 bg-slate-950/80 border border-slate-800 rounded-xl text-xs font-mono text-indigo-300/80 placeholder-slate-600 focus:outline-none cursor-not-allowed"
+                    required
+                  />
+                  <p class="franchise-id-error text-[11px] text-rose-400 mt-1 hidden"></p>
+                  <p class="franchise-id-warning text-[11px] text-amber-400/90 mt-1 hidden">
+                    ⚠ Changing this ID will safely cascade to all linked anime and roadmap steps.
+                  </p>
+                </div>
+              </div>
+
+              <!-- Franchise Description -->
+              <div>
+                <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+                  Description <span class="text-slate-500 font-normal lowercase">(optional overview)</span>
+                </label>
+                <input
+                  type="text"
+                  value={franchise.description === 'Use the Up/Down buttons to reorder entries on any device.' ? '' : (franchise.description || '')}
+                  placeholder="Short summary of the franchise and continuity (optional)..."
+                  class="franchise-desc-input w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs text-slate-300 placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                />
+              </div>
+            </div>
+
             <div class="flex items-center justify-between mb-4">
               <div>
                 <h3 class="text-sm font-semibold text-slate-300 uppercase tracking-wider">Chronological Watch Roadmap</h3>
@@ -537,6 +599,36 @@ const [franchises, animeList] = await Promise.all([
         return;
       }
 
+      // 5.5 Unlock Franchise ID on Saved Card
+      const unlockBtn = e.target.closest('.btn-unlock-franchise-id');
+      if (unlockBtn) {
+        const card = unlockBtn.closest('.franchise-card');
+        if (!card) return;
+        const idInput = card.querySelector('.franchise-id-input');
+        if (!idInput) return;
+
+        if (idInput.hasAttribute('readonly')) {
+          const ok = confirm(
+            'Editing the Franchise ID will update this ID across all linked anime in your catalog and all watch order roadmap steps.\n\nAre you sure you want to change it?'
+          );
+          if (!ok) return;
+
+          idInput.removeAttribute('readonly');
+          idInput.classList.remove('cursor-not-allowed', 'bg-slate-950/80', 'border-slate-800', 'text-indigo-300/80');
+          idInput.classList.add('bg-slate-900', 'border-indigo-500/80', 'text-indigo-200', 'focus:border-indigo-400');
+          idInput.focus();
+
+          const warningEl = card.querySelector('.franchise-id-warning');
+          if (warningEl) warningEl.classList.remove('hidden');
+
+          const textSpan = unlockBtn.querySelector('.unlock-btn-text');
+          if (textSpan) textSpan.textContent = 'Unlocked';
+          unlockBtn.classList.remove('text-amber-400', 'hover:text-amber-300');
+          unlockBtn.classList.add('text-emerald-400', 'hover:text-emerald-300');
+        }
+        return;
+      }
+
       // 6. Delete or Discard Franchise
       const delBtn = e.target.closest('.btn-delete-franchise');
       if (delBtn) {
@@ -598,7 +690,22 @@ const [franchises, animeList] = await Promise.all([
         const nameInput = card.querySelector('.franchise-name-input');
         const descInput = card.querySelector('.franchise-desc-input');
 
-        let id = '';
+        const originalId = (card.getAttribute('data-original-id') || card.getAttribute('data-franchise-id') || '').trim();
+        const id = (idInput ? idInput.value : card.getAttribute('data-franchise-id') || '').trim();
+        const name = (nameInput ? nameInput.value : '').trim();
+        let description = (descInput ? descInput.value : '').trim();
+        if (description === 'Use the Up/Down buttons to reorder entries on any device.') {
+          description = '';
+          if (descInput) descInput.value = '';
+        }
+
+        if (!id || !name) {
+          window.showAdminToast('Franchise ID and Name are required.', 'error');
+          if (nameInput && !name) nameInput.focus();
+          else if (idInput && !id) idInput.focus();
+          return;
+        }
+
         if (idInput) {
           const errEl = card.querySelector('.franchise-id-error');
           const isIdValid = validateSlugField(idInput, errEl, 'Franchise ID', true);
@@ -607,19 +714,6 @@ const [franchises, animeList] = await Promise.all([
             window.showAdminToast('Please resolve Franchise ID errors.', 'error');
             return;
           }
-          id = idInput.value;
-        } else {
-          id = (card.getAttribute('data-franchise-id') || '').trim();
-        }
-
-        const name = (nameInput ? nameInput.value : card.querySelector('h2')?.textContent || '').trim();
-        const description = (descInput ? descInput.value : card.querySelector('.franchise-desc-display')?.textContent || '').trim();
-
-        if (!id || !name) {
-          window.showAdminToast('Franchise ID and Name are required.', 'error');
-          if (nameInput && !name) nameInput.focus();
-          else if (idInput && !id) idInput.focus();
-          return;
         }
 
         const stepRows = container.querySelectorAll('.step-row');
@@ -644,43 +738,63 @@ const [franchises, animeList] = await Promise.all([
           const res = await fetch('/api/admin/franchises', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id, name, description, steps })
+            body: JSON.stringify({ id, originalId: originalId || id, name, description, steps })
           });
 
           const data = await res.json();
           if (data.success) {
-            // If card was draft, transition to persistent card display
-            if (card.dataset.isDraft === 'true') {
-              card.removeAttribute('data-is-draft');
-              card.className = 'bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-sm franchise-card';
-              card.setAttribute('data-franchise-id', id);
+            // Update card DOM state immediately without page reload
+            card.removeAttribute('data-is-draft');
+            card.className = 'bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-sm franchise-card';
+            card.setAttribute('data-franchise-id', id);
+            card.setAttribute('data-original-id', id);
 
-              const headerLeft = card.querySelector('.franchise-card-header > div:first-child');
-              if (headerLeft) {
-                headerLeft.className = '';
-                headerLeft.innerHTML = `
-                  <div class="flex items-center gap-3">
-                    <h2 class="text-xl font-bold font-heading text-white">${escapeHtml(name)}</h2>
-                    <span class="text-xs font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">
-                      ${escapeHtml(id)}
-                    </span>
-                  </div>
-                  ${description ? `<p class="franchise-desc-display text-xs text-slate-400 mt-1 max-w-2xl">${escapeHtml(description)}</p>` : ''}
-                `;
+            // Re-lock the ID input on saved card
+            if (idInput) {
+              idInput.setAttribute('readonly', 'true');
+              idInput.className = 'franchise-id-input w-full px-3 py-2 bg-slate-950/80 border border-slate-800 rounded-xl text-xs font-mono text-indigo-300/80 placeholder-slate-600 focus:outline-none cursor-not-allowed';
+              const warningEl = card.querySelector('.franchise-id-warning');
+              if (warningEl) warningEl.classList.add('hidden');
+              const unlockBtn = card.querySelector('.btn-unlock-franchise-id');
+              if (unlockBtn) {
+                unlockBtn.classList.remove('hidden', 'text-emerald-400', 'hover:text-emerald-300');
+                unlockBtn.classList.add('text-amber-400', 'hover:text-amber-300');
+                const textSpan = unlockBtn.querySelector('.unlock-btn-text');
+                if (textSpan) textSpan.textContent = 'Edit ID';
               }
-
-              const delBtn = card.querySelector('.btn-delete-franchise');
-              if (delBtn) {
-                delBtn.setAttribute('data-id', id);
-                delBtn.setAttribute('data-name', name);
-                delBtn.setAttribute('title', 'Delete franchise');
-              }
-
-              const addBtn = card.querySelector('.btn-add-step');
-              if (addBtn) addBtn.setAttribute('data-franchise-id', id);
-              saveBtn.setAttribute('data-id', id);
-              container.setAttribute('data-franchise-id', id);
             }
+
+            // Update header displays immediately
+            const nameDisplay = card.querySelector('.franchise-name-display');
+            if (nameDisplay) nameDisplay.textContent = name;
+            const idDisplay = card.querySelector('.franchise-id-display');
+            if (idDisplay) idDisplay.textContent = id;
+
+            let descDisplay = card.querySelector('.franchise-desc-display');
+            if (description && description !== 'Use the Up/Down buttons to reorder entries on any device.') {
+              if (!descDisplay) {
+                descDisplay = document.createElement('p');
+                descDisplay.className = 'franchise-desc-display text-xs text-slate-400 mt-1 max-w-2xl';
+                const titleContainer = card.querySelector('.franchise-card-header > div:first-child');
+                if (titleContainer) titleContainer.appendChild(descDisplay);
+              }
+              descDisplay.textContent = description;
+            } else if (descDisplay) {
+              descDisplay.remove();
+            }
+
+            // Update delete button data attributes
+            const delBtn = card.querySelector('.btn-delete-franchise');
+            if (delBtn) {
+              delBtn.setAttribute('data-id', id);
+              delBtn.setAttribute('data-name', name);
+              delBtn.setAttribute('title', 'Delete franchise');
+            }
+
+            const addBtn = card.querySelector('.btn-add-step');
+            if (addBtn) addBtn.setAttribute('data-franchise-id', id);
+            saveBtn.setAttribute('data-id', id);
+            container.setAttribute('data-franchise-id', id);
 
             saveBtn.disabled = false;
             saveBtn.classList.remove('bg-indigo-600', 'hover:bg-indigo-500');
@@ -692,7 +806,7 @@ const [franchises, animeList] = await Promise.all([
               saveBtn.innerHTML = `<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg><span>Save Changes</span>`;
             }, 2500);
 
-            window.showAdminToast(`✓ Watch roadmap saved successfully (${steps.length} steps)!`, 'success');
+            window.showAdminToast(`✓ Franchise "${name}" saved successfully (${steps.length} steps)!`, 'success');
           } else {
             saveBtn.disabled = false;
             saveBtn.innerHTML = origHtml;
@@ -730,36 +844,18 @@ const [franchises, animeList] = await Promise.all([
       card.className = 'bg-slate-900 border-2 border-indigo-500/60 rounded-2xl overflow-hidden shadow-lg franchise-card ring-1 ring-indigo-500/30';
       card.setAttribute('data-is-draft', 'true');
       card.setAttribute('data-franchise-id', '');
+      card.setAttribute('data-original-id', '');
 
       card.innerHTML = `
         <!-- Franchise Header Bar (Clickable Accordion Header) -->
-        <div class="franchise-card-header p-4 sm:p-6 bg-slate-900/90 hover:bg-slate-850/60 transition cursor-pointer select-none flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-          <div class="flex-1 min-w-0 w-full">
-            <div class="flex flex-wrap items-center gap-3">
-              <input
-                type="text"
-                placeholder="Franchise Name (e.g. Solo Leveling, Fate Series)"
-                class="franchise-name-input px-3.5 py-2 bg-slate-950 border border-slate-700/80 focus:border-indigo-500 rounded-xl text-base sm:text-lg font-bold text-white placeholder-slate-500 focus:outline-none flex-1 min-w-[220px]"
-                required
-              />
-              <div class="flex flex-col gap-1">
-                <div class="flex items-center gap-1.5">
-                  <span class="text-xs text-slate-400 font-mono">id:</span>
-                  <input
-                    type="text"
-                    placeholder="solo-leveling"
-                    class="franchise-id-input px-2.5 py-1.5 bg-slate-950 border border-slate-700/80 focus:border-indigo-500 rounded-lg text-xs font-mono text-indigo-300 placeholder-slate-600 focus:outline-none w-36 sm:w-44"
-                    required
-                  />
-                </div>
-                <p class="franchise-id-error text-[11px] text-rose-400 hidden"></p>
-              </div>
+        <div class="franchise-card-header p-4 sm:p-6 bg-slate-900/90 hover:bg-slate-850/60 transition cursor-pointer select-none flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <div class="flex items-center gap-3">
+              <h2 class="text-xl font-bold font-heading text-white franchise-name-display">New Franchise</h2>
+              <span class="text-xs font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700 franchise-id-display">
+                draft
+              </span>
             </div>
-            <input
-              type="text"
-              placeholder="Short summary of the franchise and continuity (optional)..."
-              class="franchise-desc-input w-full mt-2.5 px-3 py-1.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-300 placeholder-slate-500 focus:outline-none focus:border-indigo-500"
-            />
           </div>
 
           <div class="flex items-center gap-2.5 shrink-0 self-end sm:self-center">
@@ -783,6 +879,63 @@ const [franchises, animeList] = await Promise.all([
 
         <!-- Watch Order Steps Section (Collapsible Body, Expanded by Default) -->
         <div class="franchise-card-body p-4 sm:p-6 border-t border-slate-800/80">
+          <!-- Franchise Core Information: Name, ID, & Description -->
+          <div class="p-4 bg-slate-950/60 border border-slate-800/90 rounded-xl mb-6 space-y-3.5">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+              <!-- Franchise Name -->
+              <div>
+                <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+                  Franchise Name <span class="text-rose-400">*</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="Franchise Name (e.g. Solo Leveling, Fate Series)"
+                  class="franchise-name-input w-full px-3 py-2 bg-slate-900 border border-slate-700/80 rounded-xl text-sm text-white font-medium focus:outline-none focus:border-indigo-500"
+                  required
+                />
+              </div>
+
+              <!-- Franchise ID (Editable for new draft) -->
+              <div>
+                <div class="flex items-center justify-between mb-1.5">
+                  <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider">
+                    Franchise ID <span class="text-rose-400">*</span>
+                  </label>
+                  <button
+                    type="button"
+                    class="btn-unlock-franchise-id text-[11px] font-medium text-amber-400 hover:text-amber-300 transition cursor-pointer hidden items-center gap-1"
+                    title="Unlock ID to edit"
+                  >
+                    <span>🔒</span>
+                    <span class="unlock-btn-text">Edit ID</span>
+                  </button>
+                </div>
+                <input
+                  type="text"
+                  placeholder="solo-leveling"
+                  class="franchise-id-input w-full px-3 py-2 bg-slate-900 border border-slate-700/80 rounded-xl text-xs font-mono text-indigo-300 placeholder-slate-600 focus:outline-none focus:border-indigo-500"
+                  required
+                />
+                <p class="franchise-id-error text-[11px] text-rose-400 mt-1 hidden"></p>
+                <p class="franchise-id-warning text-[11px] text-amber-400/90 mt-1 hidden">
+                  ⚠ Changing this ID will safely cascade to all linked anime and roadmap steps.
+                </p>
+              </div>
+            </div>
+
+            <!-- Franchise Description -->
+            <div>
+              <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+                Description <span class="text-slate-500 font-normal lowercase">(optional overview)</span>
+              </label>
+              <input
+                type="text"
+                placeholder="Short summary of the franchise and continuity (optional)..."
+                class="franchise-desc-input w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs text-slate-300 placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+              />
+            </div>
+          </div>
+
           <div class="flex items-center justify-between mb-4">
             <div>
               <h3 class="text-sm font-semibold text-slate-300 uppercase tracking-wider">Chronological Watch Roadmap</h3>
@@ -823,26 +976,31 @@ const [franchises, animeList] = await Promise.all([
       if (emptyMsg) emptyMsg.classList.add('hidden');
       franchisesList.prepend(card);
 
+      bindFranchiseCardEvents(card);
+
+      const nameInput = card.querySelector('.franchise-name-input');
+      nameInput?.focus();
+      card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+
+    // Bind all existing franchise cards on initial load
+    function bindFranchiseCardEvents(card) {
       const nameInput = card.querySelector('.franchise-name-input');
       const idInput = card.querySelector('.franchise-id-input');
       const idErrEl = card.querySelector('.franchise-id-error');
       if (idInput) {
         bindSlugInputEvents(idInput, idErrEl, 'Franchise ID', true);
       }
-      let idManuallyEdited = false;
-      idInput?.addEventListener('input', () => { idManuallyEdited = true; });
       nameInput?.addEventListener('input', () => {
-        if (!idManuallyEdited && idInput) {
-          idInput.value = nameInput.value
-            .toLowerCase()
-            .trim()
-            .replace(/[^a-z0-9]+/g, '-')
-            .replace(/^-+|-+$/g, '');
-        }
+        const nameDisplay = card.querySelector('.franchise-name-display');
+        if (nameDisplay) nameDisplay.textContent = nameInput.value.trim() || 'New Franchise';
       });
+      idInput?.addEventListener('input', () => {
+        const idDisplay = card.querySelector('.franchise-id-display');
+        if (idDisplay) idDisplay.textContent = idInput.value.trim() || 'draft';
+      });
+    }
 
-      nameInput?.focus();
-      card.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    });
+    document.querySelectorAll('.franchise-card').forEach(bindFranchiseCardEvents);
   </script>
 </AdminLayout>
