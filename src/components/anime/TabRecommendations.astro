@@ -17,10 +17,10 @@ const recommendations = Array.isArray(anime.recommendations) ? anime.recommendat
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-5 border-b border-slate-100">
         <div>
           <h2 class="font-heading text-xl sm:text-2xl font-bold text-[#0F172A]">
-            Shows Like This
+            Anime Like {anime.title}
           </h2>
           <p class="text-xs sm:text-sm text-slate-500 font-normal mt-1">
-            Handpicked anime recommendations for fans of {anime.title}. Similar themes, high-stakes progression, and rich worldbuilding.
+            {recommendations.length} curated {recommendations.length === 1 ? 'recommendation' : 'recommendations'} for fans of {anime.title}, sharing similar story themes, progression, and worldbuilding.
           </p>
         </div>
         <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-[#EEF2FF] text-[#4F46E5] border border-[#C7D2FE] shrink-0 self-start sm:self-auto shadow-2xs">

@@ -43,10 +43,10 @@ function getBadgeStyle(badge: string, isCanon: boolean) {
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-5 border-b border-slate-100">
         <div>
           <h2 class="font-heading text-xl sm:text-2xl font-bold text-[#0F172A]">
-            Related & Universe Media
+            {anime.title} Related Media & Universe
           </h2>
           <p class="text-xs sm:text-sm text-slate-500 font-normal mt-1">
-            Complete franchise directory for {anime.title}. Explore canonical storyline entries alongside standalone spin-offs, movies, and specials.
+            Franchise directory across {universe.length} related {universe.length === 1 ? 'entry' : 'entries'} for {anime.title}, covering canon storylines, films, and spin-offs.
           </p>
         </div>
         <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-[#EEF2FF] text-[#4F46E5] border border-[#C7D2FE] shrink-0 self-start sm:self-auto shadow-2xs">

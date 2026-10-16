@@ -50,6 +50,70 @@ const fillerPercentage = totalEpisodes > 0
 
 const isZeroFiller = fillerPercentage === 0;
 
+// Construct dynamic, mathematically accurate summary breakdown text
+let summaryBreakdownText = '';
+let summaryGuidanceText = '';
+
+if (hasBreakdownData && totalEpisodes > 0) {
+  if (isZeroFiller) {
+    if (mixedCount > 0) {
+      const canonParts: string[] = [];
+      if (mangaCanonCount > 0) {
+        canonParts.push(`${mangaCanonCount} manga canon episode${mangaCanonCount === 1 ? '' : 's'}`);
+      }
+      if (animeCanonCount > 0) {
+        canonParts.push(`${animeCanonCount} anime canon episode${animeCanonCount === 1 ? '' : 's'}`);
+      }
+      canonParts.push(`${mixedCount} mixed canon episode${mixedCount === 1 ? '' : 's'}`);
+
+      const partsText = canonParts.length === 2
+        ? `${canonParts[0]} and ${canonParts[1]}`
+        : `${canonParts.slice(0, -1).join(', ')}, and ${canonParts[canonParts.length - 1]}`;
+
+      summaryBreakdownText = `${anime.title} spans a total of ${totalEpisodes} episode${totalEpisodes === 1 ? '' : 's'} across ${partsText} with 0% filler content.`;
+      summaryGuidanceText = 'Use this breakdown to follow the official storyline in sequence with zero skippable filler.';
+    } else {
+      summaryBreakdownText = `${anime.title} spans a total of ${totalEpisodes} episode${totalEpisodes === 1 ? '' : 's'} with 0% filler content.`;
+      summaryGuidanceText = 'Every episode adapts the official storyline in order with zero skippable filler.';
+    }
+  } else {
+    // Has filler (> 0)
+    const breakdownParts: string[] = [];
+    if (animeCanonCount > 0) {
+      if (mangaCanonCount > 0) {
+        breakdownParts.push(`${mangaCanonCount} manga canon episode${mangaCanonCount === 1 ? '' : 's'}`);
+      }
+      breakdownParts.push(`${animeCanonCount} anime canon episode${animeCanonCount === 1 ? '' : 's'}`);
+    } else if (mangaCanonCount > 0) {
+      breakdownParts.push(`${mangaCanonCount} manga canon episode${mangaCanonCount === 1 ? '' : 's'}`);
+    } else if (canonEpisodes > 0) {
+      breakdownParts.push(`${canonEpisodes} primary canon episode${canonEpisodes === 1 ? '' : 's'}`);
+    }
+
+    if (mixedCount > 0) {
+      breakdownParts.push(`${mixedCount} mixed canon/filler episode${mixedCount === 1 ? '' : 's'}`);
+    }
+
+    if (fillerCount > 0) {
+      breakdownParts.push(`${fillerCount} filler episode${fillerCount === 1 ? '' : 's'} (${fillerPercentage}% filler)`);
+    }
+
+    let partsText = '';
+    if (breakdownParts.length === 1) {
+      partsText = breakdownParts[0];
+    } else if (breakdownParts.length === 2) {
+      partsText = `${breakdownParts[0]} and ${breakdownParts[1]}`;
+    } else if (breakdownParts.length > 2) {
+      partsText = `${breakdownParts.slice(0, -1).join(', ')}, and ${breakdownParts[breakdownParts.length - 1]}`;
+    }
+
+    summaryBreakdownText = `${anime.title} spans a total of ${totalEpisodes} episode${totalEpisodes === 1 ? '' : 's'}, including ${partsText}.`;
+    summaryGuidanceText = mixedCount > 0
+      ? 'Use this breakdown to watch essential canon and mixed story episodes while skipping pure filler.'
+      : 'Use this breakdown to skip non-canon content and follow the main storyline in order.';
+  }
+}
+
 // Type configurations for headers, styling, and badges
 const TYPE_CONFIG = {
   'Manga Canon': {
@@ -103,7 +167,7 @@ function getEpisodeRanges(episodesStr: string | null | undefined): string[] {
       <div>
         <div class="flex items-center gap-2 mb-1">
           <span class="text-xs font-bold uppercase tracking-wider text-slate-500">
-            {anime.type === 'movie' ? 'Timeline & Canon' : 'Filler Breakdown'}
+            Filler Breakdown
           </span>
           {hasBreakdownData && (
             <span class:list={[
@@ -117,73 +181,73 @@ function getEpisodeRanges(episodesStr: string | null | undefined): string[] {
           )}
         </div>
         <h2 class="font-heading text-xl sm:text-2xl font-bold text-[#0F172A]">
-          {hasBreakdownData ? `${anime.title} Canon & Filler Guide` : `${anime.title} Canon & Timeline Guidance`}
+          {anime.title} Canon & Filler Guide
         </h2>
-        {hasBreakdownData ? (
-          <div class="mt-2 space-y-2 max-w-2xl">
-            <p class="text-xs sm:text-sm text-slate-700 font-normal leading-relaxed">
-              {anime.title} spans a total of {totalEpisodes} episode{totalEpisodes === 1 ? '' : 's'}{totalEpisodes > 0 ? (isZeroFiller ? ' with zero filler episodes' : `, including ${fillerCount} filler episode${fillerCount === 1 ? '' : 's'} (${fillerPercentage}% of the series) and ${canonEpisodes} primary canon episode${canonEpisodes === 1 ? '' : 's'}`) : ''}. Use this breakdown to skip non-canon content and follow the main storyline in order.
+          {hasBreakdownData ? (
+            <div class="mt-2 space-y-2 max-w-2xl">
+              <p class="text-xs sm:text-sm text-slate-700 font-normal leading-relaxed">
+                {summaryBreakdownText} {summaryGuidanceText}
+              </p>
+              <p class="text-xs text-slate-500 font-normal leading-relaxed">
+                <strong class="text-slate-700 font-semibold">Manga Canon:</strong> adapts manga storyline. <strong class="text-slate-700 font-semibold">Anime Canon:</strong> creator-approved story content. <strong class="text-slate-700 font-semibold">Mixed:</strong> blends canon with anime padding. <strong class="text-slate-700 font-semibold">Filler:</strong> anime-original and skippable.
+              </p>
+            </div>
+          ) : (
+            <p class="text-xs sm:text-sm text-slate-600 font-normal mt-1.5 max-w-2xl leading-relaxed">
+              Canon status and episode guidance for {anime.title}.
             </p>
-            <p class="text-xs text-slate-500 font-normal leading-relaxed">
-              <strong class="text-slate-700 font-semibold">Manga Canon:</strong> adapts manga storyline. <strong class="text-slate-700 font-semibold">Anime Canon:</strong> creator-approved story content. <strong class="text-slate-700 font-semibold">Mixed:</strong> blends canon with anime padding. <strong class="text-slate-700 font-semibold">Filler:</strong> anime-original and skippable.
-            </p>
+          )}
+        </div>
+
+        <!-- Quick Metrics Matrix (only if breakdown ranges exist) -->
+        {hasBreakdownData && (
+          <div class="flex items-center gap-3 shrink-0 flex-wrap sm:flex-nowrap">
+            <div class="px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-center min-w-[90px]">
+              <span class="block text-[10px] font-bold uppercase tracking-wider text-slate-500">Total</span>
+              <span class="text-base font-extrabold text-[#0F172A]">{totalEpisodes} eps</span>
+            </div>
+            <div class="px-4 py-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-center min-w-[90px]">
+              <span class="block text-[10px] font-bold uppercase tracking-wider text-emerald-700">Canon</span>
+              <span class="text-base font-extrabold text-emerald-950">{canonEpisodes} eps</span>
+            </div>
+            {mixedCount > 0 && (
+              <div class="px-4 py-2.5 rounded-xl bg-purple-50 border border-purple-200 text-center min-w-[90px]">
+                <span class="block text-[10px] font-bold uppercase tracking-wider text-purple-700">Mixed</span>
+                <span class="text-base font-extrabold text-purple-950">{mixedCount} eps</span>
+              </div>
+            )}
+            {!isZeroFiller && (
+              <div class="px-4 py-2.5 rounded-xl bg-amber-50 border border-amber-200 text-center min-w-[90px]">
+                <span class="block text-[10px] font-bold uppercase tracking-wider text-amber-700">Filler</span>
+                <span class="text-base font-extrabold text-amber-950">{fillerCount} eps</span>
+              </div>
+            )}
           </div>
-        ) : (
-          <p class="text-xs sm:text-sm text-slate-600 font-normal mt-1.5 max-w-2xl leading-relaxed">
-            Editorial timeline placement and canon status guidance for {anime.title}.
-          </p>
         )}
       </div>
 
-      <!-- Quick Metrics Matrix (only if breakdown ranges exist) -->
-      {hasBreakdownData && (
-        <div class="flex items-center gap-3 shrink-0 flex-wrap sm:flex-nowrap">
-          <div class="px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-center min-w-[90px]">
-            <span class="block text-[10px] font-bold uppercase tracking-wider text-slate-500">Total</span>
-            <span class="text-base font-extrabold text-[#0F172A]">{totalEpisodes} eps</span>
+      <!-- Filler Note Callout Card -->
+      {fillerNote && (
+        <div class="p-5 sm:p-6 rounded-2xl bg-indigo-50/40 border border-indigo-100 flex items-start gap-3.5 shadow-2xs">
+          <div class="w-8 h-8 rounded-xl bg-indigo-600/10 text-indigo-600 flex items-center justify-center shrink-0 mt-0.5 border border-indigo-200/60">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
           </div>
-          <div class="px-4 py-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-center min-w-[90px]">
-            <span class="block text-[10px] font-bold uppercase tracking-wider text-emerald-700">Canon</span>
-            <span class="text-base font-extrabold text-emerald-950">{canonEpisodes} eps</span>
+          <div class="space-y-1 flex-1">
+            <span class="text-[11px] font-bold uppercase tracking-wider text-indigo-700 font-heading">
+              Canon Guidance
+            </span>
+            <p class="text-xs sm:text-sm text-slate-700 font-normal leading-relaxed">
+              {fillerNote}
+            </p>
           </div>
-          {mixedCount > 0 && (
-            <div class="px-4 py-2.5 rounded-xl bg-purple-50 border border-purple-200 text-center min-w-[90px]">
-              <span class="block text-[10px] font-bold uppercase tracking-wider text-purple-700">Mixed</span>
-              <span class="text-base font-extrabold text-purple-950">{mixedCount} eps</span>
-            </div>
-          )}
-          {!isZeroFiller && (
-            <div class="px-4 py-2.5 rounded-xl bg-amber-50 border border-amber-200 text-center min-w-[90px]">
-              <span class="block text-[10px] font-bold uppercase tracking-wider text-amber-700">Filler</span>
-              <span class="text-base font-extrabold text-amber-950">{fillerCount} eps</span>
-            </div>
-          )}
         </div>
       )}
-    </div>
 
-    <!-- Filler Note Callout Card -->
-    {fillerNote && (
-      <div class="p-5 sm:p-6 rounded-2xl bg-indigo-50/40 border border-indigo-100 flex items-start gap-3.5 shadow-2xs">
-        <div class="w-8 h-8 rounded-xl bg-indigo-600/10 text-indigo-600 flex items-center justify-center shrink-0 mt-0.5 border border-indigo-200/60">
-          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-        </div>
-        <div class="space-y-1 flex-1">
-          <span class="text-[11px] font-bold uppercase tracking-wider text-indigo-700 font-heading">
-            {anime.type === 'movie' ? 'Timeline & Canon Status' : 'Editorial Guidance'}
-          </span>
-          <p class="text-xs sm:text-sm text-slate-700 font-normal leading-relaxed">
-            {fillerNote}
-          </p>
-        </div>
-      </div>
-    )}
-
-    <!-- Episode Sections per Active Category (Flowing Text Layout - only if breakdown ranges exist) -->
-    {hasBreakdownData && (
-      <div class="space-y-5">
+      <!-- Episode Sections per Active Category (Flowing Text Layout - only if breakdown ranges exist) -->
+      {hasBreakdownData && (
+        <div data-nosnippet class="space-y-5">
         {types.map((entry: any) => {
           const conf = (TYPE_CONFIG as Record<string, any>)[entry.type] || {
             badge: 'bg-slate-100 text-slate-800 border-slate-300',

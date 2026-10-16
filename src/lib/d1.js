@@ -785,7 +785,8 @@ export async function getAnimeDetailBySlugOrId(slugOrId, contextOrLocals = null)
       universe,
       recommendations,
       streamingPlatforms,
-      relatedPost
+      relatedPost,
+      franchiseRow
     ] = await Promise.all([
       db.query(`SELECT alias FROM anime_aliases WHERE anime_id = ?`, animeId),
       db.query(`SELECT genre FROM anime_genres WHERE anime_id = ?`, animeId),
@@ -842,6 +843,9 @@ export async function getAnimeDetailBySlugOrId(slugOrId, contextOrLocals = null)
             WHERE slug = ?
             LIMIT 1
           `, charPostSlug)
+        : Promise.resolve(null),
+      franchiseId
+        ? db.queryOne(`SELECT id, name FROM franchises WHERE id = ?`, franchiseId)
         : Promise.resolve(null)
     ]);
 
@@ -966,6 +970,9 @@ export async function getAnimeDetailBySlugOrId(slugOrId, contextOrLocals = null)
         type: anime.review_type === 'quick' || anime.review_type === 'quick_take' ? 'quick' : 'full',
         spoilerLevel: anime.review_spoiler_level || 'none'
       } : null,
+      franchiseId,
+      franchiseName: franchiseRow?.name || null,
+      franchiseStepOrder: anime.franchise_step_order || null,
       watchOrder: safeWatchOrder.map((step) => ({
         order: step.step_order,
         title: step.title,

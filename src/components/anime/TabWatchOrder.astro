@@ -1,6 +1,7 @@
 ---
 // src/components/anime/TabWatchOrder.astro
 import { marked } from 'marked';
+import { getWatchOrderLeadSentence } from '../../lib/seo-utils.ts';
 
 const { anime } = Astro.props;
 const watchOrder = anime.watchOrder || [];
@@ -13,6 +14,10 @@ const hasEpisodes = (ep: any) => {
   const str = String(ep).trim();
   return str.length > 0 && str !== '—' && str !== '-';
 };
+
+const watchOrderLeadSentence = hasSteps
+  ? getWatchOrderLeadSentence(anime.title, anime.franchiseName, watchOrder, anime.id || anime.slug)
+  : '';
 ---
 
 <div class="space-y-6">
@@ -20,12 +25,12 @@ const hasEpisodes = (ep: any) => {
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-5 border-b border-slate-100">
       <div>
         <h2 class="font-heading text-xl sm:text-2xl font-bold text-[#0F172A]">
-          {hasSteps ? 'Chronological Watch Order' : 'Watch Order Guidance'}
+          {anime.title} Watch Order
         </h2>
-        <p class="text-xs sm:text-sm text-slate-500 font-normal mt-1">
+        <p class="text-xs sm:text-sm text-slate-600 font-normal mt-1.5 leading-relaxed">
           {hasSteps
-            ? 'Follow this sequential roadmap to watch the series without skipping mandatory canon storylines. The highlighted entry marks where this title sits in the sequence.'
-            : 'Viewing advice and story timeline placement for this title.'}
+            ? watchOrderLeadSentence
+            : `Viewing advice and storyline sequence for ${anime.title}.`}
         </p>
       </div>
       {hasSteps && (
@@ -45,7 +50,7 @@ const hasEpisodes = (ep: any) => {
           </svg>
         </div>
         <div class="space-y-2 flex-1 min-w-0">
-          <span class="text-[11px] font-bold uppercase tracking-wider text-indigo-700 font-heading block">Editorial Guidance</span>
+          <span class="text-[11px] font-bold uppercase tracking-wider text-indigo-700 font-heading block">Viewing Guidance</span>
           <div
             class="watch-order-guidance-content text-xs sm:text-sm text-slate-700 font-normal leading-relaxed [&_p]:mb-3 [&_p:last-child]:mb-0 [&_ol]:my-2.5 [&_ol]:pl-5 [&_ol]:list-decimal [&_ul]:my-2.5 [&_ul]:pl-5 [&_ul]:list-disc [&_li]:my-1 [&_strong]:text-slate-900 [&_strong]:font-bold"
             set:html={parsedWatchOrderNote}
