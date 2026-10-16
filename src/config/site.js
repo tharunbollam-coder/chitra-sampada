@@ -10,9 +10,9 @@ export const siteConfig = {
   tagline:
     "An honest entertainment companion with carefully researched watch orders and filler guides, clearly labeled.",
   subTagline:
-    "An honest companion for watch orders, filler guides, and viewer context.",
+    "Anime Watch Orders & Filler Guides",
   description:
-    "An honest entertainment reference guide featuring carefully researched watch orders, filler lists, and viewer context across watched titles, watchlist queues, and compiled reference guides.",
+    "Honest anime companion featuring curated watch orders, spoiler-free filler lists, and episode guides across popular series, movies, and franchises.",
   contactEmail: "contact@chitrasampada.com",
   policyLastUpdated: "September 15, 2026",
 
