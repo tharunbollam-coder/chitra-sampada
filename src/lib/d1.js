@@ -393,7 +393,7 @@ export async function getAllAnime(contextOrLocals = null) {
     vibesRes,
     fillerRes,
     charRes,
-    watchRes,
+    franchisesRes,
     universeRes,
     recsRes,
     blogRes,
@@ -405,7 +405,7 @@ export async function getAllAnime(contextOrLocals = null) {
     db.query(`SELECT anime_id, vibe_id FROM anime_vibes`),
     db.query(`SELECT * FROM anime_filler_ranges`),
     db.query(`SELECT anime_id, rank, name, category, role, commentary FROM anime_characters ORDER BY rank ASC`),
-    db.query(`SELECT franchise_id, step_order, title, type, episodes, anime_id, note FROM franchise_watch_order ORDER BY step_order ASC`),
+    db.query(`SELECT id, name, watch_order_note FROM franchises ORDER BY name ASC`),
     db.query(`SELECT id, anime_id, section, title, badge, link_slug, editorial_note, item_order FROM anime_related_media ORDER BY item_order ASC, id ASC`),
     db.query(`SELECT id, anime_id, target_anime_id, category_badge, editorial_note, item_order FROM anime_recommendations ORDER BY item_order ASC, id ASC`),
     db.query(`SELECT id, slug, title, status FROM blog_posts`),
@@ -418,7 +418,7 @@ export async function getAllAnime(contextOrLocals = null) {
   const vibesRows = vibesRes.status === 'fulfilled' ? vibesRes.value : [];
   const fillerRows = fillerRes.status === 'fulfilled' ? fillerRes.value : [];
   const characterRows = charRes.status === 'fulfilled' ? charRes.value : [];
-  const watchOrderRows = watchRes.status === 'fulfilled' ? watchRes.value : [];
+  const franchiseRows = franchisesRes.status === 'fulfilled' ? franchisesRes.value : [];
   const universeRows = universeRes.status === 'fulfilled' ? universeRes.value : [];
   const recsRows = recsRes.status === 'fulfilled' ? recsRes.value : [];
   const blogRows = blogRes.status === 'fulfilled' ? blogRes.value : [];
@@ -479,10 +479,20 @@ export async function getAllAnime(contextOrLocals = null) {
     });
   }
 
-  const watchOrderMap = new Map();
-  for (const row of watchOrderRows) {
-    if (!watchOrderMap.has(row.franchise_id)) watchOrderMap.set(row.franchise_id, []);
-    watchOrderMap.get(row.franchise_id).push(row);
+  const franchiseMap = new Map();
+  for (const row of franchiseRows) {
+    franchiseMap.set(row.id, row);
+  }
+
+  const franchiseAnimeMap = new Map();
+  for (const a of animeRows) {
+    if (a.franchise_id) {
+      if (!franchiseAnimeMap.has(a.franchise_id)) franchiseAnimeMap.set(a.franchise_id, []);
+      franchiseAnimeMap.get(a.franchise_id).push(a);
+    }
+  }
+  for (const list of franchiseAnimeMap.values()) {
+    list.sort((a, b) => (Number(a.franchise_step_order) || 999) - (Number(b.franchise_step_order) || 999));
   }
 
   const universeMap = new Map();
@@ -542,27 +552,21 @@ export async function getAllAnime(contextOrLocals = null) {
       };
     }
 
-    // Reconstruct watchOrder sequence from franchise table
-    const franchiseSteps = watchOrderMap.get(row.franchise_id) || [];
-    const watchOrder = franchiseSteps.map((step) => {
-      const stepTitleClean = (step.title || '').trim().toLowerCase();
-      const resolvedSlug = (step.anime_id && animeSlugMap.get(step.anime_id)) ||
-        animeTitleMap.get(stepTitleClean) ||
-        step.anime_id ||
-        null;
-
-      return {
-        order: step.step_order,
-        title: step.title,
-        type: step.type,
-        episodes: step.episodes,
-        animeId: step.anime_id,
-        slug: resolvedSlug,
-        // Current anime is highlighted if either step.anime_id matches or step_order matches franchise_step_order
-        isCurrent: step.anime_id === row.id || step.step_order === row.franchise_step_order,
-        note: step.note
-      };
-    });
+    const franchise = row.franchise_id ? franchiseMap.get(row.franchise_id) : null;
+    const franchiseName = franchise?.name || null;
+    const franchiseWatchOrderNote = franchise?.watch_order_note || null;
+    const siblingRows = row.franchise_id ? (franchiseAnimeMap.get(row.franchise_id) || []) : [];
+    const franchiseAnime = siblingRows.map((s) => ({
+      id: s.id,
+      slug: s.slug,
+      title: s.title,
+      type: s.type,
+      episodes: s.episodes,
+      runtime: s.runtime,
+      franchiseStepOrder: s.franchise_step_order,
+      sectionVisibility: typeof s.section_visibility === 'string' ? JSON.parse(s.section_visibility || '{}') : (s.section_visibility || {}),
+      isCurrent: s.id === row.id
+    }));
 
     // Reconstruct fillerList
     const rawFillerEntries = fillerMap.get(row.id) || [];
@@ -707,7 +711,11 @@ export async function getAllAnime(contextOrLocals = null) {
       communitySuggested: Boolean(row.community_suggested),
       synopsis: row.synopsis,
       review,
-      watchOrder,
+      franchiseId: row.franchise_id || null,
+      franchiseName,
+      franchiseStepOrder: row.franchise_step_order || null,
+      franchiseWatchOrderNote,
+      franchiseAnime,
       watchOrderNote: row.watch_order_note || null,
       fillerList,
       fillerNote: row.filler_note || null,
@@ -781,7 +789,7 @@ export async function getAnimeDetailBySlugOrId(slugOrId, contextOrLocals = null)
       vibes,
       fillerRows,
       characters,
-      watchOrder,
+      franchiseAnimeRows,
       universe,
       recommendations,
       streamingPlatforms,
@@ -804,13 +812,10 @@ export async function getAnimeDetailBySlugOrId(slugOrId, contextOrLocals = null)
       `, animeId),
       franchiseId
         ? db.query(`
-            SELECT fwo.step_order, fwo.title, fwo.type, fwo.episodes, fwo.anime_id, fwo.note,
-                   target.slug AS target_slug
-            FROM franchise_watch_order fwo
-            LEFT JOIN anime target ON target.id = fwo.anime_id
-              OR LOWER(TRIM(target.title)) = LOWER(TRIM(fwo.title))
-            WHERE fwo.franchise_id = ?
-            ORDER BY fwo.step_order ASC
+            SELECT id, slug, title, type, episodes, runtime, franchise_step_order, section_visibility, watch_order_note
+            FROM anime
+            WHERE franchise_id = ?
+            ORDER BY franchise_step_order ASC, year ASC
           `, franchiseId)
         : Promise.resolve([]),
       db.query(`
@@ -845,7 +850,7 @@ export async function getAnimeDetailBySlugOrId(slugOrId, contextOrLocals = null)
           `, charPostSlug)
         : Promise.resolve(null),
       franchiseId
-        ? db.queryOne(`SELECT id, name FROM franchises WHERE id = ?`, franchiseId)
+        ? db.queryOne(`SELECT id, name, watch_order_note FROM franchises WHERE id = ?`, franchiseId)
         : Promise.resolve(null)
     ]);
 
@@ -854,7 +859,7 @@ export async function getAnimeDetailBySlugOrId(slugOrId, contextOrLocals = null)
     const safeVibes = Array.isArray(vibes) ? vibes : [];
     const safeFillerRows = Array.isArray(fillerRows) ? fillerRows : [];
     const safeCharacters = Array.isArray(characters) ? characters : [];
-    const safeWatchOrder = Array.isArray(watchOrder) ? watchOrder : [];
+    const safeSiblingAnime = Array.isArray(franchiseAnimeRows) ? franchiseAnimeRows : [];
     const safeUniverse = Array.isArray(universe) ? universe : [];
     const safeRecommendations = Array.isArray(recommendations) ? recommendations : [];
     const safeStreamingPlatforms = Array.isArray(streamingPlatforms) ? streamingPlatforms : [];
@@ -972,16 +977,18 @@ export async function getAnimeDetailBySlugOrId(slugOrId, contextOrLocals = null)
       } : null,
       franchiseId,
       franchiseName: franchiseRow?.name || null,
+      franchiseWatchOrderNote: franchiseRow?.watch_order_note || null,
       franchiseStepOrder: anime.franchise_step_order || null,
-      watchOrder: safeWatchOrder.map((step) => ({
-        order: step.step_order,
-        title: step.title,
-        type: step.type,
-        episodes: step.episodes,
-        animeId: step.anime_id,
-        slug: step.target_slug || step.anime_id || null,
-        isCurrent: step.anime_id === anime.id || step.step_order === anime.franchise_step_order,
-        note: step.note
+      franchiseAnime: safeSiblingAnime.map((s) => ({
+        id: s.id,
+        slug: s.slug,
+        title: s.title,
+        type: s.type,
+        episodes: s.episodes,
+        runtime: s.runtime,
+        franchiseStepOrder: s.franchise_step_order,
+        sectionVisibility: typeof s.section_visibility === 'string' ? JSON.parse(s.section_visibility || '{}') : (s.section_visibility || {}),
+        isCurrent: s.id === anime.id
       })),
       watchOrderNote: anime.watch_order_note || null,
       fillerList,
@@ -1094,13 +1101,14 @@ export function getAvailableTabs(anime) {
   }
 
   // 3. Watch Order
-  const hasWatchOrderSteps = anime.watchOrder && anime.watchOrder.length > 0;
-  const hasWatchOrderNote = Boolean(anime.watchOrderNote && anime.watchOrderNote.trim().length > 0);
-  if ((hasWatchOrderSteps || hasWatchOrderNote) && vis.watchOrder !== false) {
+  const hasFranchiseNote = Boolean(anime.franchiseWatchOrderNote && anime.franchiseWatchOrderNote.trim().length > 0);
+  const hasAnimeNote = Boolean(anime.watchOrderNote && anime.watchOrderNote.trim().length > 0);
+  const franchiseAnimeCount = Array.isArray(anime.franchiseAnime) ? anime.franchiseAnime.length : 0;
+  if ((hasFranchiseNote || hasAnimeNote) && vis.watchOrder !== false) {
     tabs.push({
       key: 'watch-order',
       label: 'Watch Order',
-      ...(hasWatchOrderSteps ? { count: anime.watchOrder.length } : {})
+      ...(hasFranchiseNote && franchiseAnimeCount > 0 ? { count: franchiseAnimeCount } : {})
     });
   }
 

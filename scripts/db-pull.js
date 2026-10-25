@@ -128,7 +128,6 @@ async function main() {
     const tables = [
       'anime',
       'franchises',
-      'franchise_watch_order',
       'blog_posts',
       'anime_characters',
       'anime_streaming_platforms',

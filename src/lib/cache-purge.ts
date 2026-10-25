@@ -263,12 +263,7 @@ export async function purgeFranchiseCache(
       const db = await getDatabase(contextOrLocals);
       const rows = await db.query(`
         SELECT DISTINCT slug FROM anime WHERE franchise_id = ?
-        UNION
-        SELECT DISTINCT a.slug
-        FROM franchise_watch_order fwo
-        JOIN anime a ON fwo.anime_id = a.id
-        WHERE fwo.franchise_id = ?
-      `, cleanFid, cleanFid);
+      `, cleanFid);
 
       if (Array.isArray(rows)) {
         for (const row of rows) {

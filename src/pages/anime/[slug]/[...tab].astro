@@ -252,19 +252,17 @@ if (anime.honestyStatus === 'watched' && anime.personalRating !== undefined && a
         )}
       </div>
 
-      <!-- Context-aware dynamic back button: shortened to 'Back' on mobile, full label on desktop -->
+      <!-- Context-aware dynamic back button: smart history back if same origin, falls back to catalog -->
       <a
-        href="/anime"
-        class="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-[#4F46E5] transition-colors shrink-0"
+        href="/anime/catalog"
+        class="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-[#4F46E5] transition-colors shrink-0 cursor-pointer"
         data-back-link
+        onclick="if (document.referrer && document.referrer.startsWith(window.location.origin) && window.history.length > 1) { window.history.back(); return false; }"
       >
         <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m7 7h18" />
         </svg>
-        <span class="back-link-text">
-          <span class="sm:hidden">Back</span>
-          <span class="hidden sm:inline">Back to Anime Section</span>
-        </span>
+        <span>Back</span>
       </a>
     </nav>
 
@@ -848,13 +846,15 @@ if (anime.honestyStatus === 'watched' && anime.personalRating !== undefined && a
     if (!window.__animeDetailInteractionsInitialized) {
       document.addEventListener('astro:page-load', setupAnimeDetailInteractions);
 
-      // Scroll viewport directly to tab navigation bar when switching between tabs of the same anime
+      // Viewport scroll management on tab switching vs navigating to another anime
       let shouldScrollToTabNav = false;
+      let shouldScrollToTop = false;
 
       document.addEventListener('astro:before-preparation', function (event) {
         try {
           if (event.navigationType === 'traverse') {
             shouldScrollToTabNav = false;
+            shouldScrollToTop = false;
             return;
           }
           const from = event.from.pathname;
@@ -863,16 +863,38 @@ if (anime.honestyStatus === 'watched' && anime.personalRating !== undefined && a
           const toParts = to.split('/').filter(Boolean);
           if (
             fromParts[0] === 'anime' &&
-            toParts[0] === 'anime' &&
-            fromParts[1] &&
-            fromParts[1] === toParts[1]
+            toParts[0] === 'anime'
           ) {
-            shouldScrollToTabNav = true;
+            if (fromParts[1] && fromParts[1] === toParts[1]) {
+              // Switching tabs on the same anime -> smoothly scroll to tab nav
+              shouldScrollToTabNav = true;
+              shouldScrollToTop = false;
+            } else {
+              // Navigating to a different anime (e.g. via Watch Order quick-links) -> reset to top
+              shouldScrollToTabNav = false;
+              shouldScrollToTop = true;
+            }
           } else {
             shouldScrollToTabNav = false;
+            shouldScrollToTop = false;
           }
         } catch (e) {
           shouldScrollToTabNav = false;
+          shouldScrollToTop = false;
+        }
+      });
+
+      document.addEventListener('astro:after-swap', function () {
+        if (shouldScrollToTabNav) {
+          const tabNav = document.getElementById('tab-navigation');
+          if (tabNav) {
+            const navTop = Math.max(0, tabNav.getBoundingClientRect().top + window.scrollY - 72);
+            window.scrollTo({ top: navTop, behavior: 'instant' });
+          }
+          shouldScrollToTabNav = false;
+        } else if (shouldScrollToTop) {
+          window.scrollTo({ top: 0, behavior: 'instant' });
+          shouldScrollToTop = false;
         }
       });
 

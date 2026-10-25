@@ -551,24 +551,34 @@ export async function saveAnimeLessons(animeId, { takeaway = '', paragraphs = ''
  * @param {any} [watchOrderData]
  * @param {any} [contextOrLocals]
  */
-export async function saveAnimeWatchOrderLink(animeId, { franchiseId = null, franchiseStepOrder = null, watchOrderNote = null } = {}, contextOrLocals = null) {
+export async function saveAnimeWatchOrderLink(animeId, { franchiseId, franchiseStepOrder, watchOrderNote = null } = {}, contextOrLocals = null) {
   const db = await getDatabase(contextOrLocals);
-  const cleanFranchiseId = franchiseId ? String(franchiseId).trim() : null;
-  const cleanStep = franchiseStepOrder ? Number(franchiseStepOrder) : null;
   const cleanNote = watchOrderNote !== undefined ? (watchOrderNote ? String(watchOrderNote).trim() : null) : undefined;
 
-  if (cleanNote !== undefined) {
+  // If franchiseId is explicitly passed (e.g. from tests or franchise operations), update it.
+  // Otherwise, preserve the existing franchise membership managed by the Franchise Editor.
+  if (franchiseId !== undefined) {
+    const cleanFranchiseId = franchiseId ? String(franchiseId).trim() : null;
+    const cleanStep = franchiseStepOrder ? Number(franchiseStepOrder) : null;
+    if (cleanNote !== undefined) {
+      await db.run(`
+        UPDATE anime 
+        SET franchise_id = ?, franchise_step_order = ?, watch_order_note = ?, last_updated = date('now') 
+        WHERE id = ?
+      `, cleanFranchiseId, cleanStep, cleanNote, animeId);
+    } else {
+      await db.run(`
+        UPDATE anime 
+        SET franchise_id = ?, franchise_step_order = ?, last_updated = date('now') 
+        WHERE id = ?
+      `, cleanFranchiseId, cleanStep, animeId);
+    }
+  } else if (cleanNote !== undefined) {
     await db.run(`
       UPDATE anime 
-      SET franchise_id = ?, franchise_step_order = ?, watch_order_note = ?, last_updated = date('now') 
+      SET watch_order_note = ?, last_updated = date('now') 
       WHERE id = ?
-    `, cleanFranchiseId, cleanStep, cleanNote, animeId);
-  } else {
-    await db.run(`
-      UPDATE anime 
-      SET franchise_id = ?, franchise_step_order = ?, last_updated = date('now') 
-      WHERE id = ?
-    `, cleanFranchiseId, cleanStep, animeId);
+    `, cleanNote, animeId);
   }
 
   invalidateAnimeCache();
@@ -889,19 +899,23 @@ export async function deleteAnime(animeId, contextOrLocals = null) {
 export async function getAllFranchises(contextOrLocals = null) {
   const db = await getDatabase(contextOrLocals);
   const franchises = await db.query(`SELECT * FROM franchises ORDER BY name ASC`);
-  const allSteps = await db.query(`SELECT * FROM franchise_watch_order ORDER BY step_order ASC`);
+  const animeRows = await db.query(`
+    SELECT id, slug, title, type, episodes, runtime, franchise_id, franchise_step_order, watch_order_note
+    FROM anime
+    WHERE franchise_id IS NOT NULL
+    ORDER BY franchise_step_order ASC, year ASC
+  `);
 
-  const stepsMap = new Map();
-  for (const step of allSteps) {
-    if (!stepsMap.has(step.franchise_id)) stepsMap.set(step.franchise_id, []);
-    stepsMap.get(step.franchise_id).push({
-      id: step.id,
-      stepOrder: step.step_order,
-      title: step.title,
-      type: step.type,
-      episodes: step.episodes,
-      animeId: step.anime_id,
-      note: step.note
+  const animeMap = new Map();
+  for (const a of animeRows) {
+    if (!animeMap.has(a.franchise_id)) animeMap.set(a.franchise_id, []);
+    animeMap.get(a.franchise_id).push({
+      id: a.id,
+      slug: a.slug,
+      title: a.title,
+      type: a.type,
+      episodes: a.episodes,
+      runtime: a.runtime
     });
   }
 
@@ -911,7 +925,8 @@ export async function getAllFranchises(contextOrLocals = null) {
       id: f.id,
       name: f.name,
       description: desc,
-      steps: stepsMap.get(f.id) || []
+      watchOrderNote: f.watch_order_note || '',
+      anime: animeMap.get(f.id) || []
     };
   });
 }
@@ -920,7 +935,7 @@ export async function getAllFranchises(contextOrLocals = null) {
  * @param {any} franchiseData
  * @param {any} [contextOrLocals]
  */
-export async function saveFranchise({ id, originalId, name, description = '', steps = [] }, contextOrLocals = null) {
+export async function saveFranchise({ id, originalId, name, description = '', watchOrderNote = '', pickedAnimeIds = [] }, contextOrLocals = null) {
   const db = await getDatabase(contextOrLocals);
   const cleanId = sanitizeSlug(id);
   const cleanOriginalId = originalId ? sanitizeSlug(originalId) : null;
@@ -929,6 +944,7 @@ export async function saveFranchise({ id, originalId, name, description = '', st
   if (cleanDesc === 'Use the Up/Down buttons to reorder entries on any device.') {
     cleanDesc = '';
   }
+  const cleanNote = watchOrderNote ? String(watchOrderNote).trim() : '';
 
   if (!cleanId || !cleanName) throw new Error('Franchise ID and Name are required.');
 
@@ -941,34 +957,43 @@ export async function saveFranchise({ id, originalId, name, description = '', st
       throw new Error(`Franchise ID "${cleanId}" is already taken by another franchise.`);
     }
 
-    // Safely cascade ID change across franchises, anime, and watch order steps without violating SQLite foreign key constraints
-    await db.run('INSERT INTO franchises (id, name, description) VALUES (?, ?, ?)', cleanId, cleanName, cleanDesc);
+    // Safely cascade ID change across franchises and anime without violating SQLite foreign key constraints
+    await db.run('INSERT INTO franchises (id, name, description, watch_order_note) VALUES (?, ?, ?, ?)', cleanId, cleanName, cleanDesc, cleanNote);
     await db.run('UPDATE anime SET franchise_id = ? WHERE franchise_id = ?', cleanId, cleanOriginalId);
-    await db.run('DELETE FROM franchise_watch_order WHERE franchise_id = ?', cleanOriginalId);
     await db.run('DELETE FROM franchises WHERE id = ?', cleanOriginalId);
   } else {
     await db.run(`
-      INSERT INTO franchises (id, name, description) VALUES (?, ?, ?)
-      ON CONFLICT(id) DO UPDATE SET name = excluded.name, description = excluded.description
-    `, cleanId, cleanName, cleanDesc);
+      INSERT INTO franchises (id, name, description, watch_order_note) VALUES (?, ?, ?, ?)
+      ON CONFLICT(id) DO UPDATE SET name = excluded.name, description = excluded.description, watch_order_note = excluded.watch_order_note
+    `, cleanId, cleanName, cleanDesc, cleanNote);
   }
 
-  if (Array.isArray(steps)) {
-    await db.run(`DELETE FROM franchise_watch_order WHERE franchise_id = ?`, cleanId);
-    for (let idx = 0; idx < steps.length; idx++) {
-      const step = steps[idx];
-      await db.run(`
-        INSERT INTO franchise_watch_order (franchise_id, step_order, title, type, episodes, anime_id, note)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-      `,
-        cleanId,
-        idx + 1,
-        String(step.title || '').trim(),
-        String(step.type || 'TV Series').trim(),
-        String(step.episodes || '').trim(),
-        step.animeId?.trim() || null,
-        step.note?.trim() || null
-      );
+  // Synchronize Franchise Membership (Single Source of Truth)
+  if (Array.isArray(pickedAnimeIds)) {
+    const targetFid = cleanId;
+    if (cleanOriginalId && cleanOriginalId !== cleanId) {
+      await db.run(`UPDATE anime SET franchise_id = NULL, franchise_step_order = NULL WHERE franchise_id = ?`, cleanOriginalId);
+    }
+
+    // Clear currently associated anime that are not in pickedAnimeIds
+    const currentLinked = await db.query('SELECT id FROM anime WHERE franchise_id = ?', targetFid);
+    for (const row of currentLinked) {
+      if (!pickedAnimeIds.includes(row.id)) {
+        await db.run('UPDATE anime SET franchise_id = NULL, franchise_step_order = NULL WHERE id = ?', row.id);
+      }
+    }
+
+    // Set franchise_id and franchise_step_order for picked anime in the chosen order
+    for (let idx = 0; idx < pickedAnimeIds.length; idx++) {
+      const animeId = String(pickedAnimeIds[idx]).trim();
+      if (animeId) {
+        await db.run(
+          'UPDATE anime SET franchise_id = ?, franchise_step_order = ? WHERE id = ?',
+          targetFid,
+          idx + 1,
+          animeId
+        );
+      }
     }
   }
 
@@ -982,6 +1007,7 @@ export async function saveFranchise({ id, originalId, name, description = '', st
  */
 export async function deleteFranchise(franchiseId, contextOrLocals = null) {
   const db = await getDatabase(contextOrLocals);
+  await db.run('UPDATE anime SET franchise_id = NULL, franchise_step_order = NULL WHERE franchise_id = ?', franchiseId);
   await db.run(`DELETE FROM franchises WHERE id = ?`, franchiseId);
   invalidateAnimeCache();
   return { success: true };

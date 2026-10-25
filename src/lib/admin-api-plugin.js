@@ -215,11 +215,11 @@ export function adminApiPlugin() {
           // Section 4: Franchise & Watch Order Link
           if (pathname === '/api/admin/anime/watch-order' && method === 'POST') {
             const body = await parseJsonBody(req);
-            const { animeId, franchiseId, franchiseStepOrder } = body;
+            const { animeId, franchiseId, franchiseStepOrder, watchOrderNote } = body;
             if (!animeId) {
               return sendJson(res, 400, { success: false, error: 'Anime ID is required' });
             }
-            saveAnimeWatchOrderLink(animeId, { franchiseId, franchiseStepOrder });
+            await saveAnimeWatchOrderLink(animeId, { franchiseId, franchiseStepOrder, watchOrderNote });
             return sendJson(res, 200, { success: true, message: 'Watch Order link saved successfully' });
           }
 
@@ -353,7 +353,7 @@ export function adminApiPlugin() {
               if (!id?.trim() || !name?.trim()) {
                 return sendJson(res, 400, { success: false, error: 'Franchise ID and Name are required' });
               }
-              const result = saveFranchise(body);
+              const result = await saveFranchise(body);
               return sendJson(res, 200, { success: true, message: 'Franchise saved successfully', data: result });
             }
 
@@ -363,7 +363,7 @@ export function adminApiPlugin() {
               if (!fid) {
                 return sendJson(res, 400, { success: false, error: 'Franchise ID is required' });
               }
-              deleteFranchise(fid);
+              await deleteFranchise(fid);
               return sendJson(res, 200, { success: true, message: `Franchise "${fid}" deleted successfully` });
             }
           }

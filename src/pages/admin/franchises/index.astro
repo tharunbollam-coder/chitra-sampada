@@ -2,12 +2,34 @@
 // src/pages/admin/franchises/index.astro
 import AdminLayout from '../../../layouts/AdminLayout.astro';
 import { getAllFranchises } from '../../../lib/admin-db.js';
-import { getCompactAnimeList } from '../../../lib/d1.js';
+import { getDatabase } from '../../../lib/d1.js';
 
+const db = await getDatabase(Astro.locals);
 const [franchises, animeList] = await Promise.all([
   getAllFranchises(Astro.locals),
-  getCompactAnimeList(Astro.locals)
+  db.query(`SELECT id, slug, title, type, episodes, runtime, franchise_id, watch_order_note FROM anime ORDER BY title ASC`)
 ]);
+
+// Map of franchise ID to franchise Name for warning messages when an anime is reassigned
+const franchiseNameMap = new Map<string, string>(franchises.map((f: any) => [f.id, f.name]));
+
+function getAdminTypeBadge(type: string): { label: string; badgeCls: string } {
+  const rawType = (type || '').toLowerCase();
+  const isMovie = rawType === 'movie' || rawType.includes('film');
+  const isSeries = rawType === 'series' || rawType.includes('tv');
+  const isOva = rawType.includes('ova') || rawType.includes('special');
+
+  if (isMovie) {
+    return { label: 'Movie', badgeCls: 'bg-purple-950/70 text-purple-300 border-purple-800/60' };
+  }
+  if (isSeries) {
+    return { label: 'Series', badgeCls: 'bg-blue-950/70 text-blue-300 border-blue-800/60' };
+  }
+  if (isOva) {
+    return { label: (type || '').toUpperCase(), badgeCls: 'bg-amber-950/70 text-amber-300 border-amber-800/60' };
+  }
+  return { label: type || 'Anime', badgeCls: 'bg-slate-800 text-slate-300 border-slate-700/60' };
+}
 ---
 
 <AdminLayout title="Franchises & Watch Orders" activeSection="franchises">
@@ -16,7 +38,7 @@ const [franchises, animeList] = await Promise.all([
     <div>
       <h1 class="text-2xl sm:text-3xl font-bold font-heading text-white tracking-tight">Franchises & Watch Orders</h1>
       <p class="text-sm text-slate-400 mt-1">
-        Organize cinematic universes, season progressions, and chronological watch sequences.
+        Manage franchise universes, shared watch order notes, and quick-link anime collections.
       </p>
     </div>
     <div class="flex flex-wrap items-center gap-2.5">
@@ -36,7 +58,8 @@ const [franchises, animeList] = await Promise.all([
   <!-- Franchises List -->
   <div class="mt-8 space-y-6" id="franchises-list">
     {franchises.map((franchise: any) => {
-      const stepCount = franchise.steps?.length || 0;
+      const animeCount = franchise.anime?.length || 0;
+      const hasNote = Boolean(franchise.watchOrderNote && franchise.watchOrderNote.trim().length > 0);
       return (
         <div
           class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-sm franchise-card"
@@ -48,20 +71,26 @@ const [franchises, animeList] = await Promise.all([
             class="franchise-card-header p-4 sm:p-6 bg-slate-900/90 hover:bg-slate-850/60 transition cursor-pointer select-none flex flex-col sm:flex-row sm:items-center justify-between gap-4"
           >
             <div>
-              <div class="flex items-center gap-3">
+              <div class="flex items-center gap-3 flex-wrap">
                 <h2 class="text-xl font-bold font-heading text-white franchise-name-display">{franchise.name}</h2>
                 <span class="text-xs font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700 franchise-id-display">
                   {franchise.id}
                 </span>
+                <span class={`header-note-badge text-[11px] px-2 py-0.5 rounded bg-indigo-950/60 text-indigo-300 border border-indigo-800/60 flex items-center gap-1 font-medium ${hasNote ? '' : 'hidden'}`}>
+                  <svg class="w-3 h-3 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  <span>Note Active</span>
+                </span>
               </div>
-              {franchise.description && franchise.description !== 'Use the Up/Down buttons to reorder entries on any device.' && (
+              {franchise.description && (
                 <p class="franchise-desc-display text-xs text-slate-400 mt-1 max-w-2xl">{franchise.description}</p>
               )}
             </div>
 
             <div class="flex items-center gap-2.5 shrink-0 self-end sm:self-center">
-              <span class="step-count-badge text-xs px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 font-medium border border-slate-700/80">
-                {stepCount} {stepCount === 1 ? 'Step' : 'Steps'}
+              <span class="anime-count-badge text-xs px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 font-medium border border-slate-700/80">
+                {animeCount} {animeCount === 1 ? 'Anime' : 'Anime'}
               </span>
 
               <button
@@ -87,10 +116,10 @@ const [franchises, animeList] = await Promise.all([
             </div>
           </div>
 
-          <!-- Watch Order Steps Section (Collapsible Body, Collapsed by Default) -->
-          <div class="franchise-card-body p-4 sm:p-6 border-t border-slate-800/80 hidden">
-            <!-- Franchise Core Information: Name, ID, & Description -->
-            <div class="p-4 bg-slate-950/60 border border-slate-800/90 rounded-xl mb-6 space-y-3.5">
+          <!-- Franchise Details Section (Collapsible Body, Collapsed by Default) -->
+          <div class="franchise-card-body p-4 sm:p-6 border-t border-slate-800/80 hidden space-y-6">
+            <!-- 1. Franchise Core Information: Name, ID, & Description -->
+            <div class="p-4 bg-slate-950/60 border border-slate-800/90 rounded-xl space-y-3.5">
               <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5">
                 <!-- Franchise Name -->
                 <div>
@@ -131,7 +160,7 @@ const [franchises, animeList] = await Promise.all([
                   />
                   <p class="franchise-id-error text-[11px] text-rose-400 mt-1 hidden"></p>
                   <p class="franchise-id-warning text-[11px] text-amber-400/90 mt-1 hidden">
-                    ⚠ Changing this ID will safely cascade to all linked anime and roadmap steps.
+                    ⚠ Changing this ID will safely cascade to all linked anime in this franchise.
                   </p>
                 </div>
               </div>
@@ -143,123 +172,169 @@ const [franchises, animeList] = await Promise.all([
                 </label>
                 <input
                   type="text"
-                  value={franchise.description === 'Use the Up/Down buttons to reorder entries on any device.' ? '' : (franchise.description || '')}
+                  value={franchise.description || ''}
                   placeholder="Short summary of the franchise and continuity (optional)..."
                   class="franchise-desc-input w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs text-slate-300 placeholder-slate-500 focus:outline-none focus:border-indigo-500"
                 />
               </div>
             </div>
 
-            <div class="flex items-center justify-between mb-4">
-              <div>
-                <h3 class="text-sm font-semibold text-slate-300 uppercase tracking-wider">Chronological Watch Roadmap</h3>
-                <p class="text-xs text-slate-500 mt-0.5">Use the Up/Down buttons to reorder entries on any device.</p>
+            <!-- 2. Franchise Watch Order Note (Modern Editor with Subtle Header & Dark Scrollbar) -->
+            <div class="p-4 bg-indigo-950/20 border border-indigo-500/30 rounded-xl space-y-2.5">
+              <div class="flex items-center justify-between gap-2 flex-wrap mb-1">
+                <label class="block text-xs font-semibold text-indigo-300 uppercase tracking-wider flex items-center gap-1.5">
+                  <svg class="w-3.5 h-3.5 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  <span>Franchise Watch Order Note</span>
+                </label>
+                <span class="text-[11px] text-indigo-400/80 font-normal">Shows on every anime in this franchise</span>
+              </div>
+              <p class="text-xs text-slate-400">
+                Editorial guidance displayed at the top of the Watch Order tab for all anime in this franchise. Plain Markdown only — do not embed links, as quick-link buttons are automatically generated below.
+              </p>
+
+              <!-- Polished Modern Editor Box -->
+              <div class="rounded-xl overflow-hidden border border-indigo-500/30 focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500/40 transition">
+                <!-- Subtle Header Bar -->
+                <div class="flex items-center justify-between px-3.5 py-2 bg-slate-900 border-b border-slate-800 text-xs">
+                  <div class="flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-indigo-400"></span>
+                    <span class="font-semibold text-indigo-300 font-mono text-[11px] uppercase tracking-wider">Markdown Note</span>
+                    <span class="text-slate-700">|</span>
+                    <span class="text-[11px] text-slate-400 hidden sm:inline">Headings (##), bold (**text**), and numbered lists (1. ...)</span>
+                  </div>
+                  <span class="text-[10px] font-mono text-indigo-300/80 bg-indigo-950/80 px-2 py-0.5 rounded border border-indigo-800/50">
+                    Franchise-Wide
+                  </span>
+                </div>
+
+                <!-- Textarea with Dark Scrollbar & Comfortable Line Height -->
+                <textarea
+                  rows="7"
+                  placeholder="e.g. Follow the chronological storyline across the series and movies:&#10;&#10;1. **Naruto** (TV Series — 220 episodes)&#10;   Start here to follow Naruto's beginnings from the Academy through Part 1. Skip anime-only filler episodes (136–219) once you finish the Sasuke Retrieval arc.&#10;&#10;2. **Naruto Shippuden** (TV Series — Episodes 1–493)&#10;   Picks up after the 2.5-year time skip."
+                  class="franchise-note-input w-full px-4 py-3 bg-slate-950 text-xs sm:text-sm text-slate-200 placeholder-slate-600 font-mono leading-relaxed focus:outline-none custom-dark-scrollbar resize-y min-h-[170px]"
+                >{franchise.watchOrderNote || ''}</textarea>
               </div>
             </div>
 
-            <div class="space-y-2.5 steps-container" data-franchise-id={franchise.id}>
-              {franchise.steps.map((step: any, idx: number) => (
-                <div class="p-3 bg-slate-950 border border-slate-800 rounded-xl step-row space-y-2">
-                  <div class="flex flex-wrap sm:flex-nowrap items-center gap-2">
-                    <!-- Reorder Controls: Up / Down -->
-                    <div class="flex items-center gap-1.5 shrink-0">
-                      <div class="flex flex-col gap-0.5 shrink-0">
-                        <button
-                          type="button"
-                          class="btn-step-up p-1 text-slate-400 hover:text-white hover:bg-slate-800 rounded transition cursor-pointer"
-                          title="Move step up"
-                        >
-                          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"/></svg>
-                        </button>
-                        <button
-                          type="button"
-                          class="btn-step-down p-1 text-slate-400 hover:text-white hover:bg-slate-800 rounded transition cursor-pointer"
-                          title="Move step down"
-                        >
-                          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
-                        </button>
+            <!-- 3. LINKED FRANCHISE ANIME (QUICK-LINK BUTTONS) -->
+            <div class="p-4 bg-slate-950/60 border border-slate-800/90 rounded-xl space-y-4">
+              <div class="flex items-center justify-between gap-2 flex-wrap">
+                <div>
+                  <h3 class="text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                    <svg class="w-3.5 h-3.5 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                    </svg>
+                    <span>LINKED FRANCHISE ANIME (QUICK-LINK BUTTONS)</span>
+                  </h3>
+                  <p class="text-xs text-slate-500 mt-0.5">
+                    Search and select catalog anime to link to this franchise. These titles appear as quick-link navigation buttons on public watch order pages.
+                  </p>
+                </div>
+              </div>
+
+              <!-- Searchable Anime Picker -->
+              <div class="anime-picker-dropdown-wrapper relative">
+                <div class="relative">
+                  <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                  </div>
+                  <input
+                    type="text"
+                    class="input-search-anime w-full pl-10 pr-9 py-2.5 bg-slate-900 border border-slate-700/80 rounded-xl text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition shadow-inner"
+                    placeholder="Search catalog anime by title or slug to link..."
+                    autocomplete="off"
+                  />
+                  <button
+                    type="button"
+                    class="btn-clear-search absolute inset-y-0 right-0 pr-3 flex items-center text-slate-500 hover:text-slate-300 hidden cursor-pointer"
+                    title="Clear search"
+                  >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+
+                <!-- Floating Dropdown Menu -->
+                <div class="anime-search-results absolute left-0 right-0 top-full mt-1.5 z-30 bg-slate-900 border border-slate-700/90 rounded-xl shadow-2xl overflow-hidden hidden">
+                  <div class="max-h-64 overflow-y-auto divide-y divide-slate-800/80 custom-dark-scrollbar anime-results-list">
+                    <!-- Results rendered dynamically via JS -->
+                  </div>
+                </div>
+              </div>
+
+              <!-- Non-blocking tip for < 2 anime -->
+              <div
+                class="min-anime-tip p-2.5 rounded-lg bg-amber-950/30 border border-amber-500/30 text-amber-200 text-xs flex items-center gap-2"
+                style={animeCount < 2 ? '' : 'display: none;'}
+              >
+                <svg class="w-4 h-4 text-amber-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                </svg>
+                <span>Franchises normally contain 2 or more anime. With fewer than 2 anime, quick-link navigation buttons will not appear on public pages.</span>
+              </div>
+
+              <!-- Picked Anime List / Grid Container -->
+              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 picked-anime-container" data-franchise-id={franchise.id}>
+                {franchise.anime?.map((a: any) => (
+                  <div
+                    class="picked-anime-chip p-2.5 sm:p-3 bg-slate-900/90 border border-slate-800 hover:border-slate-700/80 rounded-xl flex items-center justify-between gap-2.5 transition"
+                    data-anime-id={a.id}
+                  >
+                    <div class="min-w-0 flex-1">
+                      <div class="flex items-center gap-1.5 flex-wrap">
+                        <span class="font-semibold text-xs sm:text-sm text-white truncate max-w-[200px]" title={a.title}>
+                          {a.title}
+                        </span>
+                        {a.type && (() => {
+                          const badge = getAdminTypeBadge(a.type);
+                          return (
+                            <span class={`text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded border shrink-0 ${badge.badgeCls}`}>
+                              {badge.label}
+                            </span>
+                          );
+                        })()}
                       </div>
-
-                      <!-- Step index badge -->
-                      <span class="w-6 h-6 rounded bg-slate-800 text-slate-300 font-bold text-xs flex items-center justify-center shrink-0 step-number-badge">
-                        {idx + 1}
-                      </span>
+                      <div class="text-[11px] font-mono text-slate-500 truncate mt-0.5">
+                        {a.slug || a.id}
+                      </div>
                     </div>
-
-                    <!-- Title -->
-                    <input
-                      type="text"
-                      value={step.title}
-                      placeholder="Entry Title (e.g. Season 1)"
-                      class="step-title flex-1 min-w-[150px] px-3 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-xs sm:text-sm text-white font-medium"
-                      required
-                    />
-
-                    <!-- Type, Episodes, Delete button wrapper -->
-                    <div class="flex items-center gap-1.5 shrink-0 ml-auto sm:ml-0">
-                      <select class="step-type px-2.5 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-xs text-white shrink-0">
-                        <option value="TV Series" selected={step.type === 'TV Series'}>TV Series</option>
-                        <option value="Movie" selected={step.type === 'Movie'}>Movie</option>
-                        <option value="OVA" selected={step.type === 'OVA'}>OVA</option>
-                        <option value="Special" selected={step.type === 'Special'}>Special</option>
-                      </select>
-
-                      <input
-                        type="text"
-                        value={step.episodes}
-                        placeholder="28 eps"
-                        class="step-episodes w-16 sm:w-20 px-2 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-xs text-white"
-                      />
-
-                      <button
-                        type="button"
-                        class="btn-remove-step p-1.5 text-slate-500 hover:text-rose-400 rounded-lg hover:bg-slate-800 transition shrink-0 cursor-pointer"
-                        title="Remove step"
-                      >
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                      </button>
-                    </div>
+                    <button
+                      type="button"
+                      class="btn-remove-anime p-1.5 text-slate-500 hover:text-rose-400 rounded-lg hover:bg-rose-950/30 transition shrink-0 cursor-pointer"
+                      title="Remove from franchise"
+                    >
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
                   </div>
+                ))}
 
-                  <!-- Secondary details: Linked Anime ID & Note -->
-                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pl-0 sm:pl-9">
-                    <div>
-                      <select class="step-anime-id w-full px-2.5 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs text-slate-300">
-                        <option value="">Link to Catalog Anime (Optional)</option>
-                        {animeList.map((a: any) => (
-                          <option value={a.id} selected={step.animeId === a.id}>
-                            {a.title} ({a.id})
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <input
-                        type="text"
-                        value={step.note || ''}
-                        placeholder="Viewing note (e.g. Canon, optional, start here)"
-                        class="step-note w-full px-2.5 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs text-slate-300"
-                      />
-                    </div>
-                  </div>
+                <div
+                  class="no-anime-placeholder col-span-full text-center py-6 border border-dashed border-slate-800 rounded-xl text-xs text-slate-500"
+                  style={animeCount === 0 ? '' : 'display: none;'}
+                >
+                  No anime linked yet. Search and select catalog anime using the search bar above.
                 </div>
-              ))}
-              {franchise.steps.length === 0 && (
-                <div class="no-steps-placeholder text-center py-6 border border-dashed border-slate-800 rounded-xl text-xs text-slate-500">
-                  No roadmap steps added yet. Click "+ Add Step" to begin.
-                </div>
-              )}
+              </div>
             </div>
 
-            <!-- Bottom actions: Add Step & Save Roadmap -->
-            <div class="mt-4 pt-3 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-3">
+            <!-- 4. Bottom actions: Collapse & Save Franchise Changes -->
+            <div class="pt-3 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-3">
               <button
                 type="button"
-                class="btn-add-step text-xs px-3.5 py-2 bg-indigo-600/20 text-indigo-300 border border-indigo-500/40 rounded-xl hover:bg-indigo-600/30 font-semibold flex items-center gap-1.5 shrink-0 cursor-pointer transition"
-                data-franchise-id={franchise.id}
+                class="btn-collapse-franchise inline-flex items-center gap-1.5 px-3.5 py-2 bg-slate-800/80 hover:bg-slate-800 text-slate-300 hover:text-white text-xs font-semibold rounded-xl border border-slate-700/80 transition cursor-pointer"
+                title="Collapse this franchise card"
               >
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-                <span>+ Add Step</span>
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />
+                </svg>
+                <span>Collapse</span>
               </button>
 
               <button
@@ -286,9 +361,38 @@ const [franchises, animeList] = await Promise.all([
     </div>
   </div>
 
-  <!-- Client-side Logic for Step Reordering, Adding, Collapsible Accordion, and Top Prepending -->
-  <script is:inline define:vars={{ animeCatalog: animeList.map((a: any) => ({ id: a.id, title: a.title, type: a.type, episodes: a.episodes, runtime: a.runtime })) }}>
-    // Helper: Escape HTML strings for dynamic templates
+  <style is:global>
+    .custom-dark-scrollbar::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .custom-dark-scrollbar::-webkit-scrollbar-track {
+      background: #090d16;
+      border-radius: 4px;
+    }
+    .custom-dark-scrollbar::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 4px;
+    }
+    .custom-dark-scrollbar::-webkit-scrollbar-thumb:hover {
+      background: #475569;
+    }
+  </style>
+
+  <!-- Client-side Logic for Franchise Management -->
+  <script is:inline define:vars={{
+    animeCatalog: animeList.map((a: any) => ({
+      id: a.id,
+      slug: a.slug,
+      title: a.title,
+      type: a.type,
+      episodes: a.episodes,
+      runtime: a.runtime,
+      franchiseId: a.franchise_id || null,
+      franchiseName: a.franchise_id ? (franchiseNameMap.get(a.franchise_id) || a.franchise_id) : null
+    }))
+  }}>
+    // Helper: Escape HTML strings
     function escapeHtml(str) {
       if (!str) return '';
       return String(str)
@@ -379,145 +483,201 @@ const [franchises, animeList] = await Promise.all([
       });
     }
 
-    // Helper: update step number badges and franchise card step count
-    function refreshStepNumbers(container) {
-      const rows = container.querySelectorAll('.step-row');
-      rows.forEach((row, i) => {
-        const badge = row.querySelector('.step-number-badge');
-        if (badge) badge.textContent = String(i + 1);
-      });
-      const placeholder = container.querySelector('.no-steps-placeholder');
+    // Helper: update header count badge and <2 tip
+    function refreshPickedAnimeList(container) {
+      const chips = container.querySelectorAll('.picked-anime-chip');
+      const placeholder = container.querySelector('.no-anime-placeholder');
       if (placeholder) {
-        placeholder.style.display = rows.length === 0 ? '' : 'none';
+        placeholder.style.display = chips.length === 0 ? '' : 'none';
       }
+
       const card = container.closest('.franchise-card');
       if (card) {
-        const countBadge = card.querySelector('.step-count-badge');
+        const countBadge = card.querySelector('.anime-count-badge');
         if (countBadge) {
-          countBadge.textContent = `${rows.length} ${rows.length === 1 ? 'Step' : 'Steps'}`;
+          countBadge.textContent = `${chips.length} ${chips.length === 1 ? 'Anime' : 'Anime'}`;
+        }
+        const minTip = card.querySelector('.min-anime-tip');
+        if (minTip) {
+          minTip.style.display = chips.length < 2 ? '' : 'none';
         }
       }
     }
 
-    // Helper: Build a new step row element
-    function createStepRow(step = {}, num = 1) {
+    // Helper: Build type badge HTML for picked anime chips & search results
+    function getAdminTypeBadgeHtml(type) {
+      const rawType = (type || '').toLowerCase();
+      const isMovie = rawType === 'movie' || rawType.includes('film');
+      const isSeries = rawType === 'series' || rawType.includes('tv');
+      const isOva = rawType.includes('ova') || rawType.includes('special');
+
+      if (isMovie) {
+        return '<span class="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-purple-950/70 text-purple-300 border border-purple-800/60 shrink-0">Movie</span>';
+      }
+      if (isSeries) {
+        return '<span class="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-blue-950/70 text-blue-300 border border-blue-800/60 shrink-0">Series</span>';
+      }
+      if (isOva) {
+        return `<span class="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-amber-950/70 text-amber-300 border border-amber-800/60 shrink-0">${escapeHtml((type || '').toUpperCase())}</span>`;
+      }
+      if (!type) return '';
+      return `<span class="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700/60 shrink-0">${escapeHtml(type)}</span>`;
+    }
+
+    // Helper: Build a new picked anime chip card
+    function createPickedAnimeChip(anime) {
       const div = document.createElement('div');
-      div.className = 'p-3 bg-slate-950 border border-slate-800 rounded-xl step-row space-y-2';
+      div.className = 'picked-anime-chip p-2.5 sm:p-3 bg-slate-900/90 border border-slate-800 hover:border-slate-700/80 rounded-xl flex items-center justify-between gap-2.5 transition';
+      div.setAttribute('data-anime-id', anime.id);
 
-      let animeOptions = '<option value="">Link to Catalog Anime (Optional)</option>';
-      animeCatalog.forEach((a) => {
-        const isSel = step.animeId && String(step.animeId) === String(a.id) ? 'selected' : '';
-        animeOptions += `<option value="${escapeHtml(a.id)}" ${isSel}>${escapeHtml(a.title)} (${escapeHtml(a.id)})</option>`;
-      });
-
-      const stepTitle = escapeHtml(step.title || '');
-      const stepType = step.type || 'TV Series';
-      const stepEpisodes = escapeHtml(step.episodes || '');
-      const stepNote = escapeHtml(step.note || '');
+      const typeBadge = getAdminTypeBadgeHtml(anime.type);
 
       div.innerHTML = `
-        <div class="flex flex-wrap sm:flex-nowrap items-center gap-2">
-          <div class="flex items-center gap-1.5 shrink-0">
-            <div class="flex flex-col gap-0.5 shrink-0">
-              <button type="button" class="btn-step-up p-1 text-slate-400 hover:text-white hover:bg-slate-800 rounded transition cursor-pointer" title="Move step up">
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"/></svg>
-              </button>
-              <button type="button" class="btn-step-down p-1 text-slate-400 hover:text-white hover:bg-slate-800 rounded transition cursor-pointer" title="Move step down">
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
-              </button>
-            </div>
-            <span class="w-6 h-6 rounded bg-slate-800 text-slate-300 font-bold text-xs flex items-center justify-center shrink-0 step-number-badge">
-              ${num}
+        <div class="min-w-0 flex-1">
+          <div class="flex items-center gap-1.5 flex-wrap">
+            <span class="font-semibold text-xs sm:text-sm text-white truncate max-w-[200px]" title="${escapeHtml(anime.title)}">
+              ${escapeHtml(anime.title)}
             </span>
+            ${typeBadge}
           </div>
-          <input type="text" value="${stepTitle}" placeholder="Entry Title (e.g. Season 1)" class="step-title flex-1 min-w-[150px] px-3 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-xs sm:text-sm text-white font-medium" required />
-          <div class="flex items-center gap-1.5 shrink-0 ml-auto sm:ml-0">
-            <select class="step-type px-2.5 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-xs text-white shrink-0">
-              <option value="TV Series" ${stepType === 'TV Series' ? 'selected' : ''}>TV Series</option>
-              <option value="Movie" ${stepType === 'Movie' ? 'selected' : ''}>Movie</option>
-              <option value="OVA" ${stepType === 'OVA' ? 'selected' : ''}>OVA</option>
-              <option value="Special" ${stepType === 'Special' ? 'selected' : ''}>Special</option>
-            </select>
-            <input type="text" value="${stepEpisodes}" placeholder="12 eps" class="step-episodes w-16 sm:w-20 px-2 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-xs text-white" />
-            <button type="button" class="btn-remove-step p-1.5 text-slate-500 hover:text-rose-400 rounded-lg hover:bg-slate-800 transition shrink-0 cursor-pointer" title="Remove step">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-            </button>
+          <div class="text-[11px] font-mono text-slate-500 truncate mt-0.5">
+            ${escapeHtml(anime.slug || anime.id)}
           </div>
         </div>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pl-0 sm:pl-9">
-          <div>
-            <select class="step-anime-id w-full px-2.5 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs text-slate-300">
-              ${animeOptions}
-            </select>
-          </div>
-          <div>
-            <input type="text" value="${stepNote}" placeholder="Viewing note (e.g. Canon, optional, start here)" class="step-note w-full px-2.5 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs text-slate-300" />
-          </div>
-        </div>
+        <button
+          type="button"
+          class="btn-remove-anime p-1.5 text-slate-500 hover:text-rose-400 rounded-lg hover:bg-rose-950/30 transition shrink-0 cursor-pointer"
+          title="Remove from franchise"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
       `;
 
       return div;
     }
 
-    // Auto-populate Step metadata when an Anime is selected from dropdown
-    document.addEventListener('change', (e) => {
-      const animeSelect = e.target.closest('.step-anime-id');
-      if (!animeSelect) return;
-      const row = animeSelect.closest('.step-row');
-      if (!row) return;
+    // Helper: Render search results in the dropdown
+    function renderSearchResults(card, query = '') {
+      const resultsContainer = card.querySelector('.anime-results-list');
+      const dropdownEl = card.querySelector('.anime-search-results');
+      const clearBtn = card.querySelector('.btn-clear-search');
+      if (!resultsContainer || !dropdownEl) return;
 
-      const selectedId = animeSelect.value;
-      if (!selectedId) return;
-
-      const anime = animeCatalog.find((a) => String(a.id) === String(selectedId));
-      if (!anime) return;
-
-      // 1. Auto-fill Title
-      const titleInput = row.querySelector('.step-title');
-      if (titleInput && anime.title) {
-        titleInput.value = anime.title;
+      if (clearBtn) {
+        clearBtn.classList.toggle('hidden', !query.trim());
       }
 
-      // 2. Auto-select Format / Type
-      const typeSelect = row.querySelector('.step-type');
-      if (typeSelect) {
-        const rawType = (anime.type || '').toLowerCase();
-        let targetType = 'TV Series';
-        if (rawType.includes('movie') || rawType === 'film') {
-          targetType = 'Movie';
-        } else if (rawType.includes('ova')) {
-          targetType = 'OVA';
-        } else if (rawType.includes('special')) {
-          targetType = 'Special';
+      const container = card.querySelector('.picked-anime-container');
+      const currentFid = card.getAttribute('data-franchise-id') || '';
+      const pickedIds = new Set();
+      if (container) {
+        container.querySelectorAll('.picked-anime-chip').forEach((chip) => {
+          const aid = chip.getAttribute('data-anime-id');
+          if (aid) pickedIds.add(aid);
+        });
+      }
+
+      const q = query.trim().toLowerCase();
+      let filtered = animeCatalog;
+      if (q) {
+        filtered = animeCatalog.filter((a) => {
+          return (
+            (a.title && a.title.toLowerCase().includes(q)) ||
+            (a.id && a.id.toLowerCase().includes(q)) ||
+            (a.slug && a.slug.toLowerCase().includes(q))
+          );
+        });
+      }
+
+      if (filtered.length === 0) {
+        resultsContainer.innerHTML = '<div class="p-3.5 text-xs text-center text-slate-500">No matching anime found in catalog.</div>';
+        dropdownEl.classList.remove('hidden');
+        return;
+      }
+
+      // Limit to top 25 matches for snappy performance
+      const slice = filtered.slice(0, 25);
+      let html = '';
+
+      slice.forEach((a) => {
+        const isLinkedHere = pickedIds.has(a.id);
+        const isLinkedOther = !isLinkedHere && a.franchiseId && a.franchiseId !== currentFid;
+        const typeBadge = getAdminTypeBadgeHtml(a.type);
+        const typeLabel = a.type === 'movie' ? 'Movie' : (a.type === 'series' ? 'Series' : (a.type || 'Anime'));
+
+        if (isLinkedHere) {
+          html += `
+            <div class="px-3.5 py-2.5 flex items-center justify-between gap-3 bg-slate-900/60 opacity-50 cursor-not-allowed select-none">
+              <div class="min-w-0 flex-1">
+                <div class="flex items-center gap-2">
+                  <span class="text-xs font-semibold text-slate-300 truncate">${escapeHtml(a.title)}</span>
+                  <span class="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 font-medium">${escapeHtml(typeLabel)}</span>
+                </div>
+                <div class="text-[10px] font-mono text-slate-600 truncate">${escapeHtml(a.slug || a.id)}</div>
+              </div>
+              <span class="text-[10px] font-medium px-2 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700/60 shrink-0">
+                Linked
+              </span>
+            </div>
+          `;
+        } else if (isLinkedOther) {
+          html += `
+            <div
+              class="search-result-item px-3.5 py-2.5 flex items-center justify-between gap-3 hover:bg-slate-800/80 cursor-pointer transition select-none"
+              data-anime-id="${escapeHtml(a.id)}"
+              data-other-franchise="${escapeHtml(a.franchiseName || a.franchiseId)}"
+            >
+              <div class="min-w-0 flex-1">
+                <div class="flex items-center gap-2">
+                  <span class="text-xs font-semibold text-white truncate">${escapeHtml(a.title)}</span>
+                  ${typeBadge}
+                </div>
+                <div class="text-[10px] font-mono text-slate-500 truncate">${escapeHtml(a.slug || a.id)}</div>
+              </div>
+              <span class="text-[10px] font-medium px-2 py-0.5 rounded bg-amber-950/70 text-amber-300 border border-amber-800/60 shrink-0">
+                In: ${escapeHtml(a.franchiseName || a.franchiseId)}
+              </span>
+            </div>
+          `;
         } else {
-          targetType = 'TV Series';
+          html += `
+            <div
+              class="search-result-item px-3.5 py-2.5 flex items-center justify-between gap-3 hover:bg-slate-800/80 cursor-pointer transition select-none"
+              data-anime-id="${escapeHtml(a.id)}"
+            >
+              <div class="min-w-0 flex-1">
+                <div class="flex items-center gap-2">
+                  <span class="text-xs font-semibold text-white truncate">${escapeHtml(a.title)}</span>
+                  ${typeBadge}
+                </div>
+                <div class="text-[10px] font-mono text-slate-500 truncate">${escapeHtml(a.slug || a.id)}</div>
+              </div>
+              <span class="text-[10px] font-medium px-2.5 py-1 rounded-lg bg-indigo-600/30 text-indigo-300 hover:bg-indigo-600 hover:text-white transition shrink-0 flex items-center gap-1 font-semibold">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                <span>Add</span>
+              </span>
+            </div>
+          `;
         }
-        typeSelect.value = targetType;
-      }
+      });
 
-      // 3. Auto-fill Episode Count
-      const episodesInput = row.querySelector('.step-episodes');
-      if (episodesInput) {
-        const rawType = (anime.type || '').toLowerCase();
-        const isMovie = rawType.includes('movie') || rawType === 'film';
-        if (anime.episodes && Number(anime.episodes) > 0) {
-          episodesInput.value = `${anime.episodes} ${Number(anime.episodes) === 1 ? 'ep' : 'eps'}`;
-        } else if (isMovie) {
-          if (anime.runtime && Number(anime.runtime) > 0) {
-            episodesInput.value = `${anime.runtime}m`;
-          } else {
-            episodesInput.value = '1 ep';
-          }
-        } else if (anime.runtime && Number(anime.runtime) > 0) {
-          episodesInput.value = `${anime.runtime}m`;
-        }
-      }
-    });
+      resultsContainer.innerHTML = html;
+      dropdownEl.classList.remove('hidden');
+    }
 
     // -----------------------------------------------------------------
     // Unified Event Delegation on #franchises-list
     // -----------------------------------------------------------------
     const franchisesList = document.getElementById('franchises-list');
+
+    // Close floating search dropdown when clicking outside
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.anime-picker-dropdown-wrapper')) {
+        document.querySelectorAll('.anime-search-results').forEach((el) => el.classList.add('hidden'));
+      }
+    });
 
     franchisesList.addEventListener('click', async (e) => {
       // 1. Accordion Toggle on Card Header
@@ -536,70 +696,90 @@ const [franchises, animeList] = await Promise.all([
         return;
       }
 
-      // 2. Add Step
-      const addStepBtn = e.target.closest('.btn-add-step');
-      if (addStepBtn) {
-        const card = addStepBtn.closest('.franchise-card');
+      // 1.5 Collapse Card from Bottom Button
+      const collapseBtn = e.target.closest('.btn-collapse-franchise');
+      if (collapseBtn) {
+        const card = collapseBtn.closest('.franchise-card');
+        if (card) {
+          const body = card.querySelector('.franchise-card-body');
+          const chevron = card.querySelector('.franchise-chevron');
+          if (body) {
+            body.classList.add('hidden');
+            if (chevron) chevron.classList.remove('rotate-180');
+          }
+          card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+        return;
+      }
+
+      // 2. Select Search Result to Add Anime
+      const resultItem = e.target.closest('.search-result-item');
+      if (resultItem) {
+        const aid = resultItem.getAttribute('data-anime-id');
+        const otherF = resultItem.getAttribute('data-other-franchise');
+        const anime = animeCatalog.find((a) => String(a.id) === String(aid));
+        if (!anime) return;
+
+        if (otherF) {
+          const ok = confirm(`"${anime.title}" is currently assigned to the franchise "${otherF}".\n\nAdding it here will reassign it to this franchise when you save. Proceed?`);
+          if (!ok) return;
+        }
+
+        const card = resultItem.closest('.franchise-card');
         if (!card) return;
-        const container = card.querySelector('.steps-container');
+        const container = card.querySelector('.picked-anime-container');
         if (!container) return;
 
-        const placeholder = container.querySelector('.no-steps-placeholder');
-        if (placeholder) placeholder.style.display = 'none';
-
-        const nextNum = container.querySelectorAll('.step-row').length + 1;
-        const stepRow = createStepRow({}, nextNum);
-        container.appendChild(stepRow);
-        refreshStepNumbers(container);
-
-        const titleInput = stepRow.querySelector('.step-title');
-        if (titleInput) titleInput.focus();
-        return;
-      }
-
-      // 3. Move Step Up
-      const upBtn = e.target.closest('.btn-step-up');
-      if (upBtn) {
-        const row = upBtn.closest('.step-row');
-        const container = row?.closest('.steps-container');
-        if (row && container) {
-          const prev = row.previousElementSibling;
-          if (prev && prev.classList.contains('step-row')) {
-            container.insertBefore(row, prev);
-            refreshStepNumbers(container);
-          }
+        // Check again if already in container
+        if (container.querySelector(`.picked-anime-chip[data-anime-id="${aid}"]`)) {
+          window.showAdminToast('This anime is already linked to this franchise.', 'error');
+          return;
         }
+
+        const chip = createPickedAnimeChip(anime);
+        container.appendChild(chip);
+        refreshPickedAnimeList(container);
+
+        // Reset search input and hide dropdown
+        const searchInput = card.querySelector('.input-search-anime');
+        if (searchInput) searchInput.value = '';
+        const dropdownEl = card.querySelector('.anime-search-results');
+        if (dropdownEl) dropdownEl.classList.add('hidden');
+        const clearBtn = card.querySelector('.btn-clear-search');
+        if (clearBtn) clearBtn.classList.add('hidden');
+
+        window.showAdminToast(`Added "${anime.title}"`, 'success');
         return;
       }
 
-      // 4. Move Step Down
-      const downBtn = e.target.closest('.btn-step-down');
-      if (downBtn) {
-        const row = downBtn.closest('.step-row');
-        const container = row?.closest('.steps-container');
-        if (row && container) {
-          const next = row.nextElementSibling;
-          if (next && next.classList.contains('step-row')) {
-            container.insertBefore(next, row);
-            refreshStepNumbers(container);
-          }
+      // 2.5 Clear Search Button
+      const clearBtn = e.target.closest('.btn-clear-search');
+      if (clearBtn) {
+        const card = clearBtn.closest('.franchise-card');
+        if (!card) return;
+        const searchInput = card.querySelector('.input-search-anime');
+        if (searchInput) {
+          searchInput.value = '';
+          searchInput.focus();
+          renderSearchResults(card, '');
         }
+        clearBtn.classList.add('hidden');
         return;
       }
 
-      // 5. Remove Step
-      const removeBtn = e.target.closest('.btn-remove-step');
+      // 3. Remove Picked Anime Chip
+      const removeBtn = e.target.closest('.btn-remove-anime');
       if (removeBtn) {
-        const row = removeBtn.closest('.step-row');
-        const container = row?.closest('.steps-container');
-        if (row && container) {
-          row.remove();
-          refreshStepNumbers(container);
+        const chip = removeBtn.closest('.picked-anime-chip');
+        const container = chip?.closest('.picked-anime-container');
+        if (chip && container) {
+          chip.remove();
+          refreshPickedAnimeList(container);
         }
         return;
       }
 
-      // 5.5 Unlock Franchise ID on Saved Card
+      // 4. Unlock Franchise ID on Saved Card
       const unlockBtn = e.target.closest('.btn-unlock-franchise-id');
       if (unlockBtn) {
         const card = unlockBtn.closest('.franchise-card');
@@ -609,7 +789,7 @@ const [franchises, animeList] = await Promise.all([
 
         if (idInput.hasAttribute('readonly')) {
           const ok = confirm(
-            'Editing the Franchise ID will update this ID across all linked anime in your catalog and all watch order roadmap steps.\n\nAre you sure you want to change it?'
+            'Editing the Franchise ID will update this ID across all linked anime in your catalog.\n\nAre you sure you want to change it?'
           );
           if (!ok) return;
 
@@ -624,12 +804,12 @@ const [franchises, animeList] = await Promise.all([
           const textSpan = unlockBtn.querySelector('.unlock-btn-text');
           if (textSpan) textSpan.textContent = 'Unlocked';
           unlockBtn.classList.remove('text-amber-400', 'hover:text-amber-300');
-          unlockBtn.classList.add('text-emerald-400', 'hover:text-emerald-300');
+          unlockBtn.classList.add('text-indigo-400', 'hover:text-indigo-300');
         }
         return;
       }
 
-      // 6. Delete or Discard Franchise
+      // 5. Delete or Discard Franchise
       const delBtn = e.target.closest('.btn-delete-franchise');
       if (delBtn) {
         const card = delBtn.closest('.franchise-card');
@@ -649,7 +829,7 @@ const [franchises, animeList] = await Promise.all([
         const id = delBtn.getAttribute('data-id') || card.getAttribute('data-franchise-id');
         const name = delBtn.getAttribute('data-name') || card.querySelector('h2')?.textContent || id;
 
-        if (!confirm(`Are you sure you want to delete the franchise "${name}" and all its watch order steps?`)) {
+        if (!confirm(`Are you sure you want to delete the franchise "${name}"? Linked anime will remain in the catalog as standalone titles.`)) {
           return;
         }
 
@@ -663,6 +843,14 @@ const [franchises, animeList] = await Promise.all([
           const data = await res.json();
           if (data.success) {
             window.showAdminToast(data.message || `Deleted franchise "${name}"`, 'success');
+            // Unlink catalog references
+            animeCatalog.forEach((a) => {
+              if (a.franchiseId === id) {
+                a.franchiseId = null;
+                a.franchiseName = null;
+              }
+            });
+
             card.remove();
             const remaining = franchisesList.querySelectorAll('.franchise-card');
             if (remaining.length === 0) {
@@ -678,17 +866,18 @@ const [franchises, animeList] = await Promise.all([
         return;
       }
 
-      // 7. Save Franchise
+      // 6. Save Franchise
       const saveBtn = e.target.closest('.btn-save-franchise');
       if (saveBtn) {
         const card = saveBtn.closest('.franchise-card');
         if (!card) return;
-        const container = card.querySelector('.steps-container');
+        const container = card.querySelector('.picked-anime-container');
         if (!container) return;
 
         const idInput = card.querySelector('.franchise-id-input');
         const nameInput = card.querySelector('.franchise-name-input');
         const descInput = card.querySelector('.franchise-desc-input');
+        const noteInput = card.querySelector('.franchise-note-input');
 
         const originalId = (card.getAttribute('data-original-id') || card.getAttribute('data-franchise-id') || '').trim();
         const id = (idInput ? idInput.value : card.getAttribute('data-franchise-id') || '').trim();
@@ -698,6 +887,7 @@ const [franchises, animeList] = await Promise.all([
           description = '';
           if (descInput) descInput.value = '';
         }
+        const watchOrderNote = (noteInput ? noteInput.value : '').trim();
 
         if (!id || !name) {
           window.showAdminToast('Franchise ID and Name are required.', 'error');
@@ -716,18 +906,12 @@ const [franchises, animeList] = await Promise.all([
           }
         }
 
-        const stepRows = container.querySelectorAll('.step-row');
-        const steps = [];
-        stepRows.forEach((row) => {
-          const title = row.querySelector('.step-title')?.value.trim();
-          const type = row.querySelector('.step-type')?.value;
-          const episodes = row.querySelector('.step-episodes')?.value.trim() || '';
-          const animeId = row.querySelector('.step-anime-id')?.value || null;
-          const note = row.querySelector('.step-note')?.value.trim() || null;
-
-          if (title) {
-            steps.push({ title, type, episodes, animeId, note });
-          }
+        // Gather picked anime IDs in order
+        const pickedChips = container.querySelectorAll('.picked-anime-chip');
+        const pickedAnimeIds = [];
+        pickedChips.forEach((chip) => {
+          const aid = chip.getAttribute('data-anime-id');
+          if (aid) pickedAnimeIds.push(aid);
         });
 
         const origHtml = saveBtn.innerHTML;
@@ -738,7 +922,7 @@ const [franchises, animeList] = await Promise.all([
           const res = await fetch('/api/admin/franchises', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id, originalId: originalId || id, name, description, steps })
+            body: JSON.stringify({ id, originalId: originalId || id, name, description, watchOrderNote, pickedAnimeIds })
           });
 
           const data = await res.json();
@@ -757,7 +941,7 @@ const [franchises, animeList] = await Promise.all([
               if (warningEl) warningEl.classList.add('hidden');
               const unlockBtn = card.querySelector('.btn-unlock-franchise-id');
               if (unlockBtn) {
-                unlockBtn.classList.remove('hidden', 'text-emerald-400', 'hover:text-emerald-300');
+                unlockBtn.classList.remove('hidden', 'text-indigo-400', 'hover:text-indigo-300');
                 unlockBtn.classList.add('text-amber-400', 'hover:text-amber-300');
                 const textSpan = unlockBtn.querySelector('.unlock-btn-text');
                 if (textSpan) textSpan.textContent = 'Edit ID';
@@ -783,6 +967,18 @@ const [franchises, animeList] = await Promise.all([
               descDisplay.remove();
             }
 
+            // Update header note active badge
+            const headerNoteBadge = card.querySelector('.header-note-badge');
+            if (headerNoteBadge) {
+              headerNoteBadge.classList.toggle('hidden', !watchOrderNote);
+            }
+
+            // Update header count badge
+            const countBadge = card.querySelector('.anime-count-badge');
+            if (countBadge) {
+              countBadge.textContent = `${pickedAnimeIds.length} ${pickedAnimeIds.length === 1 ? 'Anime' : 'Anime'}`;
+            }
+
             // Update delete button data attributes
             const delBtn = card.querySelector('.btn-delete-franchise');
             if (delBtn) {
@@ -791,10 +987,19 @@ const [franchises, animeList] = await Promise.all([
               delBtn.setAttribute('title', 'Delete franchise');
             }
 
-            const addBtn = card.querySelector('.btn-add-step');
-            if (addBtn) addBtn.setAttribute('data-franchise-id', id);
             saveBtn.setAttribute('data-id', id);
             container.setAttribute('data-franchise-id', id);
+
+            // Update local animeCatalog cache
+            animeCatalog.forEach((a) => {
+              if (pickedAnimeIds.includes(a.id)) {
+                a.franchiseId = id;
+                a.franchiseName = name;
+              } else if (a.franchiseId === (originalId || id)) {
+                a.franchiseId = null;
+                a.franchiseName = null;
+              }
+            });
 
             saveBtn.disabled = false;
             saveBtn.classList.remove('bg-indigo-600', 'hover:bg-indigo-500');
@@ -806,7 +1011,7 @@ const [franchises, animeList] = await Promise.all([
               saveBtn.innerHTML = `<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg><span>Save Changes</span>`;
             }, 2500);
 
-            window.showAdminToast(`✓ Franchise "${name}" saved successfully (${steps.length} steps)!`, 'success');
+            window.showAdminToast(`✓ Franchise "${name}" saved successfully (${pickedAnimeIds.length} anime linked)!`, 'success');
           } else {
             saveBtn.disabled = false;
             saveBtn.innerHTML = origHtml;
@@ -822,7 +1027,30 @@ const [franchises, animeList] = await Promise.all([
     });
 
     // -----------------------------------------------------------------
-    // Prepend New Franchise Draft Card at Top (Index 0)
+    // Search Input Event Listeners
+    // -----------------------------------------------------------------
+    function bindSearchEvents(card) {
+      const searchInput = card.querySelector('.input-search-anime');
+      if (!searchInput) return;
+
+      searchInput.addEventListener('focus', () => {
+        renderSearchResults(card, searchInput.value);
+      });
+
+      searchInput.addEventListener('input', () => {
+        renderSearchResults(card, searchInput.value);
+      });
+
+      searchInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          const dropdownEl = card.querySelector('.anime-search-results');
+          if (dropdownEl) dropdownEl.classList.add('hidden');
+        }
+      });
+    }
+
+    // -----------------------------------------------------------------
+    // Prepend New Franchise Draft Card at Top
     // -----------------------------------------------------------------
     const btnCreate = document.getElementById('btn-create-franchise');
     btnCreate.addEventListener('click', () => {
@@ -850,17 +1078,23 @@ const [franchises, animeList] = await Promise.all([
         <!-- Franchise Header Bar (Clickable Accordion Header) -->
         <div class="franchise-card-header p-4 sm:p-6 bg-slate-900/90 hover:bg-slate-850/60 transition cursor-pointer select-none flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <div class="flex items-center gap-3">
+            <div class="flex items-center gap-3 flex-wrap">
               <h2 class="text-xl font-bold font-heading text-white franchise-name-display">New Franchise</h2>
               <span class="text-xs font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700 franchise-id-display">
                 draft
+              </span>
+              <span class="header-note-badge text-[11px] px-2 py-0.5 rounded bg-indigo-950/60 text-indigo-300 border border-indigo-800/60 hidden items-center gap-1 font-medium">
+                <svg class="w-3 h-3 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <span>Note Active</span>
               </span>
             </div>
           </div>
 
           <div class="flex items-center gap-2.5 shrink-0 self-end sm:self-center">
-            <span class="step-count-badge text-xs px-2.5 py-1 rounded-lg bg-indigo-950/60 text-indigo-300 font-medium border border-indigo-800/80">
-              0 Steps
+            <span class="anime-count-badge text-xs px-2.5 py-1 rounded-lg bg-indigo-950/60 text-indigo-300 font-medium border border-indigo-800/80">
+              0 Anime
             </span>
             <button
               type="button"
@@ -877,10 +1111,10 @@ const [franchises, animeList] = await Promise.all([
           </div>
         </div>
 
-        <!-- Watch Order Steps Section (Collapsible Body, Expanded by Default) -->
-        <div class="franchise-card-body p-4 sm:p-6 border-t border-slate-800/80">
-          <!-- Franchise Core Information: Name, ID, & Description -->
-          <div class="p-4 bg-slate-950/60 border border-slate-800/90 rounded-xl mb-6 space-y-3.5">
+        <!-- Franchise Details Section (Collapsible Body, Expanded by Default) -->
+        <div class="franchise-card-body p-4 sm:p-6 border-t border-slate-800/80 space-y-6">
+          <!-- 1. Franchise Core Information -->
+          <div class="p-4 bg-slate-950/60 border border-slate-800/90 rounded-xl space-y-3.5">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5">
               <!-- Franchise Name -->
               <div>
@@ -918,7 +1152,7 @@ const [franchises, animeList] = await Promise.all([
                 />
                 <p class="franchise-id-error text-[11px] text-rose-400 mt-1 hidden"></p>
                 <p class="franchise-id-warning text-[11px] text-amber-400/90 mt-1 hidden">
-                  ⚠ Changing this ID will safely cascade to all linked anime and roadmap steps.
+                  ⚠ Changing this ID will safely cascade to all linked anime in this franchise.
                 </p>
               </div>
             </div>
@@ -936,32 +1170,122 @@ const [franchises, animeList] = await Promise.all([
             </div>
           </div>
 
-          <div class="flex items-center justify-between mb-4">
-            <div>
-              <h3 class="text-sm font-semibold text-slate-300 uppercase tracking-wider">Chronological Watch Roadmap</h3>
-              <p class="text-xs text-slate-500 mt-0.5">Use the Up/Down buttons to reorder entries on any device.</p>
+          <!-- 2. Franchise Watch Order Note -->
+          <div class="p-4 bg-indigo-950/20 border border-indigo-500/30 rounded-xl space-y-2.5">
+            <div class="flex items-center justify-between gap-2 flex-wrap mb-1">
+              <label class="block text-xs font-semibold text-indigo-300 uppercase tracking-wider flex items-center gap-1.5">
+                <svg class="w-3.5 h-3.5 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <span>Franchise Watch Order Note</span>
+              </label>
+              <span class="text-[11px] text-indigo-400/80 font-normal">Shows on every anime in this franchise</span>
+            </div>
+            <p class="text-xs text-slate-400">
+              Editorial guidance displayed at the top of the Watch Order tab for all anime in this franchise. Plain Markdown only — do not embed links, as quick-link buttons are automatically generated below.
+            </p>
+
+            <div class="rounded-xl overflow-hidden border border-indigo-500/30 focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500/40 transition">
+              <div class="flex items-center justify-between px-3.5 py-2 bg-slate-900 border-b border-slate-800 text-xs">
+                <div class="flex items-center gap-2">
+                  <span class="w-2 h-2 rounded-full bg-indigo-400"></span>
+                  <span class="font-semibold text-indigo-300 font-mono text-[11px] uppercase tracking-wider">Markdown Note</span>
+                  <span class="text-slate-700">|</span>
+                  <span class="text-[11px] text-slate-400 hidden sm:inline">Headings (##), bold (**text**), and numbered lists (1. ...)</span>
+                </div>
+                <span class="text-[10px] font-mono text-indigo-300/80 bg-indigo-950/80 px-2 py-0.5 rounded border border-indigo-800/50">
+                  Franchise-Wide
+                </span>
+              </div>
+              <textarea
+                rows="7"
+                placeholder="e.g. Follow the chronological storyline across the series and movies:&#10;&#10;1. **Solo Leveling Season 1** (TV Series — 12 episodes)&#10;   Start here from Sung Jinwoo's awakening...&#10;&#10;2. **Solo Leveling: ReAwakening** (Movie)&#10;   Watch next before Season 2."
+                class="franchise-note-input w-full px-4 py-3 bg-slate-950 text-xs sm:text-sm text-slate-200 placeholder-slate-600 font-mono leading-relaxed focus:outline-none custom-dark-scrollbar resize-y min-h-[170px]"
+              ></textarea>
             </div>
           </div>
 
-          <div class="space-y-2.5 steps-container">
-            <div class="no-steps-placeholder text-center py-6 border border-dashed border-slate-800 rounded-xl text-xs text-slate-500">
-              No roadmap steps added yet. Click "+ Add Step" to begin.
+          <!-- 3. LINKED FRANCHISE ANIME (QUICK-LINK BUTTONS) -->
+          <div class="p-4 bg-slate-950/60 border border-slate-800/90 rounded-xl space-y-4">
+            <div class="flex items-center justify-between gap-2 flex-wrap">
+              <div>
+                <h3 class="text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                  <svg class="w-3.5 h-3.5 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                  </svg>
+                  <span>LINKED FRANCHISE ANIME (QUICK-LINK BUTTONS)</span>
+                </h3>
+                <p class="text-xs text-slate-500 mt-0.5">
+                  Search and select catalog anime to link to this franchise. These titles appear as quick-link navigation buttons on public watch order pages.
+                </p>
+              </div>
+            </div>
+
+            <!-- Searchable Anime Picker -->
+            <div class="anime-picker-dropdown-wrapper relative">
+              <div class="relative">
+                <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
+                  <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                </div>
+                <input
+                  type="text"
+                  class="input-search-anime w-full pl-10 pr-9 py-2.5 bg-slate-900 border border-slate-700/80 rounded-xl text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition shadow-inner"
+                  placeholder="Search catalog anime by title or slug to link..."
+                  autocomplete="off"
+                />
+                <button
+                  type="button"
+                  class="btn-clear-search absolute inset-y-0 right-0 pr-3 flex items-center text-slate-500 hover:text-slate-300 hidden cursor-pointer"
+                  title="Clear search"
+                >
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <!-- Floating Dropdown Menu -->
+              <div class="anime-search-results absolute left-0 right-0 top-full mt-1.5 z-30 bg-slate-900 border border-slate-700/90 rounded-xl shadow-2xl overflow-hidden hidden">
+                <div class="max-h-64 overflow-y-auto divide-y divide-slate-800/80 custom-dark-scrollbar anime-results-list">
+                  <!-- Results rendered dynamically via JS -->
+                </div>
+              </div>
+            </div>
+
+            <!-- Non-blocking tip for < 2 anime -->
+            <div class="min-anime-tip p-2.5 rounded-lg bg-amber-950/30 border border-amber-500/30 text-amber-200 text-xs flex items-center gap-2">
+              <svg class="w-4 h-4 text-amber-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+              </svg>
+              <span>Franchises normally contain 2 or more anime. With fewer than 2 anime, quick-link navigation buttons will not appear on public pages.</span>
+            </div>
+
+            <!-- Picked Anime List / Grid Container -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 picked-anime-container">
+              <div class="no-anime-placeholder col-span-full text-center py-6 border border-dashed border-slate-800 rounded-xl text-xs text-slate-500">
+                No anime linked yet. Search and select catalog anime using the search bar above.
+              </div>
             </div>
           </div>
 
-          <!-- Bottom actions: Add Step & Save Roadmap -->
-          <div class="mt-4 pt-3 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-3">
+          <!-- 4. Bottom actions: Collapse & Save Changes -->
+          <div class="pt-3 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-3">
             <button
               type="button"
-              class="btn-add-step text-xs px-3.5 py-2 bg-indigo-600/20 text-indigo-300 border border-indigo-500/40 rounded-xl hover:bg-indigo-600/30 font-semibold flex items-center gap-1.5 shrink-0 cursor-pointer transition"
+              class="btn-collapse-franchise inline-flex items-center gap-1.5 px-3.5 py-2 bg-slate-800/80 hover:bg-slate-800 text-slate-300 hover:text-white text-xs font-semibold rounded-xl border border-slate-700/80 transition cursor-pointer"
+              title="Collapse this franchise card"
             >
-              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-              <span>+ Add Step</span>
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />
+              </svg>
+              <span>Collapse</span>
             </button>
 
             <button
               type="button"
-              class="btn-save-franchise inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-xl shadow-sm transition cursor-pointer"
+              class="btn-save-franchise inline-flex items-center gap-1.5 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-xl shadow-sm transition cursor-pointer"
             >
               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
@@ -977,6 +1301,7 @@ const [franchises, animeList] = await Promise.all([
       franchisesList.prepend(card);
 
       bindFranchiseCardEvents(card);
+      bindSearchEvents(card);
 
       const nameInput = card.querySelector('.franchise-name-input');
       nameInput?.focus();
@@ -1001,6 +1326,9 @@ const [franchises, animeList] = await Promise.all([
       });
     }
 
-    document.querySelectorAll('.franchise-card').forEach(bindFranchiseCardEvents);
+    document.querySelectorAll('.franchise-card').forEach((card) => {
+      bindFranchiseCardEvents(card);
+      bindSearchEvents(card);
+    });
   </script>
 </AdminLayout>

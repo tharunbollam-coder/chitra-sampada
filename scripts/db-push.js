@@ -23,6 +23,35 @@ const DB_NAME = 'chitra-sampada-db';
 const timestamp = Date.now();
 const tempExportFile = path.resolve(rootDir, `.tmp-d1-push-export-${timestamp}.sql`);
 const tempPayloadFile = path.resolve(rootDir, `.tmp-d1-push-payload-${timestamp}.sql`);
+const envFile = path.resolve(rootDir, '.env');
+const envStashFile = path.resolve(rootDir, `.tmp-env-push-${timestamp}`);
+let envStashed = false;
+
+function stashEnv() {
+  if (fs.existsSync(envFile)) {
+    try {
+      fs.renameSync(envFile, envStashFile);
+      envStashed = true;
+    } catch (e) {
+      console.warn('      ⚠️  Could not temporarily stash .env:', e.message);
+    }
+  }
+}
+
+function restoreEnv() {
+  if (envStashed && fs.existsSync(envStashFile)) {
+    try {
+      fs.renameSync(envStashFile, envFile);
+      envStashed = false;
+    } catch (e) {
+      console.error('      ❌ Failed to restore .env:', e.message);
+    }
+  }
+}
+
+process.on('exit', restoreEnv);
+process.on('SIGINT', () => { restoreEnv(); process.exit(1); });
+process.on('SIGTERM', () => { restoreEnv(); process.exit(1); });
 
 // Hardcoded safety assertion: prevent any unauthorized database targets
 function assertSafetyGuardrails() {
@@ -70,6 +99,7 @@ async function main() {
   console.log('=============================================================\n');
 
   assertSafetyGuardrails();
+  stashEnv();
 
   try {
     // Step 1: Apply pending migrations to remote production
@@ -126,7 +156,6 @@ async function main() {
       'anime_genres',
       'anime_aliases',
       'vibes',
-      'franchise_watch_order',
       'franchises',
       'site_settings',
       'anime',
@@ -159,7 +188,6 @@ async function main() {
       'anime_filler_ranges',
       'blog_posts',
       'franchises',
-      'franchise_watch_order',
       'site_settings',
       'vibes'
     ];
@@ -170,6 +198,15 @@ async function main() {
 
     let allMatched = true;
 
+    function extractCount(outputStr) {
+      if (!outputStr) return 0;
+      const start = outputStr.indexOf('[');
+      const end = outputStr.lastIndexOf(']');
+      const jsonStr = (start !== -1 && end !== -1 && end > start) ? outputStr.slice(start, end + 1) : outputStr;
+      const parsed = JSON.parse(jsonStr);
+      return parsed[0]?.results[0]?.count ?? 0;
+    }
+
     for (const table of tablesToVerify) {
       let localCount = 'N/A';
       let remoteCount = 'N/A';
@@ -179,7 +216,7 @@ async function main() {
           `d1 execute ${DB_NAME} --local --command="SELECT count(*) as count FROM ${table};" --json`,
           { silent: true }
         );
-        localCount = JSON.parse(localRes)[0]?.results[0]?.count ?? 0;
+        localCount = extractCount(localRes);
       } catch {
         localCount = 'err';
       }
@@ -189,7 +226,7 @@ async function main() {
           `d1 execute ${DB_NAME} --remote --command="SELECT count(*) as count FROM ${table};" --json`,
           { silent: true }
         );
-        remoteCount = JSON.parse(remoteRes)[0]?.results[0]?.count ?? 0;
+        remoteCount = extractCount(remoteRes);
       } catch {
         remoteCount = 'err';
       }
@@ -245,7 +282,8 @@ async function main() {
     }
 
   } finally {
-    // Ephemeral Cleanup: Always remove temporary files
+    // Ephemeral Cleanup: Always restore .env and remove temporary files
+    restoreEnv();
     cleanupTempFiles();
   }
 }

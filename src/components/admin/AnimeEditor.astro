@@ -22,10 +22,6 @@ const [franchisesResult, adminBlogPostsResult, dbVibesResult] = await Promise.al
 
 const franchises: any[] = franchisesResult || [];
 const currentFranchise = franchises.find((f: any) => f.id === anime?.franchiseId);
-const currentFranchiseStep = currentFranchise?.steps?.find(
-  (s: any) => (s.animeId && anime?.id && String(s.animeId) === String(anime.id)) ||
-              (anime?.franchiseStepOrder && s.stepOrder === Number(anime?.franchiseStepOrder))
-);
 const adminBlogPosts: any[] = adminBlogPostsResult || [];
 const dbVibes: any[] = dbVibesResult || [];
 const editorVibes: any[] = dbVibes.length > 0 ? dbVibes : fallbackVibes;
@@ -839,7 +835,7 @@ if (standardSourceTypes.includes(rawSourceType)) {
           </span>
           <div>
             <h2 class="text-base font-semibold text-white font-heading">Franchise & Watch Order Placement</h2>
-            <p class="text-xs text-slate-400">Link to a franchise and assign step position</p>
+            <p class="text-xs text-slate-400">This anime's own Watch Order Note and franchise status</p>
           </div>
         </div>
         <div class="w-full sm:w-auto flex items-center justify-between sm:justify-end gap-2.5 sm:gap-3 border-t border-slate-800/60 pt-2 sm:pt-0 sm:border-0">
@@ -874,72 +870,73 @@ if (standardSourceTypes.includes(rawSourceType)) {
 
       <div id="section-watch-order-body" class="px-4 sm:px-6 pb-6 pt-2 border-t border-slate-800/80">
         <form id="form-watch-order" class="space-y-5" action="javascript:void(0);" onsubmit="event.preventDefault();">
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 items-start">
-            <div class="sm:col-span-2">
-              <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5" for="wo-franchise">
-                Franchise Universe
-              </label>
-              <select
-                id="wo-franchise"
-                class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-sm text-white focus:outline-none focus:border-indigo-500"
+          <!-- Read-Only Franchise Status Indicator (Single Source of Truth is Franchise Editor) -->
+          <div class="p-4 rounded-xl bg-slate-950/80 border border-slate-800 space-y-2.5">
+            <div class="flex items-center justify-between gap-2 flex-wrap">
+              <span class="text-xs font-semibold text-slate-300 uppercase tracking-wider">
+                Franchise Membership
+              </span>
+              <a
+                href="/admin/franchises"
+                target="_blank"
+                class="text-[11px] font-medium text-indigo-400 hover:text-indigo-300 underline underline-offset-2 flex items-center gap-1"
               >
-                <option value="">None / Standalone Title</option>
-                {franchises.map((f: any) => (
-                  <option value={f.id} selected={anime?.franchiseId === f.id}>
-                    {f.name} ({f.id})
-                  </option>
-                ))}
-              </select>
+                <span>Manage in Franchises Editor</span>
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+              </a>
             </div>
 
-            <div>
-              <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5" for="wo-step">
-                Step Order <span class="text-slate-500 font-normal lowercase">(optional override)</span>
-              </label>
-              <input
-                type="number"
-                id="wo-step"
-                value={anime?.franchiseStepOrder || ''}
-                placeholder="Auto"
-                min="1"
-                class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-sm text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500 font-mono"
-              />
-            </div>
+            {currentFranchise ? (
+              <div class="flex items-center gap-3 p-3 rounded-xl bg-indigo-950/30 border border-indigo-500/30 text-indigo-200">
+                <div class="w-8 h-8 rounded-lg bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 flex items-center justify-center shrink-0">
+                  <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                  </svg>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <div class="font-bold text-sm text-white flex items-center gap-2">
+                    <span>{currentFranchise.name}</span>
+                    <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-indigo-900/60 text-indigo-300 border border-indigo-700/50">
+                      {currentFranchise.id}
+                    </span>
+                  </div>
+                  <p class="text-xs text-indigo-300/80 mt-0.5">
+                    Linked franchise title. Membership and franchise-wide watch order notes are managed centrally in the Franchises Editor.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div class="p-3 rounded-lg bg-slate-900/60 border border-slate-800 text-slate-400 text-xs">
+                Standalone title (not currently assigned to any franchise). To link this anime to a universe, open the <a href="/admin/franchises" target="_blank" class="text-indigo-400 hover:underline">Franchises Editor</a>.
+              </div>
+            )}
           </div>
 
-          <!-- Dynamic Info Hint Box showing current position if linked -->
-          <div id="wo-franchise-hint" class:list={[
-            "p-3.5 rounded-xl border text-xs leading-relaxed transition-all",
-            currentFranchise ? "bg-indigo-950/30 border-indigo-500/30 text-indigo-200" : "bg-slate-950/60 border-slate-800 text-slate-400"
-          ]}>
-            <div class="flex items-start gap-2.5">
-              <svg class="w-4 h-4 text-indigo-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <div class="flex-1 space-y-1">
-                <span id="wo-hint-text" class="block">
-                  {currentFranchise ? (
-                    currentFranchiseStep ? (
-                      <>Linked to <strong>{currentFranchise.name}</strong> as <strong>Step #{currentFranchiseStep.stepOrder}</strong> ({currentFranchiseStep.title}). Full timeline sequence and step reordering are managed in the <a href="/admin/franchises" class="text-indigo-400 hover:text-indigo-300 underline underline-offset-2" target="_blank">Franchises Manager</a>.</>
-                    ) : (
-                      <>Associated with <strong>{currentFranchise.name}</strong>. Add this title to the sequence or reorder entries anytime in the <a href="/admin/franchises" class="text-indigo-400 hover:text-indigo-300 underline underline-offset-2" target="_blank">Franchises Manager</a>.</>
-                    )
-                  ) : (
-                    <>Assigning a franchise associates this anime with a chronological universe. Full timeline ordering and step sequences are managed centrally in the <a href="/admin/franchises" class="text-indigo-400 hover:text-indigo-300 underline underline-offset-2" target="_blank">Franchises Manager</a>.</>
-                  )}
+          <!-- Watch Order Note Field -->
+          <div class="space-y-1.5">
+            <div class="flex items-center justify-between gap-2 flex-wrap">
+              <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider" for="wo-note">
+                This anime's own Watch Order Note
+              </label>
+              <span class="text-[11px] text-slate-400 font-normal">Shows only on this anime's page</span>
+            </div>
+
+            <!-- Non-blocking hint if franchise has a note -->
+            {currentFranchise?.watchOrderNote && (
+              <div class="p-3 rounded-xl bg-indigo-950/40 border border-indigo-500/40 text-indigo-200 text-xs flex items-start gap-2.5">
+                <svg class="w-4 h-4 text-indigo-400 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>
+                  <strong>Notice:</strong> This franchise (<em>{currentFranchise.name}</em>) already has a Watch Order Note, which will also show on this page above this note.
                 </span>
               </div>
-            </div>
-          </div>
+            )}
 
-          <div>
-            <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5" for="wo-note">
-              Watch Order Note (Optional — Supports Markdown)
-            </label>
             <textarea
               id="wo-note"
               rows="5"
-              placeholder="e.g. Can be enjoyed as a standalone story, or best watched directly after Season 1...&#10;&#10;1. Season 1&#10;2. Movie: Mugen Train&#10;3. Season 2"
+              placeholder="e.g. Can be enjoyed as a standalone story, or best watched directly after Season 1...&#10;&#10;1. Season 1&#10;2. Season 2"
               class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 font-sans"
             >{anime?.watchOrderNote || ''}</textarea>
             <p class="text-xs text-slate-400 mt-1">
@@ -2049,7 +2046,7 @@ if (standardSourceTypes.includes(rawSourceType)) {
   </div>
 
   <!-- Client JavaScript for Interactivity, Dynamic Rows, Hydration, and Section Saves -->
-  <script is:inline define:vars={{ initialAnime: anime, isNewRecord: isNew, platformAnimeList, franchiseCatalog: franchises.map((f: any) => ({ id: f.id, name: f.name, steps: (f.steps || []).map((s: any) => ({ stepOrder: s.stepOrder, title: s.title, animeId: s.animeId })) })) }}>
+  <script is:inline define:vars={{ initialAnime: anime, isNewRecord: isNew, platformAnimeList }}>
     let currentAnimeId = initialAnime?.id || null;
 
     // Toggle accordion logic
@@ -2726,42 +2723,6 @@ if (standardSourceTypes.includes(rawSourceType)) {
 
     document.getElementById('core-type')?.addEventListener('change', updateMediaTypeUI);
 
-    // Dynamic Watch Order Hint & Step Order Updater for Section 4
-    function updateWatchOrderHint() {
-      const franchiseEl = document.getElementById('wo-franchise');
-      const hintTextEl = document.getElementById('wo-hint-text');
-      const hintBoxEl = document.getElementById('wo-franchise-hint');
-      const stepEl = document.getElementById('wo-step');
-
-      if (!franchiseEl || !hintTextEl) return;
-      const fid = franchiseEl.value;
-      if (!fid) {
-        hintTextEl.innerHTML = 'Assigning a franchise associates this anime with a chronological universe. Full timeline ordering and step sequences are managed centrally in the <a href="/admin/franchises" class="text-indigo-400 hover:text-indigo-300 underline underline-offset-2" target="_blank">Franchises Manager</a>.';
-        if (hintBoxEl) {
-          hintBoxEl.className = 'p-3.5 rounded-xl border text-xs leading-relaxed transition-all bg-slate-950/60 border-slate-800 text-slate-400';
-        }
-        return;
-      }
-
-      const catalog = (typeof franchiseCatalog !== 'undefined' && Array.isArray(franchiseCatalog)) ? franchiseCatalog : [];
-      const franchise = catalog.find((f) => f.id === fid);
-      if (!franchise) return;
-
-      const step = (franchise.steps || []).find((s) => s.animeId && currentAnimeId && String(s.animeId) === String(currentAnimeId));
-      if (step) {
-        hintTextEl.innerHTML = `Linked to <strong>${franchise.name}</strong> as <strong>Step #${step.stepOrder}</strong> (${step.title}). Full timeline sequence and step reordering are managed in the <a href="/admin/franchises" class="text-indigo-400 hover:text-indigo-300 underline underline-offset-2" target="_blank">Franchises Manager</a>.`;
-        if (stepEl && !stepEl.value) {
-          stepEl.value = step.stepOrder;
-        }
-      } else {
-        hintTextEl.innerHTML = `Associated with <strong>${franchise.name}</strong>. Add this title to the sequence or reorder entries anytime in the <a href="/admin/franchises" class="text-indigo-400 hover:text-indigo-300 underline underline-offset-2" target="_blank">Franchises Manager</a>.`;
-      }
-
-      if (hintBoxEl) {
-        hintBoxEl.className = 'p-3.5 rounded-xl border text-xs leading-relaxed transition-all bg-indigo-950/30 border-indigo-500/30 text-indigo-200';
-      }
-    }
-
     // Full Form Hydration Function: populates all fields, unlocks sections, sets Edit header
     function hydrateAnimeData(a) {
       if (!a) return;
@@ -2908,18 +2869,8 @@ if (standardSourceTypes.includes(rawSourceType)) {
       }
 
       // 6. Populate Section 4: Watch Order
-      const woFranchise = document.getElementById('wo-franchise');
-      if (woFranchise) woFranchise.value = a.franchiseId || '';
-
-      const woStep = document.getElementById('wo-step');
-      if (woStep) woStep.value = a.franchiseStepOrder || '';
-
       const woNote = document.getElementById('wo-note');
       if (woNote) woNote.value = a.watchOrderNote || '';
-
-      if (typeof updateWatchOrderHint === 'function') {
-        updateWatchOrderHint();
-      }
 
       // 7. Populate Section 5: Filler Breakdown
       const fManga = document.getElementById('filler-manga-canon');
@@ -3267,11 +3218,6 @@ if (standardSourceTypes.includes(rawSourceType)) {
     // 4. SAVE WATCH ORDER & FRANCHISE PLACEMENT
     // -------------------------------------------------------------
     const formWO = document.getElementById('form-watch-order');
-    const woFranchise = document.getElementById('wo-franchise');
-
-    if (woFranchise) {
-      woFranchise.addEventListener('change', updateWatchOrderHint);
-    }
 
     if (formWO) {
       formWO.addEventListener('submit', async (e) => {
@@ -3281,8 +3227,6 @@ if (standardSourceTypes.includes(rawSourceType)) {
           return;
         }
 
-        const franchiseId = document.getElementById('wo-franchise')?.value || null;
-        const franchiseStepOrder = document.getElementById('wo-step')?.value || null;
         const watchOrderNote = document.getElementById('wo-note')?.value.trim() || null;
 
         const submitBtn = formWO.querySelector('button[type="submit"]');
@@ -3292,13 +3236,12 @@ if (standardSourceTypes.includes(rawSourceType)) {
           const res = await fetch('/api/admin/anime/watch-order', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ animeId: currentAnimeId, franchiseId, franchiseStepOrder, watchOrderNote })
+            body: JSON.stringify({ animeId: currentAnimeId, watchOrderNote })
           });
           const data = await res.json();
           if (data.success) {
             await saveSectionVisibility('watchOrder');
-            updateWatchOrderHint();
-            window.showAdminToast('Watch order note & franchise link saved', 'success');
+            window.showAdminToast('Watch order note saved', 'success');
             restoreBtn(true, 'Saved ✓');
 
             // Ensure browser URL retains the current anime id
@@ -3906,10 +3849,8 @@ if (standardSourceTypes.includes(rawSourceType)) {
       const lessonsPayload = { takeaway: lessonTakeaway, lesson_takeaway: lessonTakeaway, what_i_learned_paragraphs: lessonTakeaway };
 
       // 4. Section 4 Watch Order
-      const franchiseId = document.getElementById('wo-franchise')?.value || null;
-      const franchiseStepOrder = document.getElementById('wo-step')?.value || null;
       const watchOrderNote = document.getElementById('wo-note')?.value.trim() || null;
-      const watchOrderPayload = { franchiseId, franchiseStepOrder, watchOrderNote };
+      const watchOrderPayload = { watchOrderNote };
 
       // 5. Section 5 Filler & Canon Breakdown
       const fillerNote = document.getElementById('filler-note')?.value.trim() || null;
