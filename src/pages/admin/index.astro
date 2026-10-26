@@ -2,6 +2,7 @@
 // src/pages/admin/index.astro
 import AdminLayout from '../../layouts/AdminLayout.astro';
 import { getAllAnime, getSiteSetting } from '../../lib/d1.js';
+import { getAnimeCompleteness } from '../../lib/completeness.ts';
 
 interface AnimeRecord {
   id: string;
@@ -31,7 +32,7 @@ const animeListRaw: AnimeRecord[] = (animeListResult as AnimeRecord[]) || [];
 const currentQuote: string = (currentQuoteResult as string) || '';
 
 // Default sort: most recently added anime at the top (latest addedDate / created_at)
-const animeList: AnimeRecord[] = [...animeListRaw].sort((a, b) => {
+const animeListSorted: AnimeRecord[] = [...animeListRaw].sort((a, b) => {
   const dateA = a.addedDate || a.created_at || '';
   const dateB = b.addedDate || b.created_at || '';
   if (dateA && dateB) return dateB.localeCompare(dateA);
@@ -40,9 +41,28 @@ const animeList: AnimeRecord[] = [...animeListRaw].sort((a, b) => {
   return 0;
 });
 
+// Compute live completeness for all anime
+const animeList: (AnimeRecord & { completeness: any })[] = animeListSorted.map((a: AnimeRecord) => ({
+  ...a,
+  completeness: getAnimeCompleteness(a)
+}));
+
 const totalAnime: number = animeList.length;
-const totalWatched: number = animeList.filter((a: AnimeRecord) => a.honestyStatus === 'watched').length;
-const totalTrending: number = animeList.filter((a: AnimeRecord) => Boolean(a.trending)).length;
+const totalWatched: number = animeList.filter((a: any) => a.honestyStatus === 'watched').length;
+const totalTrending: number = animeList.filter((a: any) => Boolean(a.trending)).length;
+const completeCoreCount: number = animeList.filter((a: any) => a.completeness.isComplete).length;
+
+// Missing core frequency analysis for summary line
+const missingFrequency: Record<string, number> = {};
+for (const a of animeList) {
+  for (const m of a.completeness.missingCoreSections) {
+    missingFrequency[m.shortLabel] = (missingFrequency[m.shortLabel] || 0) + 1;
+  }
+}
+const sortedMissing = Object.entries(missingFrequency).sort((a, b) => b[1] - a[1]);
+const mostMissingText = sortedMissing.length > 0
+  ? `Most often missing: ${sortedMissing.slice(0, 2).map(([lbl, cnt]) => `${lbl} (${cnt})`).join(', ')}.`
+  : 'All titles have complete core details!';
 ---
 
 <AdminLayout title="Anime Catalog" activeSection="anime">
@@ -162,9 +182,26 @@ const totalTrending: number = animeList.filter((a: AnimeRecord) => Boolean(a.tre
     </div>
   </div>
 
+  <!-- Completeness Summary Banner -->
+  <div class="bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs text-slate-300 shadow-sm">
+    <div class="flex items-center gap-2.5">
+      <span class="w-6 h-6 rounded-lg bg-indigo-950/70 text-indigo-400 font-bold flex items-center justify-center border border-indigo-800/60 shrink-0">
+        ✓
+      </span>
+      <div>
+        <span class="font-medium text-slate-200">
+          <strong class="text-white font-bold">{completeCoreCount} of {totalAnime}</strong> anime have all core sections done.
+        </span>
+        <span class="text-slate-400 ml-1">
+          {mostMissingText}
+        </span>
+      </div>
+    </div>
+  </div>
+
   <!-- Search and Sort Filter Bar -->
   <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3.5 sm:p-4 mb-6 shadow-sm">
-    <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+    <div class="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
       <!-- Search Input -->
       <div class="relative flex-1 min-w-0">
         <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
@@ -180,23 +217,69 @@ const totalTrending: number = animeList.filter((a: AnimeRecord) => Boolean(a.tre
         />
       </div>
 
-      <!-- Quick Sort Filter -->
-      <div class="flex items-center gap-2 shrink-0 self-end sm:self-auto">
-        <label for="anime-sort" class="text-xs font-semibold text-slate-400 uppercase tracking-wider shrink-0 flex items-center gap-1.5">
-          <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12" />
-          </svg>
-          <span>Sort:</span>
-        </label>
-        <select
-          id="anime-sort"
-          class="px-3 py-2 sm:py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-xs sm:text-sm font-medium text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition cursor-pointer"
-        >
-          <option value="recent-added" selected>Recently Added</option>
-          <option value="recent-updated">Recently Updated</option>
-          <option value="title-az">Title (A–Z)</option>
-          <option value="highest-rated">Highest Rated</option>
-        </select>
+      <!-- Filters & Sort Group -->
+      <div class="flex flex-wrap items-center gap-2 sm:gap-3 shrink-0">
+        <!-- Completeness Filter -->
+        <div class="flex items-center gap-1.5 shrink-0">
+          <label for="anime-filter-completeness" class="text-xs font-semibold text-slate-400 uppercase tracking-wider shrink-0">
+            Completeness:
+          </label>
+          <select
+            id="anime-filter-completeness"
+            class="px-2.5 py-2 sm:py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-xs sm:text-sm font-medium text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition cursor-pointer"
+          >
+            <option value="all" selected>All</option>
+            <option value="incomplete">Incomplete</option>
+            <option value="complete">Complete</option>
+          </select>
+        </div>
+
+        <!-- Missing Section Filter -->
+        <div class="flex items-center gap-1.5 shrink-0">
+          <label for="anime-filter-missing" class="text-xs font-semibold text-slate-400 uppercase tracking-wider shrink-0">
+            Missing:
+          </label>
+          <select
+            id="anime-filter-missing"
+            class="px-2.5 py-2 sm:py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-xs sm:text-sm font-medium text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition cursor-pointer"
+          >
+            <option value="any" selected>Any</option>
+            <optgroup label="Core Sections">
+              <option value="core">Core Info</option>
+              <option value="review">My Take</option>
+              <option value="watchOrder">Watch Order</option>
+              <option value="fillerList">Filler & Canon</option>
+              <option value="characters">Key Characters</option>
+              <option value="source">Source Material</option>
+            </optgroup>
+            <optgroup label="Optional extras (add if available)">
+              <option value="lessons">What I Learned</option>
+              <option value="powerSystem">Power System</option>
+              <option value="universe">Related & Universe</option>
+              <option value="recommendations">Shows Like This</option>
+            </optgroup>
+          </select>
+        </div>
+
+        <!-- Quick Sort Filter -->
+        <div class="flex items-center gap-1.5 shrink-0">
+          <label for="anime-sort" class="text-xs font-semibold text-slate-400 uppercase tracking-wider shrink-0 flex items-center gap-1.5">
+            <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12" />
+            </svg>
+            <span>Sort:</span>
+          </label>
+          <select
+            id="anime-sort"
+            class="px-2.5 py-2 sm:py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-xs sm:text-sm font-medium text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition cursor-pointer"
+          >
+            <option value="recent-added" selected>Recently Added</option>
+            <option value="recent-updated">Recently Updated</option>
+            <option value="least-complete">Least Complete First</option>
+            <option value="title-az">Title (A–Z)</option>
+            <option value="highest-rated">Highest Rated</option>
+          </select>
+        </div>
       </div>
     </div>
   </div>
@@ -204,7 +287,7 @@ const totalTrending: number = animeList.filter((a: AnimeRecord) => Boolean(a.tre
   <!-- Anime Table / Card Container -->
   <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-sm">
     <div class="overflow-x-auto">
-      <table class="w-full min-w-160 text-left text-sm text-slate-300 divide-y divide-slate-800">
+      <table class="w-full min-w-full sm:min-w-[780px] text-left text-sm text-slate-300 divide-y divide-slate-800">
         <thead class="bg-slate-950/60 text-xs font-semibold text-slate-400 uppercase tracking-wider">
           <tr>
             <th scope="col" class="py-3.5 px-4 sm:px-6">Title & ID</th>
@@ -216,7 +299,7 @@ const totalTrending: number = animeList.filter((a: AnimeRecord) => Boolean(a.tre
           </tr>
         </thead>
         <tbody id="anime-tbody" class="divide-y divide-slate-800/80 font-normal">
-          {animeList.map((anime: AnimeRecord) => (
+          {animeList.map((anime: any) => (
             <tr
               class="hover:bg-slate-800/40 transition anime-row"
               data-search={`${anime.title} ${anime.id} ${anime.slug}`.toLowerCase()}
@@ -224,8 +307,27 @@ const totalTrending: number = animeList.filter((a: AnimeRecord) => Boolean(a.tre
               data-added={anime.addedDate || anime.created_at || ''}
               data-updated={anime.lastUpdated || ''}
               data-rating={anime.personalRating !== null && anime.personalRating !== undefined ? anime.personalRating : -1}
+              data-complete={anime.completeness.isComplete ? 'complete' : 'incomplete'}
+              data-percent={anime.completeness.corePercentage}
+              data-core-done={anime.completeness.coreDone}
+              data-missing-ids={anime.completeness.missingCoreSections.map((s: any) => s.id).join(' ')}
+              data-optional-missing-ids={anime.completeness.missingOptionalSections.map((s: any) => s.id).join(' ')}
             >
               <td class="py-4 px-4 sm:px-6">
+                <!-- Completion Percentage Badge -->
+                <div class="mb-1.5 flex items-center gap-1.5">
+                  <span
+                    class={`inline-flex items-center text-[10px] font-mono font-semibold px-2 py-0.5 rounded border ${
+                      anime.completeness.statusColor === 'green' ? 'bg-emerald-950/60 text-emerald-400 border-emerald-800/60' :
+                      anime.completeness.statusColor === 'amber' ? 'bg-amber-950/60 text-amber-300 border-amber-800/60' :
+                      'bg-rose-950/60 text-rose-300 border-rose-800/60'
+                    }`}
+                    title={`${anime.completeness.coreDone} of ${anime.completeness.coreTotal} core sections done (${anime.completeness.extrasDone} of 4 optional extras)`}
+                  >
+                    {anime.completeness.corePercentage}% complete
+                  </span>
+                </div>
+
                 <div class="font-semibold text-white text-base leading-snug flex flex-wrap items-center gap-2">
                   <span>{anime.title}</span>
                   {anime.type === 'movie' && (
@@ -271,6 +373,7 @@ const totalTrending: number = animeList.filter((a: AnimeRecord) => Boolean(a.tre
                   )}
                 </div>
               </td>
+
               <td class="py-4 px-4 hidden md:table-cell text-xs text-slate-400 whitespace-nowrap">
                 {anime.addedDate || '—'}
               </td>
@@ -335,17 +438,43 @@ const totalTrending: number = animeList.filter((a: AnimeRecord) => Boolean(a.tre
     // Real-time title & slug search filter and dropdown sorting
     const searchInput = document.getElementById('anime-search');
     const sortSelect = document.getElementById('anime-sort');
+    const completenessFilter = document.getElementById('anime-filter-completeness');
+    const missingFilter = document.getElementById('anime-filter-missing');
     const tbody = document.getElementById('anime-tbody');
     const noResults = document.getElementById('no-filter-results');
 
     function filterRows() {
       const query = (searchInput ? searchInput.value : '').trim().toLowerCase();
+      const compVal = completenessFilter ? completenessFilter.value : 'all';
+      const missVal = missingFilter ? missingFilter.value : 'any';
+
       let visibleCount = 0;
       const allRows = document.querySelectorAll('.anime-row');
 
       allRows.forEach((row) => {
         const text = row.getAttribute('data-search') || '';
-        if (!query || text.includes(query)) {
+        const rowComplete = row.getAttribute('data-complete') || '';
+        const missingCoreIds = (row.getAttribute('data-missing-ids') || '').split(' ').filter(Boolean);
+        const missingOptionalIds = (row.getAttribute('data-optional-missing-ids') || '').split(' ').filter(Boolean);
+
+        // Query search match
+        const matchesQuery = !query || text.includes(query);
+
+        // Completeness filter match
+        let matchesComp = true;
+        if (compVal === 'complete') {
+          matchesComp = rowComplete === 'complete';
+        } else if (compVal === 'incomplete') {
+          matchesComp = rowComplete === 'incomplete';
+        }
+
+        // Missing section filter match
+        let matchesMissing = true;
+        if (missVal !== 'any') {
+          matchesMissing = missingCoreIds.includes(missVal) || missingOptionalIds.includes(missVal);
+        }
+
+        if (matchesQuery && matchesComp && matchesMissing) {
           row.style.display = '';
           visibleCount++;
         } else {
@@ -373,6 +502,16 @@ const totalTrending: number = animeList.filter((a: AnimeRecord) => Boolean(a.tre
           const dateB = b.getAttribute('data-updated') || '';
           if (dateA && dateB) return dateB.localeCompare(dateA);
           return dateA ? -1 : (dateB ? 1 : 0);
+        } else if (sortKey === 'least-complete') {
+          const pA = parseInt(a.getAttribute('data-percent') || '0', 10);
+          const pB = parseInt(b.getAttribute('data-percent') || '0', 10);
+          if (pA !== pB) return pA - pB;
+          const cA = parseInt(a.getAttribute('data-core-done') || '0', 10);
+          const cB = parseInt(b.getAttribute('data-core-done') || '0', 10);
+          if (cA !== cB) return cA - cB;
+          const titleA = a.getAttribute('data-title') || '';
+          const titleB = b.getAttribute('data-title') || '';
+          return titleA.localeCompare(titleB);
         } else if (sortKey === 'title-az') {
           const titleA = a.getAttribute('data-title') || '';
           const titleB = b.getAttribute('data-title') || '';
@@ -388,10 +527,9 @@ const totalTrending: number = animeList.filter((a: AnimeRecord) => Boolean(a.tre
       rowsArray.forEach(row => tbody.appendChild(row));
     }
 
-    if (searchInput) {
-      searchInput.addEventListener('input', filterRows);
-    }
-
+    if (searchInput) searchInput.addEventListener('input', filterRows);
+    if (completenessFilter) completenessFilter.addEventListener('change', filterRows);
+    if (missingFilter) missingFilter.addEventListener('change', filterRows);
     if (sortSelect) {
       sortSelect.addEventListener('change', (e) => {
         applySort(e.target.value);

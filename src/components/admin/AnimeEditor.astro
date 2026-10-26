@@ -2,6 +2,7 @@
 // src/components/admin/AnimeEditor.astro
 import AdminLayout from '../../layouts/AdminLayout.astro';
 import { getAllFranchises, getAllAdminBlogPosts } from '../../lib/admin-db.js';
+import { getAnimeCompleteness } from '../../lib/completeness.ts';
 import { getDatabase, getAllAdminVibes } from '../../lib/d1.js';
 import { vibes as fallbackVibes } from '../../data/vibes.js';
 
@@ -22,6 +23,12 @@ const [franchisesResult, adminBlogPostsResult, dbVibesResult] = await Promise.al
 
 const franchises: any[] = franchisesResult || [];
 const currentFranchise = franchises.find((f: any) => f.id === anime?.franchiseId);
+
+// Compute live completeness
+const completeness = getAnimeCompleteness({
+  ...anime,
+  franchiseWatchOrderNote: anime?.franchiseWatchOrderNote || currentFranchise?.watchOrderNote
+});
 const adminBlogPosts: any[] = adminBlogPostsResult || [];
 const dbVibes: any[] = dbVibesResult || [];
 const editorVibes: any[] = dbVibes.length > 0 ? dbVibes : fallbackVibes;
@@ -133,6 +140,176 @@ if (standardSourceTypes.includes(rawSourceType)) {
     </div>
   </div>
 
+  <!-- ============================================================= -->
+  <!-- COMPLETION CHECKLIST PANEL (LIVE READ-ONLY TRACKER) -->
+  <!-- ============================================================= -->
+  <div class="mt-6 bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-sm" id="completion-checklist-panel">
+    <!-- Collapsible Header -->
+    <button
+      type="button"
+      id="btn-toggle-checklist"
+      class="w-full px-4 sm:px-6 py-3.5 sm:py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-left hover:bg-slate-850/50 transition cursor-pointer"
+      aria-expanded="false"
+    >
+      <div class="flex items-center gap-3 min-w-0">
+        <span class={`w-8 h-8 rounded-xl font-bold text-sm flex items-center justify-center shrink-0 border ${
+          completeness.statusColor === 'green' ? 'bg-emerald-950/70 text-emerald-400 border-emerald-800/60' :
+          completeness.statusColor === 'amber' ? 'bg-amber-950/70 text-amber-300 border-amber-800/60' :
+          'bg-indigo-950/70 text-indigo-400 border-indigo-800/60'
+        }`} id="checklist-header-badge">
+          {completeness.isComplete ? '✓' : '📋'}
+        </span>
+        <div class="min-w-0">
+          <div class="flex items-center gap-2 flex-wrap">
+            <h2 class="text-sm sm:text-base font-semibold text-white font-heading">
+              Completion Checklist
+            </h2>
+            <span
+              id="checklist-core-score-pill"
+              class={`text-[11px] font-mono font-bold px-2 py-0.5 rounded-md border ${
+                completeness.statusColor === 'green' ? 'bg-emerald-950/70 text-emerald-400 border-emerald-800/60' :
+                completeness.statusColor === 'amber' ? 'bg-amber-950/70 text-amber-300 border-amber-800/60' :
+                'bg-rose-950/70 text-rose-300 border-rose-800/60'
+              }`}
+            >
+              {completeness.coreScore} Core ({completeness.corePercentage}%)
+            </span>
+          </div>
+          <p id="checklist-heading-summary" class="text-xs text-slate-400 mt-0.5 truncate">
+            {completeness.coreDone} of {completeness.coreTotal} core sections done &bull; {completeness.extrasDone} of {completeness.extrasTotal} optional extras added
+          </p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-3 shrink-0 self-end sm:self-auto">
+        <!-- Mini progress bar -->
+        <div class="w-20 sm:w-28 h-2 rounded-full bg-slate-800 overflow-hidden shrink-0 border border-slate-700/60">
+          <div
+            id="checklist-progress-bar"
+            class={`h-full rounded-full transition-all duration-300 ${
+              completeness.statusColor === 'green' ? 'bg-emerald-500' :
+              completeness.statusColor === 'amber' ? 'bg-amber-400' : 'bg-rose-500'
+            }`}
+            style={`width: ${completeness.corePercentage}%`}
+          />
+        </div>
+
+        <svg id="checklist-chevron" class="w-5 h-5 text-slate-400 transform transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+        </svg>
+      </div>
+    </button>
+
+    <!-- Checklist Body (Collapsed by default) -->
+    <div id="completion-checklist-body" class="hidden px-4 sm:px-6 pb-6 pt-3 border-t border-slate-800/80 space-y-5">
+      <!-- Group 1: Core Sections -->
+      <div>
+        <div class="flex items-center justify-between pb-2 mb-2.5 border-b border-slate-800/70">
+          <span class="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
+            <span>Core Sections</span>
+            <span class="text-[10px] text-slate-400 font-normal lowercase">(counted in main score)</span>
+          </span>
+          <span id="checklist-core-count-label" class="text-xs font-mono font-medium text-slate-400">
+            {completeness.coreDone}/{completeness.coreTotal} Done
+          </span>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-2" id="checklist-core-list">
+          {completeness.sections.filter((s: any) => s.isCore).map((s: any) => (
+            <button
+              type="button"
+              class="checklist-nav-item w-full p-2.5 sm:p-3 rounded-xl bg-slate-950/60 hover:bg-slate-800/70 border border-slate-800 hover:border-slate-700 text-left transition flex items-start justify-between gap-2.5 cursor-pointer group"
+              data-target-container={s.editorTargetId}
+              data-section-id={s.id}
+            >
+              <div class="flex items-start gap-2.5 min-w-0">
+                <span class="mt-0.5 text-xs font-bold shrink-0">
+                  {s.status === 'done' ? (
+                    <span class="text-emerald-400 font-bold">✓</span>
+                  ) : s.status === 'not_applicable' ? (
+                    <span class="text-slate-500">—</span>
+                  ) : (
+                    <span class="text-amber-400 font-bold">○</span>
+                  )}
+                </span>
+                <div class="min-w-0">
+                  <div class="flex items-center gap-1.5 flex-wrap">
+                    <span class="text-[10px] font-mono px-1.5 py-0.2 rounded bg-slate-800 text-slate-400 border border-slate-700">
+                      {s.sectionNumber}
+                    </span>
+                    <span class="text-xs font-semibold text-slate-200 group-hover:text-white transition-colors">
+                      {s.label}
+                    </span>
+                  </div>
+                  {s.reason && (
+                    <p class="text-[11px] text-slate-400 mt-1 line-clamp-1 group-hover:text-slate-300">
+                      {s.reason}
+                    </p>
+                  )}
+                </div>
+              </div>
+              <span class={`shrink-0 text-[10px] font-semibold px-2 py-0.5 rounded border ${s.badgeClass}`}>
+                {s.statusLabel}
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <!-- Group 2: Optional Extras -->
+      <div>
+        <div class="flex items-center justify-between pb-2 mb-2.5 border-b border-slate-800/70">
+          <span class="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
+            <span>Optional Extras</span>
+            <span class="text-[10px] text-slate-400 font-normal lowercase">(add if available · not penalized)</span>
+          </span>
+          <span id="checklist-extras-count-label" class="text-xs font-mono font-medium text-slate-400">
+            {completeness.extrasDone}/{completeness.extrasTotal} Added
+          </span>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-2" id="checklist-optional-list">
+          {completeness.sections.filter((s: any) => !s.isCore).map((s: any) => (
+            <button
+              type="button"
+              class="checklist-nav-item w-full p-2.5 sm:p-3 rounded-xl bg-slate-950/60 hover:bg-slate-800/70 border border-slate-800 hover:border-slate-700 text-left transition flex items-start justify-between gap-2.5 cursor-pointer group"
+              data-target-container={s.editorTargetId}
+              data-section-id={s.id}
+            >
+              <div class="flex items-start gap-2.5 min-w-0">
+                <span class="mt-0.5 text-xs font-bold shrink-0">
+                  {s.status === 'done' ? (
+                    <span class="text-emerald-400 font-bold">✓</span>
+                  ) : (
+                    <span class="text-slate-500">○</span>
+                  )}
+                </span>
+                <div class="min-w-0">
+                  <div class="flex items-center gap-1.5 flex-wrap">
+                    <span class="text-[10px] font-mono px-1.5 py-0.2 rounded bg-slate-800 text-slate-400 border border-slate-700">
+                      {s.sectionNumber}
+                    </span>
+                    <span class="text-xs font-semibold text-slate-200 group-hover:text-white transition-colors">
+                      {s.label}
+                    </span>
+                  </div>
+                  {s.note && (
+                    <p class="text-[11px] text-slate-400 mt-1 line-clamp-1 group-hover:text-slate-300">
+                      {s.note}
+                    </p>
+                  )}
+                </div>
+              </div>
+              <span class={`shrink-0 text-[10px] font-semibold px-2 py-0.5 rounded border ${s.badgeClass}`}>
+                {s.statusLabel}
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Main Accordion Container -->
   <div class="mt-8 space-y-6">
 
@@ -155,6 +332,9 @@ if (standardSourceTypes.includes(rawSourceType)) {
           </div>
         </div>
         <div class="flex items-center gap-2 shrink-0">
+          <span id="marker-core" class={`text-[11px] font-semibold px-2 py-0.5 rounded-md border ${completeness.sectionsMap.core.badgeClass}`}>
+            {completeness.sectionsMap.core.statusLabel}
+          </span>
           <svg class="w-5 h-5 text-slate-400 transform transition-transform duration-200 section-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
           </svg>
@@ -618,6 +798,9 @@ if (standardSourceTypes.includes(rawSourceType)) {
               ]}></div>
             </div>
           </label>
+          <span id="marker-review" class={`text-[11px] font-semibold px-2 py-0.5 rounded-md border ${completeness.sectionsMap.review.badgeClass}`}>
+            {completeness.sectionsMap.review.statusLabel}
+          </span>
           <svg class="w-5 h-5 text-slate-400 transform transition-transform duration-200 section-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
           </svg>
@@ -783,6 +966,9 @@ if (standardSourceTypes.includes(rawSourceType)) {
               ]}></div>
             </div>
           </label>
+          <span id="marker-lessons" class={`text-[11px] font-semibold px-2 py-0.5 rounded-md border ${completeness.sectionsMap.lessons.badgeClass}`}>
+            {completeness.sectionsMap.lessons.statusLabel}
+          </span>
           <svg class="w-5 h-5 text-slate-400 transform transition-transform duration-200 section-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
           </svg>
@@ -862,6 +1048,9 @@ if (standardSourceTypes.includes(rawSourceType)) {
               ]}></div>
             </div>
           </label>
+          <span id="marker-watchOrder" class={`text-[11px] font-semibold px-2 py-0.5 rounded-md border ${completeness.sectionsMap.watchOrder.badgeClass}`}>
+            {completeness.sectionsMap.watchOrder.statusLabel}
+          </span>
           <svg class="w-5 h-5 text-slate-400 transform transition-transform duration-200 section-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
           </svg>
@@ -1012,6 +1201,9 @@ if (standardSourceTypes.includes(rawSourceType)) {
               ]}></div>
             </div>
           </label>
+          <span id="marker-fillerList" class={`text-[11px] font-semibold px-2 py-0.5 rounded-md border ${completeness.sectionsMap.fillerList.badgeClass}`}>
+            {completeness.sectionsMap.fillerList.statusLabel}
+          </span>
           <svg class="w-5 h-5 text-slate-400 transform transition-transform duration-200 section-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
           </svg>
@@ -1204,6 +1396,9 @@ if (standardSourceTypes.includes(rawSourceType)) {
               ]}></div>
             </div>
           </label>
+          <span id="marker-characters" class={`text-[11px] font-semibold px-2 py-0.5 rounded-md border ${completeness.sectionsMap.characters.badgeClass}`}>
+            {completeness.sectionsMap.characters.statusLabel}
+          </span>
           <svg class="w-5 h-5 text-slate-400 transform transition-transform duration-200 section-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
           </svg>
@@ -1360,6 +1555,9 @@ if (standardSourceTypes.includes(rawSourceType)) {
               ]}></div>
             </div>
           </label>
+          <span id="marker-source" class={`text-[11px] font-semibold px-2 py-0.5 rounded-md border ${completeness.sectionsMap.source.badgeClass}`}>
+            {completeness.sectionsMap.source.statusLabel}
+          </span>
           <svg class="w-5 h-5 text-slate-400 transform transition-transform duration-200 section-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
           </svg>
@@ -1533,6 +1731,9 @@ if (standardSourceTypes.includes(rawSourceType)) {
               ]}></div>
             </div>
           </label>
+          <span id="marker-powerSystem" class={`text-[11px] font-semibold px-2 py-0.5 rounded-md border ${completeness.sectionsMap.powerSystem.badgeClass}`}>
+            {completeness.sectionsMap.powerSystem.statusLabel}
+          </span>
           <svg class="w-5 h-5 text-slate-400 transform transition-transform duration-200 section-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
           </svg>
@@ -1626,6 +1827,9 @@ if (standardSourceTypes.includes(rawSourceType)) {
               ]}></div>
             </div>
           </label>
+          <span id="marker-universe" class={`text-[11px] font-semibold px-2 py-0.5 rounded-md border ${completeness.sectionsMap.universe.badgeClass}`}>
+            {completeness.sectionsMap.universe.statusLabel}
+          </span>
           <svg class="w-5 h-5 text-slate-400 transform transition-transform duration-200 section-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
           </svg>
@@ -1769,6 +1973,9 @@ if (standardSourceTypes.includes(rawSourceType)) {
               ]}></div>
             </div>
           </label>
+          <span id="marker-recommendations" class={`text-[11px] font-semibold px-2 py-0.5 rounded-md border ${completeness.sectionsMap.recommendations.badgeClass}`}>
+            {completeness.sectionsMap.recommendations.statusLabel}
+          </span>
           <svg class="w-5 h-5 text-slate-400 transform transition-transform duration-200 section-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
           </svg>
@@ -2048,6 +2255,275 @@ if (standardSourceTypes.includes(rawSourceType)) {
   <!-- Client JavaScript for Interactivity, Dynamic Rows, Hydration, and Section Saves -->
   <script is:inline define:vars={{ initialAnime: anime, isNewRecord: isNew, platformAnimeList }}>
     let currentAnimeId = initialAnime?.id || null;
+
+    // Checklist toggle collapse logic
+    const btnToggleChecklist = document.getElementById('btn-toggle-checklist');
+    const checklistBody = document.getElementById('completion-checklist-body');
+    const checklistChevron = document.getElementById('checklist-chevron');
+
+    if (btnToggleChecklist && checklistBody) {
+      btnToggleChecklist.addEventListener('click', () => {
+        const isHidden = checklistBody.classList.contains('hidden');
+        checklistBody.classList.toggle('hidden', !isHidden);
+        btnToggleChecklist.setAttribute('aria-expanded', isHidden ? 'true' : 'false');
+        if (checklistChevron) {
+          checklistChevron.classList.toggle('rotate-180', isHidden);
+        }
+      });
+    }
+
+    // Checklist Item smooth scroll and open
+    document.querySelectorAll('.checklist-nav-item').forEach((item) => {
+      item.addEventListener('click', () => {
+        const targetContainerId = item.getAttribute('data-target-container');
+        const targetContainer = document.getElementById(targetContainerId);
+        if (!targetContainer) return;
+
+        // Open target section if closed
+        const body = targetContainer.querySelector('[id$="-body"]');
+        const chevron = targetContainer.querySelector('.section-chevron');
+        if (body && body.classList.contains('hidden')) {
+          body.classList.remove('hidden');
+          if (chevron) chevron.classList.add('rotate-180');
+        }
+
+        // Smooth scroll
+        targetContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+        // Highlight flash
+        targetContainer.classList.add('ring-2', 'ring-indigo-500/80');
+        setTimeout(() => {
+          targetContainer.classList.remove('ring-2', 'ring-indigo-500/80');
+        }, 1500);
+      });
+    });
+
+    // Real-time Checklist Evaluator & DOM Updater
+    function updateChecklistLive() {
+      try {
+        const title = (document.getElementById('core-title')?.value || '').trim();
+        const slug = (document.getElementById('core-slug')?.value || '').trim();
+        const year = (document.getElementById('core-year')?.value || '').trim();
+        const episodes = (document.getElementById('core-episodes')?.value || '').trim();
+        const synopsis = (document.getElementById('core-synopsis')?.value || '').trim();
+        const poster = (document.getElementById('core-poster')?.value || '').trim();
+        const type = (document.querySelector('input[name="type"]:checked')?.value || initialAnime?.type || 'series').trim();
+        const status = (document.getElementById('core-status')?.value || '').trim();
+        const honestyStatus = (document.getElementById('core-honesty')?.value || 'watched').trim().toLowerCase();
+        const ageRating = (document.getElementById('core-age-rating')?.value || '').trim();
+
+        const genreInputs = document.querySelectorAll('input[name="genres"]:checked');
+        const genres = Array.from(genreInputs).map(cb => cb.value);
+
+        // Core Info
+        const coreMissing = [];
+        if (!title) coreMissing.push('Title');
+        if (!slug) coreMissing.push('Slug');
+        if (!year || isNaN(Number(year)) || Number(year) <= 0) coreMissing.push('Year');
+        if (!type) coreMissing.push('Format');
+        if (!episodes || isNaN(Number(episodes)) || Number(episodes) <= 0) coreMissing.push('Episodes');
+        if (!synopsis) coreMissing.push('Synopsis');
+        if (!poster) coreMissing.push('Poster');
+        if (genres.length === 0) coreMissing.push('Genre');
+        if (ageRating === '' || isNaN(Number(ageRating))) coreMissing.push('Age rating');
+        if (!status || status === 'Not Specified') coreMissing.push('Air status');
+        const isCoreDone = coreMissing.length === 0;
+
+        // Review
+        const isWatched = honestyStatus === 'watched';
+        const reviewText = (document.getElementById('review-paragraphs')?.value || document.getElementById('review-heading')?.value || '').trim();
+        const isReviewDone = isWatched && reviewText.length > 0;
+
+        // Watch Order
+        const animeNote = (document.getElementById('watch-order-note')?.value || '').trim();
+        const franchiseNote = (initialAnime?.franchiseWatchOrderNote || '').trim();
+        const isWatchOrderDone = animeNote.length > 0 || franchiseNote.length > 0;
+
+        // Filler
+        const isMovie = type === 'movie';
+        const fillerNote = (document.getElementById('filler-note')?.value || '').trim();
+        const mangaCanon = (document.getElementById('filler-manga-canon')?.value || '').trim();
+        const animeCanon = (document.getElementById('filler-anime-canon')?.value || '').trim();
+        const mixedCanon = (document.getElementById('filler-mixed')?.value || '').trim();
+        const fillerEps = (document.getElementById('filler-episodes')?.value || '').trim();
+        const hasRanges = Boolean(mangaCanon || animeCanon || mixedCanon || fillerEps);
+        const isFillerDone = !isMovie && (hasRanges || fillerNote.length > 0);
+
+        // Characters
+        const charCount = document.querySelectorAll('.character-row').length;
+        const isCharsDone = charCount > 0;
+
+        // Source
+        const srcType = (typeof getSourceTypeValue === 'function' ? getSourceTypeValue() : (document.getElementById('source-type')?.value || 'Manga')).trim().toLowerCase();
+        const isOriginal = srcType === 'original' || srcType === 'anime original';
+        const srcTitle = (document.getElementById('source-title')?.value || '').trim();
+        const srcAuthor = (document.getElementById('source-author')?.value || '').trim();
+        const srcVolumes = (document.getElementById('source-volumes')?.value || '').trim();
+        const srcCoverage = (document.getElementById('source-coverage')?.value || '').trim();
+        const srcNotes = (document.getElementById('source-notes')?.value || '').trim();
+        const hasSourceDetails = Boolean(srcTitle || srcAuthor || srcVolumes || srcCoverage || srcNotes);
+        const isSourceDone = !isOriginal && hasSourceDetails;
+
+        // Lessons
+        const lessonsText = (document.getElementById('lessons-takeaway')?.value || '').trim();
+        const isLessonsDone = isWatched && lessonsText.length > 0;
+
+        // Power System
+        const powerName = (document.getElementById('power-name')?.value || '').trim();
+        const powerText = (document.getElementById('power-paragraphs')?.value || '').trim();
+        const isPowerDone = powerName.length > 0 || powerText.length > 0;
+
+        // Universe
+        const universeCount = document.querySelectorAll('.universe-row').length;
+        const isUniverseDone = universeCount > 0;
+
+        // Recommendations
+        const recsCount = document.querySelectorAll('.recommendation-row').length;
+        const isRecsDone = recsCount > 0;
+
+        const coreSections = [
+          { id: 'core', isApplicable: true, isDone: isCoreDone, reason: isCoreDone ? '' : 'Missing: ' + coreMissing.join(', ') },
+          { id: 'review', isApplicable: isWatched, isDone: isReviewDone, reason: !isWatched ? 'Only applies to Watched anime' : (isReviewDone ? '' : 'No review text written yet') },
+          { id: 'watchOrder', isApplicable: true, isDone: isWatchOrderDone, reason: isWatchOrderDone ? '' : 'No franchise note or anime viewing guidance note' },
+          { id: 'fillerList', isApplicable: !isMovie, isDone: isFillerDone, reason: isMovie ? 'Not applicable for movies' : (isFillerDone ? '' : 'No episode ranges or filler note yet') },
+          { id: 'characters', isApplicable: true, isDone: isCharsDone, reason: isCharsDone ? '' : 'No characters added yet' },
+          { id: 'source', isApplicable: !isOriginal, isDone: isSourceDone, reason: isOriginal ? 'Anime original (no source material adaptation)' : (isSourceDone ? '' : 'No source material details filled yet') }
+        ];
+
+        const applicableCore = coreSections.filter(s => s.isApplicable);
+        const coreDone = applicableCore.filter(s => s.isDone).length;
+        const coreTotal = applicableCore.length;
+        const corePercent = coreTotal > 0 ? Math.round((coreDone / coreTotal) * 100) : 100;
+        const isComplete = coreDone === coreTotal;
+
+        const extrasSections = [
+          { id: 'lessons', isDone: isLessonsDone, note: 'Optional: add only if something about this anime genuinely resonated' },
+          { id: 'powerSystem', isDone: isPowerDone, note: 'Optional: add if this anime has a power or ability system' },
+          { id: 'universe', isDone: isUniverseDone, note: 'Optional: add if this anime has related films or spin-offs' },
+          { id: 'recommendations', isDone: isRecsDone, note: 'Optional: add if you have suggestions' }
+        ];
+        const extrasDone = extrasSections.filter(s => s.isDone).length;
+        const extrasTotal = 4;
+
+        // Update Header summary text
+        const summaryText = document.getElementById('checklist-heading-summary');
+        if (summaryText) {
+          summaryText.textContent = `${coreDone} of ${coreTotal} core sections done • ${extrasDone} of ${extrasTotal} optional extras added`;
+        }
+
+        // Update Header Badge
+        const headerBadge = document.getElementById('checklist-header-badge');
+        if (headerBadge) {
+          headerBadge.textContent = isComplete ? '✓' : '📋';
+          headerBadge.className = `w-8 h-8 rounded-xl font-bold text-sm flex items-center justify-center shrink-0 border ${
+            isComplete ? 'bg-emerald-950/70 text-emerald-400 border-emerald-800/60' :
+            corePercent >= 50 ? 'bg-amber-950/70 text-amber-300 border-amber-800/60' :
+            'bg-indigo-950/70 text-indigo-400 border-indigo-800/60'
+          }`;
+        }
+
+        // Update Core score pill
+        const scorePill = document.getElementById('checklist-core-score-pill');
+        if (scorePill) {
+          scorePill.textContent = `${coreDone}/${coreTotal} Core (${corePercent}%)`;
+          scorePill.className = `text-[11px] font-mono font-bold px-2 py-0.5 rounded-md border ${
+            isComplete ? 'bg-emerald-950/70 text-emerald-400 border-emerald-800/60' :
+            corePercent >= 50 ? 'bg-amber-950/70 text-amber-300 border-amber-800/60' :
+            'bg-rose-950/70 text-rose-300 border-rose-800/60'
+          }`;
+        }
+
+        // Update Progress bar
+        const progressBar = document.getElementById('checklist-progress-bar');
+        if (progressBar) {
+          progressBar.style.width = `${corePercent}%`;
+          progressBar.className = `h-full rounded-full transition-all duration-300 ${
+            isComplete ? 'bg-emerald-500' :
+            corePercent >= 50 ? 'bg-amber-400' : 'bg-rose-500'
+          }`;
+        }
+
+        // Update Core Count label
+        const coreCountLabel = document.getElementById('checklist-core-count-label');
+        if (coreCountLabel) coreCountLabel.textContent = `${coreDone}/${coreTotal} Done`;
+
+        // Update Extras Count label
+        const extrasCountLabel = document.getElementById('checklist-extras-count-label');
+        if (extrasCountLabel) extrasCountLabel.textContent = `${extrasDone}/${extrasTotal} Added`;
+
+        // Update items and section markers
+        const setBadge = (el, label, badgeClass) => {
+          if (!el) return;
+          el.textContent = label;
+          el.className = `text-[11px] font-semibold px-2 py-0.5 rounded-md border ${badgeClass}`;
+        };
+
+        const updateItem = (id, status, statusLabel, badgeClass, reason) => {
+          const itemBtn = document.querySelector(`.checklist-nav-item[data-section-id="${id}"]`);
+          if (itemBtn) {
+            const iconSpan = itemBtn.querySelector('.mt-0\\.5');
+            if (iconSpan) {
+              if (status === 'done') iconSpan.innerHTML = '<span class="text-emerald-400 font-bold">✓</span>';
+              else if (status === 'not_applicable') iconSpan.innerHTML = '<span class="text-slate-500">—</span>';
+              else if (status === 'optional') iconSpan.innerHTML = '<span class="text-slate-500">○</span>';
+              else iconSpan.innerHTML = '<span class="text-amber-400 font-bold">○</span>';
+            }
+            const reasonEl = itemBtn.querySelector('p');
+            if (reasonEl) {
+              reasonEl.textContent = reason;
+              reasonEl.style.display = reason ? '' : 'none';
+            }
+            const badgeSpan = itemBtn.querySelector('.shrink-0');
+            if (badgeSpan) {
+              badgeSpan.textContent = statusLabel;
+              badgeSpan.className = `shrink-0 text-[10px] font-semibold px-2 py-0.5 rounded border ${badgeClass}`;
+            }
+          }
+
+          const marker = document.getElementById(`marker-${id}`);
+          if (marker) {
+            setBadge(marker, statusLabel, badgeClass);
+          }
+        };
+
+        coreSections.forEach(s => {
+          let status = 'missing';
+          let label = 'To do';
+          let badge = 'bg-amber-950/70 text-amber-300 border-amber-800/60';
+          if (!s.isApplicable) {
+            status = 'not_applicable';
+            label = 'N/A';
+            badge = 'bg-slate-800/70 text-slate-400 border-slate-700/60';
+          } else if (s.isDone) {
+            status = 'done';
+            label = 'Done';
+            badge = 'bg-emerald-950/70 text-emerald-400 border-emerald-800/60';
+          }
+          updateItem(s.id, status, label, badge, s.reason);
+        });
+
+        extrasSections.forEach(s => {
+          let status = s.isDone ? 'done' : 'optional';
+          let label = s.isDone ? 'Added' : 'Optional';
+          let badge = s.isDone ? 'bg-emerald-950/70 text-emerald-400 border-emerald-800/60' : 'bg-slate-800/70 text-slate-400 border-slate-700/60';
+          updateItem(s.id, status, label, badge, s.note);
+        });
+      } catch (e) {
+        console.warn('Could not update checklist live:', e);
+      }
+    }
+
+
+    
+    const origShowAdminToast = window.showAdminToast;
+    window.showAdminToast = function(msg, type) {
+      if (type === 'success') {
+        setTimeout(updateChecklistLive, 50);
+      }
+      if (typeof origShowAdminToast === 'function') {
+        origShowAdminToast(msg, type);
+      }
+    };
 
     // Toggle accordion logic
     document.querySelectorAll('.section-toggle').forEach((btn) => {

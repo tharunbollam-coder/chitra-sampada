@@ -27,7 +27,8 @@ export async function getAnimeById(idOrSlug, contextOrLocals = null) {
     charsRes,
     mediaRes,
     recsRes,
-    streamingRes
+    streamingRes,
+    franchiseRes
   ] = await Promise.allSettled([
     db.query(`SELECT alias FROM anime_aliases WHERE anime_id = ?`, actualId),
     db.query(`SELECT genre FROM anime_genres WHERE anime_id = ?`, actualId),
@@ -36,7 +37,8 @@ export async function getAnimeById(idOrSlug, contextOrLocals = null) {
     db.query(`SELECT id, rank, name, category, role, commentary FROM anime_characters WHERE anime_id = ? ORDER BY rank ASC`, actualId),
     db.query(`SELECT id, section, title, badge, link_slug as linkSlug, editorial_note as editorialNote, item_order as itemOrder FROM anime_related_media WHERE anime_id = ? ORDER BY item_order ASC, id ASC`, actualId),
     db.query(`SELECT id, target_anime_id as targetAnimeId, category_badge as categoryBadge, editorial_note as editorialNote, item_order as itemOrder FROM anime_recommendations WHERE anime_id = ? ORDER BY item_order ASC, id ASC`, actualId),
-    db.query(`SELECT id, platform_name as platformName, stream_url as streamUrl, logo_url as logoUrl, note, display_order as displayOrder, is_active as isActive FROM anime_streaming_platforms WHERE anime_id = ? ORDER BY display_order ASC, id ASC`, actualId)
+    db.query(`SELECT id, platform_name as platformName, stream_url as streamUrl, logo_url as logoUrl, note, display_order as displayOrder, is_active as isActive FROM anime_streaming_platforms WHERE anime_id = ? ORDER BY display_order ASC, id ASC`, actualId),
+    animeRow.franchise_id ? db.queryOne(`SELECT id, name, watch_order_note FROM franchises WHERE id = ?`, animeRow.franchise_id) : Promise.resolve(null)
   ]);
 
   const aliases = aliasesRes.status === 'fulfilled' && Array.isArray(aliasesRes.value) ? aliasesRes.value.map(r => r.alias) : [];
@@ -47,6 +49,8 @@ export async function getAnimeById(idOrSlug, contextOrLocals = null) {
   const relatedMedia = mediaRes.status === 'fulfilled' && Array.isArray(mediaRes.value) ? mediaRes.value : [];
   const recommendations = recsRes.status === 'fulfilled' && Array.isArray(recsRes.value) ? recsRes.value : [];
   const streamingPlatforms = streamingRes.status === 'fulfilled' && Array.isArray(streamingRes.value) ? streamingRes.value : [];
+  const franchiseRow = franchiseRes.status === 'fulfilled' ? franchiseRes.value : null;
+  const franchiseWatchOrderNote = franchiseRow?.watch_order_note || null;
 
   const getEp = (t) => {
     const row = fillerRows.find(r => r.type === t);
@@ -124,6 +128,8 @@ export async function getAnimeById(idOrSlug, contextOrLocals = null) {
     communitySuggested: Boolean(animeRow.community_suggested),
     synopsis: animeRow.synopsis || '',
     franchiseId: animeRow.franchise_id || '',
+    franchiseName: franchiseRow?.name || null,
+    franchiseWatchOrderNote,
     franchiseStepOrder: animeRow.franchise_step_order || '',
     watchOrderNote: animeRow.watch_order_note || '',
     fillerNote: animeRow.filler_note || '',

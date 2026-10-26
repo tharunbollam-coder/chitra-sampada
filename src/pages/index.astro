@@ -16,9 +16,16 @@ const [animeList, announcement] = await Promise.all([
 
 Astro.response.headers.set('Cache-Control', 'public, max-age=0, must-revalidate, s-maxage=86400');
 
-// Top titles for the homepage spotlight (prefers trending, falls back to latest additions)
-const trendingAnime = animeList.filter((a: any) => a.trending);
-const spotlightAnime = (trendingAnime.length > 0 ? trendingAnime : animeList).slice(0, 4);
+// Top 4 most recently added anime (ordered newest first: addedDate DESC, rowid DESC)
+const recentlyAddedAnime = [...animeList]
+  .sort((a: any, b: any) => {
+    const dateA = a.addedDate || '';
+    const dateB = b.addedDate || '';
+    if (dateA !== dateB) return dateB.localeCompare(dateA);
+    return (b.rowid || 0) - (a.rowid || 0);
+  })
+  .slice(0, 4);
+
 ---
 
 <BaseLayout
@@ -181,10 +188,10 @@ const spotlightAnime = (trendingAnime.length > 0 ? trendingAnime : animeList).sl
     <div class="flex flex-col sm:flex-row items-start sm:items-end justify-between gap-4 mb-8">
       <div>
         <h2 class="font-heading text-xl sm:text-2xl font-extrabold text-[#0F172A] tracking-tight">
-          Recently Watched & Queued
+          Recently Added
         </h2>
         <p class="text-xs text-slate-500 mt-1 font-normal">
-          A look at some shows currently on my screen or next on the list.
+          The latest anime added to the catalog.
         </p>
       </div>
 
@@ -200,7 +207,7 @@ const spotlightAnime = (trendingAnime.length > 0 ? trendingAnime : animeList).sl
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4 md:gap-7">
-      {spotlightAnime.map((anime: any, idx: number) => (
+      {recentlyAddedAnime.map((anime: any, idx: number) => (
         <AnimeCard anime={anime} priority={idx < 2} />
       ))}
     </div>

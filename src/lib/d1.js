@@ -248,7 +248,7 @@ export async function getCompactAnimeList(contextOrLocals = null) {
   const db = await getDatabase(contextOrLocals);
 
   const [animeRes, genresRes, vibesRes, fillerRes] = await Promise.allSettled([
-    db.query(`SELECT id, slug, title, year, type, runtime, episodes, status, poster, honesty_status, filler_percentage, section_visibility, trending, community_suggested, personal_rating FROM anime ORDER BY year DESC, title ASC`),
+    db.query(`SELECT rowid, id, slug, title, year, type, runtime, episodes, status, poster, honesty_status, filler_percentage, section_visibility, trending, community_suggested, personal_rating, added_date FROM anime ORDER BY year DESC, title ASC`),
     db.query(`SELECT anime_id, genre FROM anime_genres`),
     db.query(`SELECT anime_id, vibe_id FROM anime_vibes`),
     db.query(`SELECT anime_id, type, episodes, episode_count FROM anime_filler_ranges`)
@@ -330,7 +330,10 @@ export async function getCompactAnimeList(contextOrLocals = null) {
       genres: genresMap.get(row.id) || [],
       vibes: vibesMap.get(row.id) || [],
       trending: Boolean(row.trending),
-      communitySuggested: Boolean(row.community_suggested)
+      communitySuggested: Boolean(row.community_suggested),
+      rowid: row.rowid,
+      addedDate: row.added_date || '',
+      added_date: row.added_date || ''
     };
   });
 
