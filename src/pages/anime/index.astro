@@ -18,9 +18,15 @@ Astro.response.headers.set('Cache-Control', 'public, max-age=0, must-revalidate,
 // Public Card Display Rule: Show card in "Browse by Vibe" ONLY if is_active = 1 AND at least one published anime is assigned to it.
 const activeVibes = allVibes.filter((v: any) => v.isActive && animeList.some((a: any) => a.vibes && a.vibes.includes(v.id)));
 
-// Featured selection for the static grid (prefers trending, falls back to latest additions)
-const trendingAnime = animeList.filter((a: any) => a.trending);
-const featuredAnime = (trendingAnime.length > 0 ? trendingAnime : animeList).slice(0, 4);
+// Top 8 most recently added anime (ordered newest first: addedDate DESC, rowid DESC)
+const recentlyAddedAnime = [...animeList]
+  .sort((a: any, b: any) => {
+    const dateA = a.addedDate || '';
+    const dateB = b.addedDate || '';
+    if (dateA !== dateB) return dateB.localeCompare(dateA);
+    return (b.rowid || 0) - (a.rowid || 0);
+  })
+  .slice(0, 8);
 
 const siteOrigin = (siteConfig.siteUrl || (Astro.site ? Astro.site.origin : 'https://chitrasampada.com')).replace(/\/+$/, '');
 const canonicalUrl = `${siteOrigin}/anime`;
@@ -109,18 +115,18 @@ const breadcrumbSchema = {
     </div>
   </section>
 
-  <!-- 2. RECENTLY ADDED & FEATURED (CLEAN STATIC GRID) -->
+  <!-- 2. RECENTLY ADDED (CLEAN STATIC GRID - 8 CARDS) -->
   <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
     <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
       <div>
         <div class="flex items-center gap-2">
           <span class="w-2.5 h-2.5 rounded-full bg-[#6366F1] shadow-[0_0_8px_rgba(99,102,241,0.8)] animate-pulse"></span>
           <h2 class="font-heading text-xl sm:text-2xl font-extrabold text-[#0F172A] tracking-tight">
-            Trending & Recently Added
+            Recently Added
           </h2>
         </div>
         <p class="text-xs text-slate-500 mt-1 font-normal">
-          A look at some of the latest additions with carefully researched watch orders and filler guides.
+          The latest anime added to the catalog.
         </p>
       </div>
 
@@ -132,9 +138,9 @@ const breadcrumbSchema = {
       </a>
     </div>
 
-    <!-- Static Grid of Anime Cards -->
+    <!-- Static Grid of 8 Anime Cards (2 rows of 4 on desktop) -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4 md:gap-7">
-      {featuredAnime.map((anime: any, idx: number) => (
+      {recentlyAddedAnime.map((anime: any, idx: number) => (
         <AnimeCard anime={anime} priority={idx < 2} />
       ))}
     </div>

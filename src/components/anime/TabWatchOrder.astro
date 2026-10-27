@@ -87,9 +87,11 @@ function getItemMeta(item: any): ItemMetaInfo {
   return { formatLabel, formatClass, countLabel };
 }
 
-const franchiseLeadSentence = (hasFranchiseNote && franchiseAnime.length > 0)
-  ? getWatchOrderLeadSentence(anime.title, anime.franchiseName, franchiseAnime)
-  : '';
+const watchOrderLeadSentence = getWatchOrderLeadSentence(
+  anime.title,
+  hasFranchiseNote ? anime.franchiseName : null,
+  watchOrderNote
+);
 ---
 
 <div class="space-y-6">
@@ -112,7 +114,7 @@ const franchiseLeadSentence = (hasFranchiseNote && franchiseAnime.length > 0)
           {anime.title} Watch Order
         </h2>
         <p class="text-xs sm:text-sm text-slate-600 font-normal mt-1.5 max-w-2xl leading-relaxed">
-          {franchiseLeadSentence || `Chronological watch order and viewing sequence guide for ${anime.title}.`}
+          {watchOrderLeadSentence}
         </p>
       </div>
     </div>

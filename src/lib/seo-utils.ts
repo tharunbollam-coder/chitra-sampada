@@ -81,33 +81,42 @@ export function cutAtSentenceBoundary(text: string | null | undefined, maxLen = 
 }
 
 /**
- * Generate a natural lead sentence for the Watch Order tab and descriptions without artificial step numbers.
- * e.g. "Chronological watch order and viewing guide for Naruto Shippuden across the Naruto Franchise series and films: Naruto, Naruto Shippuden, The Last: Naruto the Movie, and Boruto: Naruto Next Generations."
+ * Generate a clean, natural lead sentence for the Watch Order tab and descriptions.
+ * Never dumps comma-separated titles or "...and X more titles".
  */
 export function getWatchOrderLeadSentence(
   animeTitle: string,
-  franchiseName: string | null | undefined,
-  franchiseAnime: Array<any>
+  franchiseName?: string | null,
+  watchOrderNoteOrAnimeList?: string | null | Array<any>
 ): string {
-  if (!Array.isArray(franchiseAnime) || franchiseAnime.length === 0) return '';
-  const total = franchiseAnime.length;
-  const fName = franchiseName || animeTitle;
+  const cleanTitle = (animeTitle || '').trim();
+  const rawFranchise = typeof franchiseName === 'string' ? franchiseName.trim() : '';
 
-  let titlesText = '';
-  if (total === 1) {
-    titlesText = franchiseAnime[0].title;
-  } else if (total === 2) {
-    titlesText = `${franchiseAnime[0].title} and ${franchiseAnime[1].title}`;
-  } else if (total <= 5) {
-    const allExceptLast = franchiseAnime.slice(0, -1).map((s) => s.title).join(', ');
-    titlesText = `${allExceptLast}, and ${franchiseAnime[total - 1].title}`;
-  } else {
-    const firstFew = franchiseAnime.slice(0, 4).map((s) => s.title).join(', ');
-    const remaining = total - 4;
-    titlesText = `${firstFew}, and ${remaining} more titles`;
+  // 1. When part of a franchise (franchiseName exists and is not empty)
+  if (rawFranchise.length > 0) {
+    const cleanFranchiseName = rawFranchise.replace(/\s+franchise$/i, '').trim() || rawFranchise;
+    const isSameName = cleanFranchiseName.toLowerCase() === cleanTitle.toLowerCase();
+
+    if (isSameName) {
+      return `Complete chronological watch order for the ${cleanFranchiseName} franchise, covering where every series, season, and movie fits into the storyline.`;
+    } else {
+      return `How to watch ${cleanTitle} and the complete ${cleanFranchiseName} franchise in chronological order, including where every series and movie fits into the timeline.`;
+    }
   }
 
-  return `Chronological watch order and viewing guide for ${animeTitle} across the ${fName} series and films: ${titlesText}.`;
+  // 2. When standalone (no franchise note, only anime's own watch order note)
+  const noteText = typeof watchOrderNoteOrAnimeList === 'string' ? watchOrderNoteOrAnimeList.trim() : '';
+  if (noteText.length > 0) {
+    const cleaned = cleanPlainText(noteText);
+    const match = cleaned.match(/^([^.!?]+[.!?])/);
+    const firstSentence = match ? match[1].trim() : '';
+    if (firstSentence.length >= 15 && firstSentence.length <= 160) {
+      return firstSentence;
+    }
+  }
+
+  // Fallback for standalone
+  return `Complete chronological watch order and viewing guide for ${cleanTitle}.`;
 }
 
 /**
@@ -190,50 +199,14 @@ export function buildAnimeTabMetadata(
     // 3. Watch Order (/anime/[slug]/watch-order)
     pageTitle = `${title} Watch Order: How to Watch in Order`;
 
-    const franchiseAnime = Array.isArray(anime?.franchiseAnime) ? anime.franchiseAnime : [];
     const franchiseNote = anime?.franchiseWatchOrderNote || null;
     const watchOrderNote = anime?.watchOrderNote || null;
-    const fName = anime?.franchiseName || title;
-
-    if (franchiseNote && franchiseAnime.length > 0) {
-      const titles = franchiseAnime.map((s: any) => s.title).filter(Boolean);
-      let titlesList = '';
-      if (titles.length === 1) {
-        titlesList = titles[0];
-      } else if (titles.length === 2) {
-        titlesList = `${titles[0]} and ${titles[1]}`;
-      } else if (titles.length <= 4) {
-        titlesList = `${titles.slice(0, -1).join(', ')}, and ${titles[titles.length - 1]}`;
-      } else {
-        titlesList = `${titles.slice(0, 3).join(', ')}, and more`;
-      }
-
-      const candidate = `Chronological watch order and viewing guide for ${title} across the ${fName} series and films: ${titlesList}.`;
-      pageDescription = candidate.length <= 155 ? candidate : truncateDescription(candidate, 155);
-    } else if (franchiseNote) {
-      const cleaned = cleanPlainText(franchiseNote);
-      const match = cleaned.match(/^([^.!?]+[.!?])/);
-      const firstSentence = match ? match[1].trim() : cleaned;
-      if (firstSentence.toLowerCase().includes(title.toLowerCase())) {
-        pageDescription = cutAtSentenceBoundary(firstSentence, 155);
-      } else {
-        const candidate = `${title} watch order guide. ${firstSentence}`;
-        pageDescription = candidate.length <= 155 ? candidate : cutAtSentenceBoundary(candidate, 155);
-      }
-    } else if (watchOrderNote) {
-      const cleaned = cleanPlainText(watchOrderNote);
-      const match = cleaned.match(/^([^.!?]+[.!?])/);
-      const firstSentence = match ? match[1].trim() : cleaned;
-
-      if (firstSentence.toLowerCase().includes(title.toLowerCase())) {
-        pageDescription = cutAtSentenceBoundary(firstSentence, 155);
-      } else {
-        const candidate = `${title} watch order guide. ${firstSentence}`;
-        pageDescription = candidate.length <= 155 ? candidate : cutAtSentenceBoundary(candidate, 155);
-      }
-    } else {
-      pageDescription = `Watch order and viewing sequence guide for ${title}. Follow the storyline in recommended chronological order.`;
-    }
+    const lead = getWatchOrderLeadSentence(
+      title,
+      franchiseNote ? anime?.franchiseName : null,
+      watchOrderNote
+    );
+    pageDescription = lead.length <= 155 ? lead : truncateDescription(lead, 155);
     canonicalUrl = `${siteOrigin}/anime/${anime.slug}/watch-order`;
 
   } else if (cleanTab === 'characters') {
