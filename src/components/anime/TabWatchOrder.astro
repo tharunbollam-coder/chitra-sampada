@@ -92,6 +92,10 @@ const watchOrderLeadSentence = getWatchOrderLeadSentence(
   hasFranchiseNote ? anime.franchiseName : null,
   watchOrderNote
 );
+
+const rawAnimeType = (anime.type || 'series').toLowerCase();
+const isMovie = rawAnimeType.includes('movie') || rawAnimeType === 'film';
+const isTVSeries = (rawAnimeType === 'series' || rawAnimeType.includes('tv')) && !isMovie;
 ---
 
 <div class="space-y-6">
@@ -118,6 +122,18 @@ const watchOrderLeadSentence = getWatchOrderLeadSentence(
         </p>
       </div>
     </div>
+
+    <!-- Static Filler Note Callout (TV Series only) -->
+    {isTVSeries && (
+      <div class="mb-5 rounded-xl bg-amber-50/90 border border-amber-200/90 px-4 py-3 text-sm text-amber-950 flex items-start gap-3">
+        <svg class="w-5 h-5 text-amber-600 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <p class="leading-relaxed">
+          <strong class="font-semibold text-amber-950">Filler Note:</strong> Episode ranges below show full broadcast totals and do not separate out filler episodes. To check if this series has skippable non-canon filler episodes, open the <strong class="font-semibold text-amber-950">Filler List</strong> tab.
+        </p>
+      </div>
+    )}
 
     <!-- 1. FRANCHISE WATCH ORDER BLOCK (Full-width markdown text layout) -->
     {hasFranchiseNote && (
