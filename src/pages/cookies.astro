@@ -1,0 +1,253 @@
+---
+// src/pages/cookies.astro
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { siteConfig } from '../config/site.js';
+
+export const prerender = true;
+
+const pageTitle = 'Cookie Policy';
+const pageDescription = `Cookie Policy for ${siteConfig.name}. Transparent explanation of our cookie usage, Google Analytics 4 integration, and your consent controls.`;
+
+const siteOrigin = (siteConfig.siteUrl || 'https://chitrasampada.com').replace(/\/+$/, '');
+const breadcrumbSchema = {
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "name": "Home",
+      "item": `${siteOrigin}/`
+    },
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "name": "Cookie Policy",
+      "item": `${siteOrigin}/cookies`
+    }
+  ]
+};
+---
+
+<BaseLayout title={pageTitle} description={pageDescription} includeBrandSuffix={true}>
+  <Fragment slot="structured-data">
+    <script type="application/ld+json" set:html={JSON.stringify(breadcrumbSchema)} />
+  </Fragment>
+  <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-20 space-y-12">
+    
+    <!-- Breadcrumb & Header -->
+    <header class="space-y-4 border-b border-slate-200 pb-8">
+      <nav class="flex items-center gap-2 text-xs text-slate-500" aria-label="Breadcrumb">
+        <a href="/" class="hover:text-slate-900 transition-colors">Home</a>
+        <span>/</span>
+        <span class="text-[#4F46E5] font-bold">Cookie Policy</span>
+      </nav>
+
+      <div class="space-y-2">
+        <h1 class="text-3xl sm:text-5xl font-extrabold text-[#0F172A] tracking-tight leading-tight font-heading">
+          Cookie Policy
+        </h1>
+        <p class="text-xs sm:text-sm font-semibold text-slate-500">
+          Last Updated: {siteConfig.policyLastUpdated}
+        </p>
+      </div>
+
+      <p class="text-base sm:text-lg text-slate-600 leading-relaxed font-normal pt-2">
+        This Cookie Policy explains how {siteConfig.name} uses cookies, local browser storage, and privacy-conscious analytics to operate and improve our website.
+      </p>
+    </header>
+
+    <!-- Content Sections -->
+    <div class="space-y-10 text-[#334155] text-base sm:text-lg leading-relaxed font-normal">
+      
+      <!-- Section: What Are Cookies and Local Storage? -->
+      <section class="space-y-3">
+        <h2 class="font-heading text-xl sm:text-2xl font-bold text-[#0F172A] tracking-tight">
+          What Are Cookies and Local Storage?
+        </h2>
+        <p>
+          Cookies are small text files placed on your computer or mobile device when you browse websites. Local storage (such as browser <code class="text-sm px-1.5 py-0.5 rounded bg-slate-100 text-slate-800 font-mono">localStorage</code>) works similarly by allowing websites to store non-personal configuration settings directly on your device.
+        </p>
+        <p>
+          These technologies help websites remember preferences, understand how pages are navigated, and maintain security.
+        </p>
+      </section>
+
+      <!-- Section: Categories of Cookies We Use -->
+      <section class="space-y-3 pt-6 border-t border-slate-200">
+        <h2 class="font-heading text-xl sm:text-2xl font-bold text-[#0F172A] tracking-tight">
+          Categories of Cookies and Storage We Use
+        </h2>
+        <p>
+          We take a privacy-first approach to data collection. The categories of cookies and browser storage used on {siteConfig.name} are:
+        </p>
+
+        <div class="space-y-4 pt-2">
+          <!-- 1. Strictly Necessary / Essential Storage -->
+          <div class="p-4 sm:p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
+            <div class="flex items-center justify-between gap-2 flex-wrap">
+              <h3 class="font-heading text-base sm:text-lg font-bold text-slate-900">
+                1. Essential Local Storage (Strictly Necessary)
+              </h3>
+              <span class="text-xs font-bold px-2.5 py-0.5 rounded-full bg-slate-200 text-slate-700">
+                Always Active
+              </span>
+            </div>
+            <p class="text-sm sm:text-base text-slate-600">
+              Essential storage is required for the technical operation of {siteConfig.name} and to remember your privacy choices. Specifically, we store a record named <code class="text-xs px-1.5 py-0.5 rounded bg-slate-200 text-slate-800 font-mono">chitrasampada_consent_v1</code> in your browser's local storage. This records whether you accepted or declined optional analytics cookies and expires automatically after 180 days. It contains zero personal identifiers or tracking codes.
+            </p>
+          </div>
+
+          <!-- 2. Optional Analytics Cookies -->
+          <div class="p-4 sm:p-5 rounded-2xl bg-[#EEF2FF]/40 border border-indigo-100 space-y-2">
+            <div class="flex items-center justify-between gap-2 flex-wrap">
+              <h3 class="font-heading text-base sm:text-lg font-bold text-slate-900">
+                2. Analytics Cookies (Optional — Google Analytics 4)
+              </h3>
+              <span class="text-xs font-bold px-2.5 py-0.5 rounded-full bg-indigo-100 text-[#4F46E5] border border-indigo-200">
+                Requires Consent
+              </span>
+            </div>
+            <p class="text-sm sm:text-base text-slate-600">
+              With your permission, we use <strong>Google Analytics 4 (GA4)</strong> to gather anonymous, aggregated usage statistics. This helps us understand which anime watch orders and filler guides are most helpful, detect broken links, and optimize page performance.
+            </p>
+            <p class="text-sm sm:text-base text-slate-600">
+              When enabled, Google Analytics sets cookies such as <code class="text-xs px-1.5 py-0.5 rounded bg-slate-100 text-slate-800 font-mono">_ga</code> and <code class="text-xs px-1.5 py-0.5 rounded bg-slate-100 text-slate-800 font-mono">_ga_*</code> to distinguish unique browsing sessions. These cookies do not contain personally identifiable information such as your name or email.
+            </p>
+          </div>
+
+          <!-- 3. Advertising & Marketing -->
+          <div class="p-4 sm:p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-2 opacity-80">
+            <div class="flex items-center justify-between gap-2 flex-wrap">
+              <h3 class="font-heading text-base sm:text-lg font-bold text-slate-900">
+                3. Advertising and Marketing Cookies
+              </h3>
+              <span class="text-xs font-medium px-2.5 py-0.5 rounded-full bg-slate-200 text-slate-600">
+                Not Used
+              </span>
+            </div>
+            <p class="text-sm sm:text-base text-slate-600">
+              {siteConfig.name} currently does not deploy third-party advertising or marketing tracking cookies.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section: Google Consent Mode v2 Basic Mode -->
+      <section class="space-y-3 pt-6 border-t border-slate-200">
+        <h2 class="font-heading text-xl sm:text-2xl font-bold text-[#0F172A] tracking-tight">
+          How Google Consent Mode v2 Basic Mode Works
+        </h2>
+        <p>
+          We operate Google Analytics 4 under <strong>Google Consent Mode v2 Basic Mode</strong>. Under this mode:
+        </p>
+        <ul class="list-disc pl-5 sm:pl-6 space-y-2">
+          <li>
+            <strong>Before your consent is given:</strong> The Google Analytics tracking script is completely blocked and does not load. No analytics cookies are set, and no measurement hits or cookieless pings are transmitted to Google.
+          </li>
+          <li>
+            <strong>If you click "Reject Optional Cookies":</strong> Google Analytics remains completely blocked. No analytics cookies or tracking requests are made.
+          </li>
+          <li>
+            <strong>If you click "Allow Analytics":</strong> Your preference is recorded, and the Google Analytics script is initialized to begin measuring aggregated visitor metrics for your session.
+          </li>
+        </ul>
+        <p class="pt-1">
+          Google processes analytics data on our behalf in accordance with Google's data privacy commitments. For more information on how Google handles measurement data, visit{' '}
+          <a
+            href="https://policies.google.com/technologies/partner-sites"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="font-semibold text-[#4F46E5] hover:text-[#4338CA] underline underline-offset-2 transition-colors"
+          >
+            How Google uses information from sites that use our services
+          </a>{' '}
+          and{' '}
+          <a
+            href="https://support.google.com/analytics/answer/6004245"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="font-semibold text-[#4F46E5] hover:text-[#4338CA] underline underline-offset-2 transition-colors"
+          >
+            Google Analytics Data Privacy and Security
+          </a>.
+        </p>
+      </section>
+
+      <!-- Section: How to Manage or Withdraw Consent -->
+      <section class="space-y-3 pt-6 border-t border-slate-200">
+        <h2 class="font-heading text-xl sm:text-2xl font-bold text-[#0F172A] tracking-tight">
+          How to Manage or Withdraw Consent
+        </h2>
+        <p>
+          You are in full control of your cookie preferences at all times. You can change your choice or withdraw consent at any moment:
+        </p>
+        
+        <div class="p-4 sm:p-5 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h3 class="font-heading text-sm sm:text-base font-bold text-slate-900">
+              Open Cookie Settings
+            </h3>
+            <p class="text-xs sm:text-sm text-slate-600 mt-0.5">
+              Reopen our cookie preferences dialog to enable or disable analytics cookies.
+            </p>
+          </div>
+          <button
+            type="button"
+            data-open-cookie-settings
+            class="shrink-0 px-4 py-2.5 rounded-xl bg-[#6366F1] hover:bg-[#4F46E5] active:bg-[#4338CA] text-white font-bold text-xs sm:text-sm shadow-xs transition-all duration-200 cursor-pointer"
+          >
+            Change Preferences
+          </button>
+        </div>
+
+        <p class="pt-2">
+          When you withdraw consent:
+        </p>
+        <ul class="list-disc pl-5 sm:pl-6 space-y-1.5 text-sm sm:text-base">
+          <li>Analytics consent is updated immediately to <code class="text-xs px-1.5 py-0.5 rounded bg-slate-100 font-mono">denied</code>.</li>
+          <li>Google Analytics tracking is instructed to immediately cease for future page views and events.</li>
+          <li>Google Analytics cookies (<code class="text-xs px-1.5 py-0.5 rounded bg-slate-100 font-mono">_ga</code>, <code class="text-xs px-1.5 py-0.5 rounded bg-slate-100 font-mono">_ga_*</code>) are removed from your browser.</li>
+        </ul>
+
+        <p class="pt-2">
+          You can also configure your web browser to delete or block cookies entirely. Note that disabling cookies in your browser settings will not impair your ability to browse anime guides, watch orders, or reviews on {siteConfig.name}.
+        </p>
+      </section>
+
+      <!-- Section: Relation to Privacy Policy -->
+      <section class="space-y-3 pt-6 border-t border-slate-200">
+        <h2 class="font-heading text-xl sm:text-2xl font-bold text-[#0F172A] tracking-tight">
+          Relation to Our Privacy Policy
+        </h2>
+        <p>
+          For more information on how we respect your privacy and protect visitor data, please read our full{' '}
+          <a
+            href="/privacy"
+            class="font-semibold text-[#4F46E5] hover:text-[#4338CA] underline underline-offset-2 transition-colors"
+          >
+            Privacy Policy
+          </a>.
+        </p>
+      </section>
+
+      <!-- Section: Questions -->
+      <section class="space-y-3 pt-6 border-t border-slate-200">
+        <h2 class="font-heading text-xl sm:text-2xl font-bold text-[#0F172A] tracking-tight">
+          Questions & Feedback
+        </h2>
+        <p>
+          If you have questions about our cookie practices or privacy controls, reach out to us at{' '}
+          <a
+            href={`mailto:${siteConfig.contactEmail}`}
+            class="font-semibold text-[#4F46E5] hover:text-[#4338CA] underline underline-offset-2 transition-colors"
+          >
+            {siteConfig.contactEmail}
+          </a>.
+        </p>
+      </section>
+
+    </div>
+
+  </div>
+</BaseLayout>

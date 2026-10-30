@@ -13,6 +13,7 @@ const isCatalogActive = currentPath === '/anime/catalog' && !Astro.url.searchPar
 const isContactActive = currentPath === '/contact';
 
 const isPrivacyActive = currentPath === '/privacy';
+const isCookiesActive = currentPath === '/cookies';
 const isTermsActive = currentPath === '/terms';
 const isDmcaActive = currentPath === '/dmca';
 const isDisclaimerActive = currentPath === '/disclaimer';
@@ -242,6 +243,28 @@ const isDisclaimerActive = currentPath === '/disclaimer';
             >
               Privacy Policy
             </a>
+          </li>
+          <li>
+            <a
+              href="/cookies"
+              class:list={[
+                'px-2.5 py-1 rounded-md transition-colors',
+                isCookiesActive
+                  ? 'bg-[#EEF2FF] text-[#4F46E5] border border-[#C7D2FE] font-bold shadow-2xs'
+                  : 'text-slate-600 hover:text-[#6366F1]'
+              ]}
+            >
+              Cookie Policy
+            </a>
+          </li>
+          <li>
+            <button
+              type="button"
+              data-open-cookie-settings
+              class="px-2.5 py-1 rounded-md text-slate-600 hover:text-[#6366F1] transition-colors cursor-pointer"
+            >
+              Cookie Settings
+            </button>
           </li>
           <li>
             <a

@@ -1,0 +1,514 @@
+---
+// src/components/CookieConsent.astro
+// Lightweight, privacy-conscious cookie consent banner and GA4 Consent Mode v2 Basic Mode manager.
+const measurementId = (import.meta.env.PUBLIC_GA_MEASUREMENT_ID || '').trim();
+---
+
+<div
+  id="chitra-cookie-consent"
+  data-ga-id={measurementId}
+  class="hidden fixed bottom-4 sm:bottom-6 left-4 right-4 sm:left-auto sm:right-6 sm:max-w-lg z-50 transition-all duration-300"
+  role="region"
+  aria-label="Cookie and Privacy Consent"
+  transition:persist="cookie-consent-banner"
+>
+  <!-- Card Container -->
+  <div class="p-5 sm:p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl shadow-slate-900/10 dark:shadow-black/50 text-slate-900 dark:text-slate-100">
+    
+    <!-- View 1: Main Banner View -->
+    <div id="consent-main-view" class="space-y-4">
+      <div class="flex items-start gap-3.5">
+        <!-- Shield Icon -->
+        <div class="w-9 h-9 rounded-xl bg-[#EEF2FF] dark:bg-indigo-950/70 text-[#4F46E5] dark:text-indigo-400 flex items-center justify-center shrink-0 border border-indigo-100 dark:border-indigo-900/60 mt-0.5">
+          <svg class="w-4.5 h-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+          </svg>
+        </div>
+        <div class="space-y-1.5">
+          <h2 id="consent-heading" class="font-heading text-base sm:text-lg font-bold text-slate-900 dark:text-white tracking-tight">
+            Your Privacy Matters
+          </h2>
+          <p class="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed font-normal">
+            We use analytics cookies to understand how visitors use Chitra Sampada and improve our anime guides and website experience. Analytics is optional and will only be enabled with your permission. Learn more in our <a href="/privacy" class="font-semibold text-[#4F46E5] hover:text-[#4338CA] dark:text-indigo-400 dark:hover:text-indigo-300 underline underline-offset-2 transition-colors">Privacy Policy</a> and <a href="/cookies" class="font-semibold text-[#4F46E5] hover:text-[#4338CA] dark:text-indigo-400 dark:hover:text-indigo-300 underline underline-offset-2 transition-colors">Cookie Policy</a>.
+          </p>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 pt-1">
+        <button
+          type="button"
+          id="consent-allow-btn"
+          class="flex-1 px-4 py-2.5 rounded-xl bg-[#6366F1] hover:bg-[#4F46E5] active:bg-[#4338CA] text-white font-bold text-xs sm:text-sm tracking-wide shadow-xs transition-all duration-200 text-center cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#6366F1]"
+        >
+          Allow Analytics
+        </button>
+        <button
+          type="button"
+          id="consent-reject-btn"
+          class="flex-1 px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 active:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-semibold text-xs sm:text-sm border border-slate-200 dark:border-slate-700 shadow-2xs transition-all duration-200 text-center cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-400"
+        >
+          Reject Optional Cookies
+        </button>
+      </div>
+
+      <div class="text-center pt-0.5">
+        <button
+          type="button"
+          id="consent-customize-btn"
+          class="text-xs font-medium text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 transition-colors underline-offset-4 hover:underline cursor-pointer"
+        >
+          Customize Preferences
+        </button>
+      </div>
+    </div>
+
+    <!-- View 2: Preferences View -->
+    <div id="consent-prefs-view" class="hidden space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+        <div class="flex items-center gap-2">
+          <span class="w-2 h-2 rounded-full bg-[#6366F1]"></span>
+          <h3 class="font-heading text-base font-bold text-slate-900 dark:text-white">
+            Cookie Preferences
+          </h3>
+        </div>
+        <button
+          type="button"
+          id="consent-close-prefs-btn"
+          aria-label="Close preferences"
+          class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-lg transition-colors cursor-pointer"
+        >
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <p class="text-xs text-slate-600 dark:text-slate-300 leading-relaxed font-normal">
+        Manage which cookies and storage you permit on Chitra Sampada. Essential storage is strictly required to save your choices; analytics is optional.
+      </p>
+
+      <div class="space-y-2.5 pt-1">
+        <!-- 1. Essential Category -->
+        <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-800 flex items-start justify-between gap-3">
+          <div class="space-y-0.5 pr-2">
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-bold text-slate-900 dark:text-white">Essential Storage</span>
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
+                Always Active
+              </span>
+            </div>
+            <p class="text-[11px] text-slate-500 dark:text-slate-400 leading-normal font-normal">
+              Stores your cookie consent choice locally for 180 days. No personal data or tracking identifiers are stored.
+            </p>
+          </div>
+          <input
+            type="checkbox"
+            checked
+            disabled
+            aria-label="Essential Storage (Always Active)"
+            class="mt-1 h-4 w-4 rounded accent-[#6366F1] opacity-70 cursor-not-allowed"
+          />
+        </div>
+
+        <!-- 2. Analytics Category -->
+        <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-800 flex items-start justify-between gap-3">
+          <div class="space-y-0.5 pr-2">
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-bold text-slate-900 dark:text-white">Analytics Cookies</span>
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#EEF2FF] dark:bg-indigo-950/60 text-[#4F46E5] dark:text-indigo-400 border border-indigo-200 dark:border-indigo-900/60">
+                Optional
+              </span>
+            </div>
+            <p class="text-[11px] text-slate-500 dark:text-slate-400 leading-normal font-normal">
+              Uses Google Analytics 4 to understand traffic patterns and popular anime guides. Anonymized and privacy-conscious.
+            </p>
+          </div>
+          <label class="relative inline-flex items-center cursor-pointer mt-0.5">
+            <input type="checkbox" id="consent-analytics-toggle" class="sr-only peer" />
+            <div class="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-slate-600 peer-checked:bg-[#6366F1]"></div>
+            <span class="sr-only">Enable Analytics Cookies</span>
+          </label>
+        </div>
+
+        <!-- 3. Advertising & Marketing Category (Not used) -->
+        <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-800 flex items-start justify-between gap-3 opacity-75">
+          <div class="space-y-0.5 pr-2">
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-bold text-slate-900 dark:text-white">Advertising & Marketing</span>
+              <span class="text-[10px] font-medium px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400">
+                Not Used
+              </span>
+            </div>
+            <p class="text-[11px] text-slate-500 dark:text-slate-400 leading-normal font-normal">
+              Chitra Sampada does not run advertising or marketing tracking cookies.
+            </p>
+          </div>
+          <input
+            type="checkbox"
+            disabled
+            aria-label="Advertising and Marketing (Not Used)"
+            class="mt-1 h-4 w-4 rounded opacity-50 cursor-not-allowed"
+          />
+        </div>
+      </div>
+
+      <!-- Preference Action Buttons -->
+      <div class="flex items-center justify-end gap-2.5 pt-2 border-t border-slate-200 dark:border-slate-800">
+        <button
+          type="button"
+          id="consent-back-btn"
+          class="px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors cursor-pointer"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          id="consent-save-prefs-btn"
+          class="px-4 py-2 rounded-xl bg-[#6366F1] hover:bg-[#4F46E5] active:bg-[#4338CA] text-white font-bold text-xs tracking-wide shadow-xs transition-all duration-200 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#6366F1]"
+        >
+          Save Preferences
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  // @ts-nocheck
+  (function () {
+    const STORAGE_KEY = 'chitrasampada_consent_v1';
+    const POLICY_VERSION = '2026-10';
+    const CONSENT_MAX_AGE_MS = 180 * 24 * 60 * 60 * 1000; // 180 days
+
+    let lastTrackedPath = '';
+
+    function getMeasurementId() {
+      const banner = document.getElementById('chitra-cookie-consent');
+      const attrId = banner ? banner.getAttribute('data-ga-id') : '';
+      return (attrId || import.meta.env.PUBLIC_GA_MEASUREMENT_ID || '').trim();
+    }
+
+    function isTrackingAllowedEnvironment() {
+      if (typeof window === 'undefined') return false;
+      const host = window.location.hostname.toLowerCase();
+      // Allow manual override for local testing if explicitly configured
+      try {
+        if (localStorage.getItem('chitra_debug_ga') === 'true') {
+          return true;
+        }
+      } catch (e) {}
+      // GA4 loads strictly on the intended production domain
+      return host === 'chitrasampada.com' || host === 'www.chitrasampada.com';
+    }
+
+    function initGtagQueue() {
+      window.dataLayer = window.dataLayer || [];
+      if (!window.gtag) {
+        window.gtag = function () {
+          window.dataLayer.push(arguments);
+        };
+      }
+      // Set default consent to DENIED immediately (Basic Consent Mode)
+      window.gtag('consent', 'default', {
+        analytics_storage: 'denied',
+        ad_storage: 'denied',
+        ad_user_data: 'denied',
+        ad_personalization: 'denied'
+      });
+    }
+
+    function getSavedConsent() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return null;
+        const data = JSON.parse(raw);
+        if (!data || typeof data !== 'object') return null;
+        if (data.version !== '1.0' || data.policyVersion !== POLICY_VERSION) return null;
+        if (typeof data.timestamp !== 'number') return null;
+        if (Date.now() - data.timestamp > CONSENT_MAX_AGE_MS) return null;
+        if (data.analytics !== 'granted' && data.analytics !== 'denied') return null;
+        return data;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function saveConsentRecord(analyticsStatus) {
+      try {
+        const record = {
+          version: '1.0',
+          policyVersion: POLICY_VERSION,
+          timestamp: Date.now(),
+          analytics: analyticsStatus
+        };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(record));
+      } catch (e) {}
+    }
+
+    function removeGaCookies() {
+      try {
+        const host = window.location.hostname;
+        const hostParts = host.split('.');
+        const domains = ['', host, '.' + host];
+        if (hostParts.length > 2) {
+          domains.push('.' + hostParts.slice(-2).join('.'));
+        }
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+          const cookie = cookies[i].trim();
+          const eqPos = cookie.indexOf('=');
+          const name = eqPos > -1 ? cookie.substring(0, eqPos) : cookie;
+          if (name.startsWith('_ga') || name.startsWith('_gi') || name.startsWith('_gat') || name.startsWith('_gac')) {
+            for (const d of domains) {
+              const domainAttr = d ? '; domain=' + d : '';
+              document.cookie = name + '=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/' + domainAttr;
+              document.cookie = name + '=; expires=Thu, 01 Jan 1970 00:00:00 GMT;' + domainAttr;
+            }
+          }
+        }
+      } catch (e) {}
+    }
+
+    function loadGtagScript(measurementId) {
+      if (document.getElementById('ga-gtag-script')) return;
+      const script = document.createElement('script');
+      script.id = 'ga-gtag-script';
+      script.async = true;
+      script.src = 'https://www.googletagmanager.com/gtag/js?id=' + encodeURIComponent(measurementId);
+      document.head.appendChild(script);
+    }
+
+    function enableAnalytics(measurementId) {
+      // 1. Update Google Consent Mode
+      window.gtag('consent', 'update', {
+        analytics_storage: 'granted'
+      });
+
+      // 2. Reset disable flag to false so tracking resumes if previously opted out
+      if (measurementId) {
+        window['ga-disable-' + measurementId] = false;
+      }
+
+      // 3. Load tag and initialize GA4 if in production environment
+      if (isTrackingAllowedEnvironment() && measurementId) {
+        loadGtagScript(measurementId);
+        if (!window.__gaInitialized) {
+          window.gtag('js', new Date());
+          window.gtag('config', measurementId, {
+            send_page_view: false // Manually sent to synchronize with Astro ViewTransitions
+          });
+          window.__gaInitialized = true;
+        }
+        trackPageView();
+      } else if (!isTrackingAllowedEnvironment()) {
+        console.info('[Chitra Sampada] Analytics consent granted. GA tag loading skipped on ' + window.location.hostname + ' (non-production environment).');
+      }
+    }
+
+    function disableAnalytics(measurementId) {
+      // 1. Update Google Consent Mode to denied
+      window.gtag('consent', 'update', {
+        analytics_storage: 'denied'
+      });
+
+      // 2. Set official Google property opt-out flag
+      if (measurementId) {
+        window['ga-disable-' + measurementId] = true;
+      }
+
+      // 3. Clean up any existing GA cookies
+      removeGaCookies();
+      lastTrackedPath = '';
+    }
+
+    function trackPageView() {
+      const consent = getSavedConsent();
+      if (!consent || consent.analytics !== 'granted') return;
+      if (!window.__gaInitialized) return;
+
+      const currentPath = window.location.pathname + window.location.search;
+      if (lastTrackedPath === currentPath) return; // Prevent double-counting
+
+      lastTrackedPath = currentPath;
+      window.gtag('event', 'page_view', {
+        page_title: document.title,
+        page_location: window.location.href,
+        page_path: currentPath
+      });
+    }
+
+    function showBanner() {
+      const banner = document.getElementById('chitra-cookie-consent');
+      if (!banner) return;
+      banner.classList.remove('hidden');
+      showMainView();
+    }
+
+    function hideBanner() {
+      const banner = document.getElementById('chitra-cookie-consent');
+      if (!banner) return;
+      banner.classList.add('hidden');
+    }
+
+    function showMainView() {
+      const mainView = document.getElementById('consent-main-view');
+      const prefsView = document.getElementById('consent-prefs-view');
+      if (mainView) mainView.classList.remove('hidden');
+      if (prefsView) prefsView.classList.add('hidden');
+    }
+
+    function openPreferences() {
+      const banner = document.getElementById('chitra-cookie-consent');
+      const mainView = document.getElementById('consent-main-view');
+      const prefsView = document.getElementById('consent-prefs-view');
+      const toggle = document.getElementById('consent-analytics-toggle');
+
+      if (!banner || !prefsView) return;
+
+      const consent = getSavedConsent();
+      if (toggle) {
+        // Pre-fill toggle based on existing consent
+        toggle.checked = consent ? consent.analytics === 'granted' : false;
+      }
+
+      banner.classList.remove('hidden');
+      if (mainView) mainView.classList.add('hidden');
+      prefsView.classList.remove('hidden');
+    }
+
+    function closePreferences() {
+      const consent = getSavedConsent();
+      if (consent) {
+        // If consent was already granted or denied, hide banner
+        hideBanner();
+        showMainView();
+      } else {
+        // If new visitor, return to main banner view
+        showMainView();
+      }
+    }
+
+    function syncConsentState() {
+      const measurementId = getMeasurementId();
+      const consent = getSavedConsent();
+
+      if (!consent) {
+        // First-time or expired visitor: show banner
+        showBanner();
+      } else {
+        // Returning visitor: apply saved preferences without showing banner
+        hideBanner();
+        if (consent.analytics === 'granted') {
+          enableAnalytics(measurementId);
+        } else {
+          disableAnalytics(measurementId);
+        }
+      }
+    }
+
+    // Attach click listeners to banner buttons
+    function attachBannerEvents() {
+      const banner = document.getElementById('chitra-cookie-consent');
+      if (!banner || banner.dataset.eventsAttached === 'true') return;
+      banner.dataset.eventsAttached = 'true';
+
+      const allowBtn = document.getElementById('consent-allow-btn');
+      const rejectBtn = document.getElementById('consent-reject-btn');
+      const customizeBtn = document.getElementById('consent-customize-btn');
+      const closePrefsBtn = document.getElementById('consent-close-prefs-btn');
+      const backBtn = document.getElementById('consent-back-btn');
+      const savePrefsBtn = document.getElementById('consent-save-prefs-btn');
+      const analyticsToggle = document.getElementById('consent-analytics-toggle');
+
+      if (allowBtn) {
+        allowBtn.addEventListener('click', function () {
+          const mId = getMeasurementId();
+          saveConsentRecord('granted');
+          enableAnalytics(mId);
+          hideBanner();
+        });
+      }
+
+      if (rejectBtn) {
+        rejectBtn.addEventListener('click', function () {
+          const mId = getMeasurementId();
+          saveConsentRecord('denied');
+          disableAnalytics(mId);
+          hideBanner();
+        });
+      }
+
+      if (customizeBtn) {
+        customizeBtn.addEventListener('click', function () {
+          openPreferences();
+        });
+      }
+
+      if (closePrefsBtn) {
+        closePrefsBtn.addEventListener('click', function () {
+          closePreferences();
+        });
+      }
+
+      if (backBtn) {
+        backBtn.addEventListener('click', function () {
+          closePreferences();
+        });
+      }
+
+      if (savePrefsBtn) {
+        savePrefsBtn.addEventListener('click', function () {
+          const mId = getMeasurementId();
+          const isAllowed = analyticsToggle ? analyticsToggle.checked : false;
+          const status = isAllowed ? 'granted' : 'denied';
+          saveConsentRecord(status);
+          if (isAllowed) {
+            enableAnalytics(mId);
+          } else {
+            disableAnalytics(mId);
+          }
+          hideBanner();
+          showMainView();
+        });
+      }
+    }
+
+    // Event delegation on document for "Cookie Settings" triggers anywhere on the site
+    if (!window.__chitraConsentDelegated) {
+      window.__chitraConsentDelegated = true;
+
+      document.addEventListener('click', function (e) {
+        const el = e.target && (e.target.nodeType === 1 ? e.target : e.target.parentElement);
+        const trigger = el && typeof el.closest === 'function' ? el.closest('[data-open-cookie-settings]') : null;
+        if (trigger) {
+          e.preventDefault();
+          openPreferences();
+        }
+      });
+
+      window.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') {
+          const prefsView = document.getElementById('consent-prefs-view');
+          if (prefsView && !prefsView.classList.contains('hidden')) {
+            closePreferences();
+          }
+        }
+      });
+    }
+
+    // Initialize gtag queue immediately
+    initGtagQueue();
+
+    // Initial setup on initial page load
+    syncConsentState();
+    attachBannerEvents();
+
+    // Re-verify and track page view on every Astro ClientRouter transition
+    document.addEventListener('astro:page-load', function () {
+      attachBannerEvents();
+      trackPageView();
+    });
+  })();
+</script>
