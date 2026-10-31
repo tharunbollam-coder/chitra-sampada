@@ -1054,6 +1054,7 @@ export async function getAllAdminBlogPosts(contextOrLocals = null) {
       publishedDate: p.published_date,
       lastUpdated: p.last_updated,
       status: p.status,
+      coverImage: p.cover_image || null,
       readTime: `${readTimeMinutes} min read`,
       linkedAnime: linksMap.get(p.id) || []
     };
@@ -1073,12 +1074,13 @@ export async function getAdminBlogPostById(id, contextOrLocals = null) {
  * @param {any} postData
  * @param {any} [contextOrLocals]
  */
-export async function saveBlogPost({ id, slug, title, excerpt, content, publishedDate, lastUpdated = '', status = 'published', linkedAnimeIds = [] }, contextOrLocals = null) {
+export async function saveBlogPost({ id, slug, title, excerpt, content, publishedDate, lastUpdated = '', status = 'published', coverImage = null, cover_image = null, linkedAnimeIds = [] }, contextOrLocals = null) {
   const db = await getDatabase(contextOrLocals);
   const cleanId = sanitizeSlug(id);
   const cleanSlug = sanitizeSlug(slug);
   const cleanTitle = String(title || '').trim();
   const cleanContent = String(content || '').trim();
+  const cleanCoverImage = (coverImage || cover_image) ? String(coverImage || cover_image).trim() : null;
 
   if (!cleanId || !cleanSlug || !cleanTitle || !cleanContent) {
     throw new Error('ID, Slug, Title, and Content are required.');
@@ -1091,8 +1093,8 @@ export async function saveBlogPost({ id, slug, title, excerpt, content, publishe
   if (slugError) throw new Error(slugError);
 
   await db.run(`
-    INSERT INTO blog_posts (id, slug, title, excerpt, content, published_date, last_updated, status)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO blog_posts (id, slug, title, excerpt, content, published_date, last_updated, status, cover_image)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(id) DO UPDATE SET
       slug = excluded.slug,
       title = excluded.title,
@@ -1100,7 +1102,8 @@ export async function saveBlogPost({ id, slug, title, excerpt, content, publishe
       content = excluded.content,
       published_date = excluded.published_date,
       last_updated = excluded.last_updated,
-      status = excluded.status
+      status = excluded.status,
+      cover_image = excluded.cover_image
   `,
     cleanId,
     cleanSlug,
@@ -1109,7 +1112,8 @@ export async function saveBlogPost({ id, slug, title, excerpt, content, publishe
     cleanContent,
     publishedDate || new Date().toISOString().split('T')[0],
     lastUpdated || new Date().toISOString().split('T')[0],
-    status
+    status,
+    cleanCoverImage
   );
 
   // Sync linked anime

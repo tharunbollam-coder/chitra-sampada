@@ -125,6 +125,19 @@ if (standardSourceTypes.includes(rawSourceType)) {
         </svg>
       </a>
 
+      <!-- Expand / Collapse All Sections -->
+      <button
+        type="button"
+        id="btn-toggle-all-sections"
+        class="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-medium text-slate-300 hover:text-white bg-slate-900 border border-slate-700/80 rounded-xl transition hover:bg-slate-800 cursor-pointer"
+        title="Expand or collapse all sections"
+      >
+        <svg id="icon-toggle-all" class="w-3.5 h-3.5 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+        </svg>
+        <span id="label-toggle-all">Expand All</span>
+      </button>
+
       <!-- Universal Save All Changes Button (Top Bar) -->
       <button
         type="button"
@@ -341,7 +354,7 @@ if (standardSourceTypes.includes(rawSourceType)) {
         </div>
       </button>
 
-      <div id="section-core-body" class="px-4 sm:px-6 pb-6 pt-2 border-t border-slate-800/80">
+      <div id="section-core-body" class="hidden px-4 sm:px-6 pb-6 pt-2 border-t border-slate-800/80">
         <form id="form-core" class="space-y-5" action="javascript:void(0);" onsubmit="event.preventDefault();">
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <!-- ID -->
@@ -742,7 +755,15 @@ if (standardSourceTypes.includes(rawSourceType)) {
           </div>
 
           <!-- Submit Button -->
-          <div class="pt-4 border-t border-slate-800 flex justify-end">
+          <div class="pt-4 border-t border-slate-800 flex items-center justify-between gap-3">
+            <button
+              type="button"
+              class="btn-collapse-section px-3.5 py-2 text-xs font-medium text-slate-400 hover:text-white bg-slate-800/80 hover:bg-slate-800 rounded-xl border border-slate-700/60 transition flex items-center gap-1.5 cursor-pointer"
+              data-target="section-core-body"
+            >
+              <span>Collapse Section</span>
+              <span>↑</span>
+            </button>
             <button
               type="submit"
               id="btn-save-core"
@@ -807,7 +828,7 @@ if (standardSourceTypes.includes(rawSourceType)) {
         </div>
       </button>
 
-      <div id="section-review-body" class="px-4 sm:px-6 pb-6 pt-2 border-t border-slate-800/80">
+      <div id="section-review-body" class="hidden px-4 sm:px-6 pb-6 pt-2 border-t border-slate-800/80">
         <form id="form-review" class="space-y-5" action="javascript:void(0);" onsubmit="event.preventDefault();">
           <!-- Review Type: Quick Take vs Full Take -->
           <div>
@@ -911,7 +932,15 @@ if (standardSourceTypes.includes(rawSourceType)) {
             >{initialReviewText || ''}</textarea>
           </div>
 
-          <div class="pt-4 border-t border-slate-800 flex justify-end">
+          <div class="pt-4 border-t border-slate-800 flex items-center justify-between gap-3">
+            <button
+              type="button"
+              class="btn-collapse-section px-3.5 py-2 text-xs font-medium text-slate-400 hover:text-white bg-slate-800/80 hover:bg-slate-800 rounded-xl border border-slate-700/60 transition flex items-center gap-1.5 cursor-pointer"
+              data-target="section-review-body"
+            >
+              <span>Collapse Section</span>
+              <span>↑</span>
+            </button>
             <button
               type="submit"
               class="w-full sm:w-auto px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold rounded-xl shadow-sm transition cursor-pointer"
@@ -975,7 +1004,7 @@ if (standardSourceTypes.includes(rawSourceType)) {
         </div>
       </button>
 
-      <div id="section-lessons-body" class="px-4 sm:px-6 pb-6 pt-2 border-t border-slate-800/80">
+      <div id="section-lessons-body" class="hidden px-4 sm:px-6 pb-6 pt-2 border-t border-slate-800/80">
         <form id="form-lessons" class="space-y-5" action="javascript:void(0);" onsubmit="event.preventDefault();">
           <div>
             <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5" for="lesson-takeaway">
@@ -993,7 +1022,15 @@ if (standardSourceTypes.includes(rawSourceType)) {
             >{initialLessonsText || ''}</textarea>
           </div>
 
-          <div class="pt-4 border-t border-slate-800 flex justify-end">
+          <div class="pt-4 border-t border-slate-800 flex items-center justify-between gap-3">
+            <button
+              type="button"
+              class="btn-collapse-section px-3.5 py-2 text-xs font-medium text-slate-400 hover:text-white bg-slate-800/80 hover:bg-slate-800 rounded-xl border border-slate-700/60 transition flex items-center gap-1.5 cursor-pointer"
+              data-target="section-lessons-body"
+            >
+              <span>Collapse Section</span>
+              <span>↑</span>
+            </button>
             <button
               type="submit"
               class="w-full sm:w-auto px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold rounded-xl shadow-sm transition cursor-pointer"
@@ -1057,7 +1094,7 @@ if (standardSourceTypes.includes(rawSourceType)) {
         </div>
       </button>
 
-      <div id="section-watch-order-body" class="px-4 sm:px-6 pb-6 pt-2 border-t border-slate-800/80">
+      <div id="section-watch-order-body" class="hidden px-4 sm:px-6 pb-6 pt-2 border-t border-slate-800/80">
         <form id="form-watch-order" class="space-y-5" action="javascript:void(0);" onsubmit="event.preventDefault();">
           <!-- Read-Only Franchise Status Indicator (Single Source of Truth is Franchise Editor) -->
           <div class="p-4 rounded-xl bg-slate-950/80 border border-slate-800 space-y-2.5">
@@ -1137,7 +1174,15 @@ if (standardSourceTypes.includes(rawSourceType)) {
             Need to add or edit franchise watch roadmaps? Manage full franchise sequences in the <a href="/admin/franchises" class="text-indigo-400 underline" target="_blank">Franchises Manager</a>.
           </p>
 
-          <div class="pt-4 border-t border-slate-800 flex justify-end">
+          <div class="pt-4 border-t border-slate-800 flex items-center justify-between gap-3">
+            <button
+              type="button"
+              class="btn-collapse-section px-3.5 py-2 text-xs font-medium text-slate-400 hover:text-white bg-slate-800/80 hover:bg-slate-800 rounded-xl border border-slate-700/60 transition flex items-center gap-1.5 cursor-pointer"
+              data-target="section-watch-order-body"
+            >
+              <span>Collapse Section</span>
+              <span>↑</span>
+            </button>
             <button
               type="submit"
               id="btn-save-watch-order"
@@ -1210,7 +1255,7 @@ if (standardSourceTypes.includes(rawSourceType)) {
         </div>
       </button>
 
-      <div id="section-filler-body" class="px-4 sm:px-6 pb-6 pt-2 border-t border-slate-800/80">
+      <div id="section-filler-body" class="hidden px-4 sm:px-6 pb-6 pt-2 border-t border-slate-800/80">
         <form id="form-filler" class="space-y-4" action="javascript:void(0);" onsubmit="event.preventDefault();">
           <!-- Filler Note / Movie Timeline Note -->
           <div>
@@ -1341,7 +1386,15 @@ if (standardSourceTypes.includes(rawSourceType)) {
             </div>
           </div>
 
-          <div class="pt-4 border-t border-slate-800 flex justify-end">
+          <div class="pt-4 border-t border-slate-800 flex items-center justify-between gap-3">
+            <button
+              type="button"
+              class="btn-collapse-section px-3.5 py-2 text-xs font-medium text-slate-400 hover:text-white bg-slate-800/80 hover:bg-slate-800 rounded-xl border border-slate-700/60 transition flex items-center gap-1.5 cursor-pointer"
+              data-target="section-filler-body"
+            >
+              <span>Collapse Section</span>
+              <span>↑</span>
+            </button>
             <button
               type="submit"
               class="w-full sm:w-auto px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold rounded-xl shadow-sm transition cursor-pointer"
@@ -1405,7 +1458,7 @@ if (standardSourceTypes.includes(rawSourceType)) {
         </div>
       </button>
 
-      <div id="section-chars-body" class="px-4 sm:px-6 pb-6 pt-2 border-t border-slate-800/80">
+      <div id="section-chars-body" class="hidden px-4 sm:px-6 pb-6 pt-2 border-t border-slate-800/80">
         <form id="form-chars" class="space-y-4" action="javascript:void(0);" onsubmit="event.preventDefault();">
           <div>
             <p class="text-xs text-slate-400">
@@ -1500,7 +1553,15 @@ if (standardSourceTypes.includes(rawSourceType)) {
             <p class="text-xs text-slate-400 mt-1">Select an article or blog post to recommend at the bottom of the public Characters tab.</p>
           </div>
 
-          <div class="pt-4 border-t border-slate-800 flex justify-end">
+          <div class="pt-4 border-t border-slate-800 flex items-center justify-between gap-3">
+            <button
+              type="button"
+              class="btn-collapse-section px-3.5 py-2 text-xs font-medium text-slate-400 hover:text-white bg-slate-800/80 hover:bg-slate-800 rounded-xl border border-slate-700/60 transition flex items-center gap-1.5 cursor-pointer"
+              data-target="section-chars-body"
+            >
+              <span>Collapse Section</span>
+              <span>↑</span>
+            </button>
             <button
               type="submit"
               class="w-full sm:w-auto px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold rounded-xl shadow-sm transition cursor-pointer"
@@ -1564,7 +1625,7 @@ if (standardSourceTypes.includes(rawSourceType)) {
         </div>
       </button>
 
-      <div id="section-source-body" class="px-4 sm:px-6 pb-6 pt-2 border-t border-slate-800/80">
+      <div id="section-source-body" class="hidden px-4 sm:px-6 pb-6 pt-2 border-t border-slate-800/80">
         <form id="form-source" class="space-y-4" action="javascript:void(0);" onsubmit="event.preventDefault();">
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <div>
@@ -1676,7 +1737,15 @@ if (standardSourceTypes.includes(rawSourceType)) {
             >{anime?.source?.notes || ''}</textarea>
           </div>
 
-          <div class="pt-4 border-t border-slate-800 flex justify-end">
+          <div class="pt-4 border-t border-slate-800 flex items-center justify-between gap-3">
+            <button
+              type="button"
+              class="btn-collapse-section px-3.5 py-2 text-xs font-medium text-slate-400 hover:text-white bg-slate-800/80 hover:bg-slate-800 rounded-xl border border-slate-700/60 transition flex items-center gap-1.5 cursor-pointer"
+              data-target="section-source-body"
+            >
+              <span>Collapse Section</span>
+              <span>↑</span>
+            </button>
             <button
               type="submit"
               class="w-full sm:w-auto px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold rounded-xl shadow-sm transition cursor-pointer"
@@ -1740,7 +1809,7 @@ if (standardSourceTypes.includes(rawSourceType)) {
         </div>
       </button>
 
-      <div id="section-power-body" class="px-4 sm:px-6 pb-6 pt-2 border-t border-slate-800/80">
+      <div id="section-power-body" class="hidden px-4 sm:px-6 pb-6 pt-2 border-t border-slate-800/80">
         <form id="form-power" class="space-y-4" action="javascript:void(0);" onsubmit="event.preventDefault();">
           <div>
             <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5" for="power-name">
@@ -1773,7 +1842,15 @@ if (standardSourceTypes.includes(rawSourceType)) {
             >{initialPowerText || ''}</textarea>
           </div>
 
-          <div class="pt-4 border-t border-slate-800 flex justify-end">
+          <div class="pt-4 border-t border-slate-800 flex items-center justify-between gap-3">
+            <button
+              type="button"
+              class="btn-collapse-section px-3.5 py-2 text-xs font-medium text-slate-400 hover:text-white bg-slate-800/80 hover:bg-slate-800 rounded-xl border border-slate-700/60 transition flex items-center gap-1.5 cursor-pointer"
+              data-target="section-power-body"
+            >
+              <span>Collapse Section</span>
+              <span>↑</span>
+            </button>
             <button
               type="submit"
               class="w-full sm:w-auto px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold rounded-xl shadow-sm transition cursor-pointer"
@@ -1836,7 +1913,7 @@ if (standardSourceTypes.includes(rawSourceType)) {
         </div>
       </button>
 
-      <div id="section-universe-body" class="px-4 sm:px-6 pb-6 pt-2 border-t border-slate-800/80">
+      <div id="section-universe-body" class="hidden px-4 sm:px-6 pb-6 pt-2 border-t border-slate-800/80">
         <form id="form-universe" class="space-y-4" action="javascript:void(0);" onsubmit="event.preventDefault();">
           <div>
             <p class="text-xs text-slate-400">
@@ -1919,7 +1996,15 @@ if (standardSourceTypes.includes(rawSourceType)) {
             </button>
           </div>
 
-          <div class="pt-4 border-t border-slate-800 flex justify-end">
+          <div class="pt-4 border-t border-slate-800 flex items-center justify-between gap-3">
+            <button
+              type="button"
+              class="btn-collapse-section px-3.5 py-2 text-xs font-medium text-slate-400 hover:text-white bg-slate-800/80 hover:bg-slate-800 rounded-xl border border-slate-700/60 transition flex items-center gap-1.5 cursor-pointer"
+              data-target="section-universe-body"
+            >
+              <span>Collapse Section</span>
+              <span>↑</span>
+            </button>
             <button
               type="submit"
               class="w-full sm:w-auto px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold rounded-xl shadow-sm transition cursor-pointer"
@@ -1982,7 +2067,7 @@ if (standardSourceTypes.includes(rawSourceType)) {
         </div>
       </button>
 
-      <div id="section-recs-body" class="px-4 sm:px-6 pb-6 pt-2 border-t border-slate-800/80">
+      <div id="section-recs-body" class="hidden px-4 sm:px-6 pb-6 pt-2 border-t border-slate-800/80">
         <form id="form-recs" class="space-y-4" action="javascript:void(0);" onsubmit="event.preventDefault();">
           <div>
             <p class="text-xs text-slate-400">
@@ -2049,7 +2134,15 @@ if (standardSourceTypes.includes(rawSourceType)) {
             </button>
           </div>
 
-          <div class="pt-4 border-t border-slate-800 flex justify-end">
+          <div class="pt-4 border-t border-slate-800 flex items-center justify-between gap-3">
+            <button
+              type="button"
+              class="btn-collapse-section px-3.5 py-2 text-xs font-medium text-slate-400 hover:text-white bg-slate-800/80 hover:bg-slate-800 rounded-xl border border-slate-700/60 transition flex items-center gap-1.5 cursor-pointer"
+              data-target="section-recs-body"
+            >
+              <span>Collapse Section</span>
+              <span>↑</span>
+            </button>
             <button
               type="submit"
               class="w-full sm:w-auto px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold rounded-xl shadow-sm transition cursor-pointer"
@@ -2065,7 +2158,7 @@ if (standardSourceTypes.includes(rawSourceType)) {
     <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden accordion-section" id="section-streaming">
       <button
         type="button"
-        class="w-full px-4 sm:px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-left hover:bg-slate-800/40 transition cursor-pointer section-toggle-btn"
+        class="w-full px-4 sm:px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-left hover:bg-slate-800/40 transition cursor-pointer section-toggle"
         data-target="section-streaming-body"
       >
         <div class="flex items-center gap-3">
@@ -2114,7 +2207,7 @@ if (standardSourceTypes.includes(rawSourceType)) {
         </div>
       </button>
 
-      <div id="section-streaming-body" class="px-4 sm:px-6 pb-6 pt-2 border-t border-slate-800/80">
+      <div id="section-streaming-body" class="hidden px-4 sm:px-6 pb-6 pt-2 border-t border-slate-800/80">
         <form id="form-streaming" class="space-y-4" action="javascript:void(0);" onsubmit="event.preventDefault();">
           <div>
             <p class="text-xs text-slate-400">
@@ -2186,7 +2279,15 @@ if (standardSourceTypes.includes(rawSourceType)) {
             </button>
           </div>
 
-          <div class="pt-4 border-t border-slate-800 flex justify-end">
+          <div class="pt-4 border-t border-slate-800 flex items-center justify-between gap-3">
+            <button
+              type="button"
+              class="btn-collapse-section px-3.5 py-2 text-xs font-medium text-slate-400 hover:text-white bg-slate-800/80 hover:bg-slate-800 rounded-xl border border-slate-700/60 transition flex items-center gap-1.5 cursor-pointer"
+              data-target="section-streaming-body"
+            >
+              <span>Collapse Section</span>
+              <span>↑</span>
+            </button>
             <button
               type="submit"
               class="w-full sm:w-auto px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold rounded-xl shadow-sm transition cursor-pointer"
@@ -2285,6 +2386,7 @@ if (standardSourceTypes.includes(rawSourceType)) {
         if (body && body.classList.contains('hidden')) {
           body.classList.remove('hidden');
           if (chevron) chevron.classList.add('rotate-180');
+          updateToggleAllState();
         }
 
         // Smooth scroll
@@ -2526,6 +2628,54 @@ if (standardSourceTypes.includes(rawSourceType)) {
     };
 
     // Toggle accordion logic
+    const btnToggleAll = document.getElementById('btn-toggle-all-sections');
+    const labelToggleAll = document.getElementById('label-toggle-all');
+    const iconToggleAll = document.getElementById('icon-toggle-all');
+
+    function updateToggleAllState() {
+      if (!labelToggleAll) return;
+      const allBodies = Array.from(document.querySelectorAll('.section-toggle')).map((b) => {
+        const id = b.getAttribute('data-target');
+        return id ? document.getElementById(id) : null;
+      }).filter(Boolean);
+
+      const anyOpen = allBodies.some((b) => !b.classList.contains('hidden'));
+      if (anyOpen) {
+        labelToggleAll.textContent = 'Collapse All';
+        if (iconToggleAll) iconToggleAll.classList.add('rotate-180');
+      } else {
+        labelToggleAll.textContent = 'Expand All';
+        if (iconToggleAll) iconToggleAll.classList.remove('rotate-180');
+      }
+    }
+
+    if (btnToggleAll) {
+      btnToggleAll.addEventListener('click', () => {
+        const toggleButtons = document.querySelectorAll('.section-toggle');
+        const allBodies = Array.from(toggleButtons).map((b) => {
+          const id = b.getAttribute('data-target');
+          return id ? document.getElementById(id) : null;
+        }).filter(Boolean);
+
+        const anyOpen = allBodies.some((b) => !b.classList.contains('hidden'));
+        const shouldCollapse = anyOpen;
+
+        toggleButtons.forEach((btn) => {
+          const targetId = btn.getAttribute('data-target');
+          const target = document.getElementById(targetId);
+          const chevron = btn.querySelector('.section-chevron');
+          if (target) {
+            target.classList.toggle('hidden', shouldCollapse);
+          }
+          if (chevron) {
+            chevron.classList.toggle('rotate-180', !shouldCollapse);
+          }
+        });
+
+        updateToggleAllState();
+      });
+    }
+
     document.querySelectorAll('.section-toggle').forEach((btn) => {
       btn.addEventListener('click', (e) => {
         if (e.target.closest('.no-section-toggle')) return;
@@ -2538,9 +2688,33 @@ if (standardSourceTypes.includes(rawSourceType)) {
           if (chevron) {
             chevron.classList.toggle('rotate-180', !isHidden);
           }
+          updateToggleAllState();
         }
       });
     });
+
+    // Collapse Section footer buttons
+    document.querySelectorAll('.btn-collapse-section').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const targetId = btn.getAttribute('data-target');
+        const target = document.getElementById(targetId);
+        if (target) {
+          target.classList.add('hidden');
+          const toggleBtn = document.querySelector(`.section-toggle[data-target="${targetId}"]`);
+          if (toggleBtn) {
+            const chevron = toggleBtn.querySelector('.section-chevron');
+            if (chevron) chevron.classList.remove('rotate-180');
+          }
+          const container = target.closest('[id$="-container"]') || target.closest('#section-streaming') || target.parentElement;
+          if (container) {
+            container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+          updateToggleAllState();
+        }
+      });
+    });
+
+    updateToggleAllState();
 
     // Visibility Toggles (Show/Hide on Public Page) - Local in-memory state only (NO auto-save)
     document.querySelectorAll('.section-visibility-checkbox').forEach((checkbox) => {

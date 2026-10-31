@@ -1,6 +1,7 @@
 ---
 // src/components/Header.astro
 import { siteConfig } from '../config/site.js';
+import GlobalSearchModal from './GlobalSearchModal.astro';
 
 const currentPath = Astro.url.pathname;
 ---
@@ -76,7 +77,21 @@ const currentPath = Astro.url.pathname;
     </nav>
 
     <!-- Header Actions -->
-    <div class="flex items-center gap-3">
+    <div class="flex items-center gap-1.5 sm:gap-2">
+      <!-- Search Trigger Icon Button (Desktop & Mobile) -->
+      <button
+        type="button"
+        id="btn-open-search"
+        data-action="open-search"
+        aria-label="Search"
+        title="Search anime & articles"
+        class="w-10 h-10 rounded-full flex items-center justify-center text-slate-600 hover:text-indigo-600 hover:bg-slate-100 transition-colors cursor-pointer"
+      >
+        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+      </button>
+
       <a
         href="/anime"
         class="hidden sm:inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider text-white bg-[#6366F1] hover:bg-[#4F46E5] shadow-md shadow-indigo-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
@@ -141,6 +156,8 @@ const currentPath = Astro.url.pathname;
     </div>
   </div>
 </header>
+
+<GlobalSearchModal />
 
 <script>
   // Setup mobile menu toggle

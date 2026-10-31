@@ -8,6 +8,7 @@ interface Props {
     slug: string;
     title: string;
     excerpt: string;
+    coverImage?: string | null;
     publishedDate: string;
     lastUpdated?: string;
     readTime?: string;
@@ -30,6 +31,18 @@ const formattedDate = !isNaN(dateObj.getTime())
 ---
 
 <article class="group relative flex flex-col h-full p-6 sm:p-7 rounded-2xl bg-white border border-slate-200/80 hover:border-slate-300 shadow-xs hover:shadow-md transition-all duration-300 hover:-translate-y-0.5">
+  {post.coverImage && (
+    <div class="mb-5 -mx-6 -mt-6 sm:-mx-7 sm:-mt-7 overflow-hidden rounded-t-2xl aspect-[16/9] bg-slate-100 relative">
+      <img
+        src={post.coverImage}
+        alt={post.title}
+        loading="lazy"
+        decoding="async"
+        class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+      />
+    </div>
+  )}
+
   <!-- Top Content Area -->
   <div class="space-y-3">
     <!-- Meta row: Date and Reading Time -->

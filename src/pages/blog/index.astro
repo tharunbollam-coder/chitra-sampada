@@ -71,13 +71,73 @@ const breadcrumbSchema = {
       </div>
     </header>
 
+    <!-- Dedicated Real-time Blog Search Bar -->
+    {posts.length > 0 && (
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div class="relative flex-1 max-w-md">
+          <svg class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <input
+            type="search"
+            id="blog-search-input"
+            placeholder="Search articles by title, topic, or anime..."
+            class="w-full pl-10 pr-9 py-2.5 rounded-xl bg-white border border-slate-200 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 shadow-2xs transition"
+            autocomplete="off"
+          />
+          <button
+            type="button"
+            id="btn-blog-search-clear"
+            class="hidden absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
+            title="Clear search"
+          >
+            ✕
+          </button>
+        </div>
+
+        <div id="blog-search-count" class="text-xs font-medium text-slate-500 shrink-0">
+          Showing <span id="count-number" class="font-bold text-slate-700">{posts.length}</span> of {posts.length} {posts.length === 1 ? 'article' : 'articles'}
+        </div>
+      </div>
+    )}
+
     <!-- Blog Posts Grid -->
     {posts.length > 0 ? (
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-7">
-        {posts.map((post: any) => (
-          <BlogPostCard post={post} />
-        ))}
-      </div>
+      <>
+        <div id="blog-posts-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-7">
+          {posts.map((post: any) => {
+            const linkedTitles = (post.linkedAnime || []).map((a: any) => a.title).join(' ');
+            const searchData = `${post.title} ${post.excerpt || ''} ${linkedTitles}`.toLowerCase();
+            return (
+              <div class="blog-card-item h-full" data-search={searchData}>
+                <BlogPostCard post={post} />
+              </div>
+            );
+          })}
+        </div>
+
+        <!-- No Matching Filter Results -->
+        <div id="blog-empty-search" class="hidden p-12 text-center rounded-3xl bg-white border border-slate-200 space-y-3">
+          <div class="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 mx-auto flex items-center justify-center text-xl font-bold">
+            🔍
+          </div>
+          <p class="text-base font-semibold text-slate-800">
+            No articles found matching <span id="blog-query-echo" class="text-indigo-600 font-bold"></span>
+          </p>
+          <p class="text-xs text-slate-500 max-w-sm mx-auto">
+            Try a different keyword or anime title, or clear the search to browse all articles.
+          </p>
+          <div class="pt-2">
+            <button
+              type="button"
+              id="btn-blog-reset-filter"
+              class="px-4 py-2 text-xs font-semibold text-indigo-600 hover:text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-xl transition cursor-pointer"
+            >
+              Clear Search
+            </button>
+          </div>
+        </div>
+      </>
     ) : (
       <div class="p-12 text-center rounded-3xl bg-white border border-slate-200 space-y-3">
         <p class="text-base font-semibold text-slate-700">No articles published yet.</p>
@@ -86,4 +146,67 @@ const breadcrumbSchema = {
     )}
 
   </div>
+
+  <script>
+    function setupBlogSearch() {
+      const input = document.getElementById('blog-search-input') as HTMLInputElement | null;
+      const clearBtn = document.getElementById('btn-blog-search-clear');
+      const resetBtn = document.getElementById('btn-blog-reset-filter');
+      const countNumber = document.getElementById('count-number');
+      const emptyState = document.getElementById('blog-empty-search');
+      const queryEcho = document.getElementById('blog-query-echo');
+      const grid = document.getElementById('blog-posts-grid');
+      const cards = Array.from(document.querySelectorAll<HTMLElement>('.blog-card-item'));
+
+      if (!input || cards.length === 0) return;
+
+      function filterPosts() {
+        if (!input) return;
+        const q = input.value.trim().toLowerCase();
+        const tokens = q.split(/\s+/).filter(Boolean);
+
+        if (clearBtn) clearBtn.classList.toggle('hidden', !q);
+
+        let visibleCount = 0;
+        cards.forEach((card) => {
+          const text = card.getAttribute('data-search') || '';
+          const matches = tokens.every(tok => text.includes(tok));
+          if (matches) {
+            card.classList.remove('hidden');
+            visibleCount++;
+          } else {
+            card.classList.add('hidden');
+          }
+        });
+
+        if (countNumber) countNumber.textContent = String(visibleCount);
+
+        if (visibleCount === 0) {
+          if (grid) grid.classList.add('hidden');
+          if (emptyState) emptyState.classList.remove('hidden');
+          if (queryEcho) queryEcho.textContent = `"${input.value.trim()}"`;
+        } else {
+          if (grid) grid.classList.remove('hidden');
+          if (emptyState) emptyState.classList.add('hidden');
+        }
+      }
+
+      input.addEventListener('input', filterPosts);
+
+      function clearSearch() {
+        if (!input) return;
+        input.value = '';
+        filterPosts();
+        input.focus();
+      }
+
+      if (clearBtn) clearBtn.addEventListener('click', clearSearch);
+      if (resetBtn) resetBtn.addEventListener('click', clearSearch);
+    }
+
+    document.addEventListener('astro:page-load', setupBlogSearch);
+    if (document.readyState !== 'loading') {
+      setupBlogSearch();
+    }
+  </script>
 </BaseLayout>

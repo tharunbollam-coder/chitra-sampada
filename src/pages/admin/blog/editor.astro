@@ -166,6 +166,40 @@ const linkedAnimeIds = post ? post.linkedAnime.map((a: any) => a.id) : [];
           >{post?.excerpt || ''}</textarea>
         </div>
 
+        <!-- Optional Cover Image URL -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5" for="blog-cover-image">
+            Cover Image URL (Optional)
+          </label>
+          <div class="flex flex-col sm:flex-row items-start gap-4">
+            <div class="flex-1 w-full">
+              <input
+                type="url"
+                id="blog-cover-image"
+                value={post?.coverImage || ''}
+                placeholder="https://... or /images/..."
+                class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+              />
+              <p class="text-xs text-slate-400 mt-1.5">
+                Leave blank for a clean text-first layout. If provided, displays as a banner on the article and card preview.
+              </p>
+            </div>
+            <div
+              id="cover-image-preview-container"
+              class={`w-36 h-20 rounded-xl overflow-hidden bg-slate-950 border border-slate-800 shrink-0 flex items-center justify-center ${
+                post?.coverImage ? '' : 'hidden'
+              }`}
+            >
+              <img
+                id="cover-image-preview"
+                src={post?.coverImage || ''}
+                alt="Cover preview"
+                class="w-full h-full object-cover"
+              />
+            </div>
+          </div>
+        </div>
+
         <!-- Linked Anime -->
         <div>
           <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
@@ -235,6 +269,9 @@ const linkedAnimeIds = post ? post.linkedAnime.map((a: any) => a.id) : [];
     const slugInput = document.getElementById('blog-slug');
     const idInput = document.getElementById('blog-id');
     const contentInput = document.getElementById('blog-content');
+    const coverImageInput = document.getElementById('blog-cover-image');
+    const coverPreviewContainer = document.getElementById('cover-image-preview-container');
+    const coverPreviewImg = document.getElementById('cover-image-preview');
     const wordBadge = document.getElementById('word-count-badge');
     const readBadge = document.getElementById('read-time-badge');
     const form = document.getElementById('form-blog');
@@ -363,6 +400,25 @@ const linkedAnimeIds = post ? post.linkedAnime.map((a: any) => a.id) : [];
     contentInput.addEventListener('input', updateMetrics);
     updateMetrics(); // Initial call
 
+    // Live cover image preview
+    if (coverImageInput && coverPreviewContainer && coverPreviewImg) {
+      const updateCoverPreview = () => {
+        const val = coverImageInput.value.trim();
+        if (val) {
+          coverPreviewImg.src = val;
+          coverPreviewContainer.classList.remove('hidden');
+        } else {
+          coverPreviewContainer.classList.add('hidden');
+          coverPreviewImg.removeAttribute('src');
+        }
+      };
+      coverImageInput.addEventListener('input', updateCoverPreview);
+      coverImageInput.addEventListener('change', updateCoverPreview);
+      coverPreviewImg.addEventListener('error', () => {
+        coverPreviewContainer.classList.add('hidden');
+      });
+    }
+
     // Save handler
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -396,6 +452,7 @@ const linkedAnimeIds = post ? post.linkedAnime.map((a: any) => a.id) : [];
         slug: slugInput.value.trim(),
         title: titleInput.value.trim(),
         excerpt: document.getElementById('blog-excerpt').value.trim(),
+        coverImage: coverImageInput ? coverImageInput.value.trim() : null,
         content: contentInput.value.trim(),
         publishedDate: document.getElementById('blog-date').value,
         status: document.getElementById('blog-status').value,

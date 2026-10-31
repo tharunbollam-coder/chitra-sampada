@@ -1198,13 +1198,13 @@ export async function getAllBlogPosts(optionsOrContext = {}, contextOrLocals = n
   const db = await getDatabase(ctx);
   const query = includeDrafts
     ? `
-        SELECT id, slug, title, excerpt, published_date, last_updated, status,
+        SELECT id, slug, title, excerpt, cover_image, published_date, last_updated, status,
                MAX(1, CAST((LENGTH(TRIM(content)) - LENGTH(REPLACE(TRIM(content), ' ', '')) + 200) / 200 AS INTEGER)) AS read_time_minutes
         FROM blog_posts
         ORDER BY published_date DESC
       `
     : `
-        SELECT id, slug, title, excerpt, published_date, last_updated, status,
+        SELECT id, slug, title, excerpt, cover_image, published_date, last_updated, status,
                MAX(1, CAST((LENGTH(TRIM(content)) - LENGTH(REPLACE(TRIM(content), ' ', '')) + 200) / 200 AS INTEGER)) AS read_time_minutes
         FROM blog_posts
         WHERE status = 'published'
@@ -1246,6 +1246,7 @@ export async function getAllBlogPosts(optionsOrContext = {}, contextOrLocals = n
       publishedDate: row.published_date,
       lastUpdated: row.last_updated,
       status: row.status,
+      coverImage: row.cover_image || null,
       readTime: `${Math.max(1, Number(row.read_time_minutes) || 1)} min read`,
       linkedAnime: linksMap.get(row.id) || []
     };
@@ -1278,8 +1279,8 @@ export async function getBlogPostBySlug(slug, optionsOrContext = {}, contextOrLo
   const db = await getDatabase(ctx);
   const post = await db.queryOne(
     includeDrafts
-      ? `SELECT id, slug, title, excerpt, content, published_date, last_updated, status FROM blog_posts WHERE slug = ? LIMIT 1`
-      : `SELECT id, slug, title, excerpt, content, published_date, last_updated, status FROM blog_posts WHERE slug = ? AND status = 'published' LIMIT 1`,
+      ? `SELECT id, slug, title, excerpt, content, cover_image, published_date, last_updated, status FROM blog_posts WHERE slug = ? LIMIT 1`
+      : `SELECT id, slug, title, excerpt, content, cover_image, published_date, last_updated, status FROM blog_posts WHERE slug = ? AND status = 'published' LIMIT 1`,
     slug
   );
   if (!post) return null;
@@ -1302,6 +1303,7 @@ export async function getBlogPostBySlug(slug, optionsOrContext = {}, contextOrLo
     publishedDate: post.published_date,
     lastUpdated: post.last_updated,
     status: post.status,
+    coverImage: post.cover_image || null,
     readTime: `${Math.max(1, Math.ceil(wordCount / 200))} min read`,
     linkedAnime: linkedAnimeRows.map((row) => ({
       id: row.id,
@@ -1322,7 +1324,7 @@ export async function getBlogPostsForAnime(animeId, contextOrLocals = null) {
   if (!animeId) return [];
   const db = await getDatabase(contextOrLocals);
   const rows = await db.query(`
-    SELECT bp.id, bp.slug, bp.title, bp.excerpt, bp.content, bp.published_date, bp.last_updated, bp.status
+    SELECT bp.id, bp.slug, bp.title, bp.excerpt, bp.content, bp.cover_image, bp.published_date, bp.last_updated, bp.status
     FROM blog_post_anime bpa
     JOIN blog_posts bp ON bp.id = bpa.post_id
     WHERE bpa.anime_id = ? AND bp.status = 'published'
@@ -1340,6 +1342,7 @@ export async function getBlogPostsForAnime(animeId, contextOrLocals = null) {
       publishedDate: row.published_date,
       lastUpdated: row.last_updated,
       status: row.status,
+      coverImage: row.cover_image || null,
       readTime: `${Math.max(1, Math.ceil(wordCount / 200))} min read`
     };
   });

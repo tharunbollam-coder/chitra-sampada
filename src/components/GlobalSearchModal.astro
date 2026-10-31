@@ -1,0 +1,487 @@
+---
+// src/components/GlobalSearchModal.astro
+---
+
+<div
+  id="global-search-modal"
+  class="fixed inset-0 z-50 hidden items-start justify-center pt-12 sm:pt-20 px-4 pb-8 overflow-y-auto"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="global-search-input"
+>
+  <!-- Lighter, Softer Translucent Backdrop -->
+  <div
+    id="search-backdrop"
+    class="fixed inset-0 bg-slate-900/20 backdrop-blur-[2px] transition-opacity"
+    aria-hidden="true"
+  ></div>
+
+  <!-- Search Panel Card -->
+  <div
+    id="search-panel"
+    class="relative w-full max-w-2xl bg-white rounded-2xl shadow-2xl border border-slate-200/90 overflow-hidden z-10 flex flex-col max-h-[80vh] animate-in fade-in zoom-in-95 duration-150"
+  >
+    <!-- Header with Search Input & Close Controls -->
+    <div class="flex items-center gap-3 px-4 sm:px-5 py-3.5 border-b border-slate-200/90 bg-slate-50/60">
+      <svg class="w-5 h-5 text-slate-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+      </svg>
+      <input
+        type="text"
+        id="global-search-input"
+        class="w-full bg-transparent text-slate-900 placeholder-slate-400 text-sm sm:text-base font-medium focus:outline-none"
+        placeholder="Search anime, watch orders, filler lists, articles..."
+        autocomplete="off"
+        spellcheck="false"
+      />
+
+      <!-- Clear Text Button (visible only when typing) -->
+      <button
+        type="button"
+        id="btn-search-clear"
+        class="hidden text-xs font-semibold text-slate-400 hover:text-indigo-600 px-2 py-1 rounded transition-colors cursor-pointer shrink-0"
+        title="Clear input"
+      >
+        Clear
+      </button>
+
+      <!-- Subtle Divider between Clear and Close -->
+      <span id="search-action-divider" class="hidden w-px h-4 bg-slate-200 shrink-0" aria-hidden="true"></span>
+
+      <!-- Single Visible Close Icon Button -->
+      <button
+        type="button"
+        id="btn-search-close"
+        class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer shrink-0"
+        aria-label="Close search"
+        title="Close search"
+      >
+        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+
+    <!-- Results / Content Area -->
+    <div id="search-results-area" class="overflow-y-auto divide-y divide-slate-100 p-2 sm:p-3 min-h-[120px] max-h-[65vh]">
+      <!-- Loading State -->
+      <div id="search-loading" class="hidden py-12 text-center text-slate-400">
+        <div class="inline-block w-6 h-6 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin mb-2"></div>
+        <p class="text-xs font-medium">Loading search catalog...</p>
+      </div>
+
+      <!-- Simplified Initial Empty Query State -->
+      <div id="search-empty-prompt" class="py-12 px-4 text-center">
+        <p class="text-sm font-semibold text-slate-700">Quickly find anything on Chitra Sampada</p>
+      </div>
+
+      <!-- No Matches State -->
+      <div id="search-no-results" class="hidden py-12 px-4 text-center space-y-2">
+        <p class="text-sm font-semibold text-slate-800">
+          No results found for <span id="search-query-echo" class="font-bold text-indigo-600"></span>
+        </p>
+        <p class="text-xs text-slate-500 max-w-sm mx-auto">
+          Check your spelling or try searching for another series, genre, or keyword.
+        </p>
+      </div>
+
+      <!-- Anime Section -->
+      <div id="search-section-anime" class="hidden pb-2">
+        <div class="px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+          Anime Guides & Watch Roadmaps
+        </div>
+        <div id="search-anime-list" class="space-y-1"></div>
+      </div>
+
+      <!-- Blog Section -->
+      <div id="search-section-blogs" class="hidden pt-2">
+        <div class="px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+          Editorial Breakdowns & Essays
+        </div>
+        <div id="search-blogs-list" class="space-y-1"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style is:inline>
+  /* Suppress native search cancel buttons in webkit browsers */
+  input[type="text"]::-webkit-search-decoration,
+  input[type="text"]::-webkit-search-cancel-button,
+  input[type="text"]::-webkit-search-results-button,
+  input[type="text"]::-webkit-search-results-decoration {
+    -webkit-appearance: none;
+    display: none;
+  }
+</style>
+
+<script>
+  let searchDataCache: { anime: any[]; blogs: any[] } | null = null;
+  let isLoadingData = false;
+  let activeIndex = -1;
+
+  function initGlobalSearch() {
+    const modal = document.getElementById('global-search-modal');
+    const input = document.getElementById('global-search-input') as HTMLInputElement | null;
+    const clearBtn = document.getElementById('btn-search-clear');
+    const dividerEl = document.getElementById('search-action-divider');
+    const closeBtn = document.getElementById('btn-search-close');
+    const backdrop = document.getElementById('search-backdrop');
+    const loadingEl = document.getElementById('search-loading');
+    const emptyPrompt = document.getElementById('search-empty-prompt');
+    const noResults = document.getElementById('search-no-results');
+    const queryEcho = document.getElementById('search-query-echo');
+    const sectionAnime = document.getElementById('search-section-anime');
+    const animeListEl = document.getElementById('search-anime-list');
+    const sectionBlogs = document.getElementById('search-section-blogs');
+    const blogsListEl = document.getElementById('search-blogs-list');
+
+    if (!modal || !input) return;
+
+    async function loadData() {
+      if (searchDataCache || isLoadingData) return;
+      isLoadingData = true;
+      if (loadingEl) loadingEl.classList.remove('hidden');
+      try {
+        const res = await fetch('/api/search.json');
+        if (res.ok) {
+          searchDataCache = await res.json();
+        }
+      } catch (e) {
+        console.warn('Could not load search index:', e);
+      } finally {
+        isLoadingData = false;
+        if (loadingEl) loadingEl.classList.add('hidden');
+        if (input && input.value.trim()) {
+          runSearch(input.value.trim());
+        }
+      }
+    }
+
+    function openModal() {
+      if (!modal) return;
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      document.body.style.overflow = 'hidden';
+      loadData();
+      setTimeout(() => {
+        if (input) {
+          input.focus();
+          input.select();
+        }
+      }, 50);
+    }
+
+    function closeModal() {
+      if (!modal) return;
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+      document.body.style.overflow = '';
+      activeIndex = -1;
+    }
+
+    function runSearch(query: string) {
+      const hasText = query.trim().length > 0;
+      if (clearBtn) clearBtn.classList.toggle('hidden', !hasText);
+      if (dividerEl) dividerEl.classList.toggle('hidden', !hasText);
+
+      if (!hasText) {
+        if (emptyPrompt) emptyPrompt.classList.remove('hidden');
+        if (noResults) noResults.classList.add('hidden');
+        if (sectionAnime) sectionAnime.classList.add('hidden');
+        if (sectionBlogs) sectionBlogs.classList.add('hidden');
+        activeIndex = -1;
+        return;
+      }
+
+      if (emptyPrompt) emptyPrompt.classList.add('hidden');
+
+      if (!searchDataCache) {
+        if (loadingEl) loadingEl.classList.remove('hidden');
+        return;
+      }
+
+      const q = query.toLowerCase().trim();
+      const qTokens = q.split(/\s+/).filter(Boolean);
+
+      // Check if any anime has a main title match (Tier 1, 2, or 3)
+      const hasAnyTitleMatch = searchDataCache.anime.some((a: any) => {
+        const title = (a.title || '').toLowerCase();
+        return title.includes(q) || (qTokens.length > 1 && qTokens.every((tok: string) => title.includes(tok)));
+      });
+
+      // Score and rank anime matches by relevance tiers
+      const scoredAnime: Array<{ item: any; tier: number; score: number }> = [];
+
+      for (const a of searchDataCache.anime) {
+        const title = (a.title || '').toLowerCase();
+        const words = title.split(/[\s:;.,\-_—()]+/).filter(Boolean);
+        const aliases: string[] = (a.aliases || []).map((al: string) => al.toLowerCase());
+        const genres: string[] = (a.genres || []).map((g: string) => g.toLowerCase());
+
+        let tier = 0;
+        let score = 999;
+
+        // Tier 1: Exact match on main title, or main title starts with query
+        if (title === q) {
+          tier = 1;
+          score = 1.0 + (title.length / 1000);
+        } else if (title.startsWith(q)) {
+          tier = 1;
+          score = 1.1 + (title.length / 1000);
+        }
+        // Tier 2: A word inside the main title starts with query
+        else if (words.some((w: string) => w.startsWith(q)) || (qTokens.length > 1 && qTokens.every((tok: string) => words.some((w: string) => w.startsWith(tok) || w.includes(tok))))) {
+          tier = 2;
+          const matchIdx = words.findIndex((w: string) => w.startsWith(q));
+          score = 2.0 + (matchIdx >= 0 ? matchIdx * 0.05 : 0.5) + (title.length / 1000);
+        }
+        // Tier 3: Main title contains query substring
+        else if (title.includes(q) || (qTokens.length > 1 && qTokens.every((tok: string) => title.includes(tok)))) {
+          tier = 3;
+          score = 3.0 + (title.indexOf(q) * 0.01) + (title.length / 1000);
+        }
+        // Tier 4: Match in aliases or genres
+        else {
+          const aliasStartsWithQuery = aliases.some((al: string) => {
+            const alWords = al.split(/[\s:;.,\-_—()]+/).filter(Boolean);
+            return al.startsWith(q) || alWords[0]?.startsWith(q);
+          });
+          const aliasContainsQuery = aliases.some((al: string) => al.includes(q));
+          const genreMatches = genres.some((g: string) => g.includes(q));
+
+          // For queries under 5 characters, only match aliases if an alias starts with query (or if no main title matches exist)
+          const allowAliasSubstring = q.length >= 5 || !hasAnyTitleMatch;
+
+          if (aliasStartsWithQuery) {
+            tier = 4;
+            score = 4.0 + (title.length / 1000);
+          } else if (allowAliasSubstring && aliasContainsQuery) {
+            tier = 4;
+            score = 4.3 + (title.length / 1000);
+          } else if (genreMatches) {
+            tier = 4;
+            score = 4.6 + (title.length / 1000);
+          }
+        }
+
+        if (tier > 0) {
+          scoredAnime.push({ item: a, tier, score });
+        }
+      }
+
+      scoredAnime.sort((a, b) => a.score - b.score);
+      const matchedAnime = scoredAnime.map(s => s.item);
+
+      // Score and rank blog posts
+      const scoredBlogs: Array<{ item: any; score: number }> = [];
+      for (const b of searchDataCache.blogs) {
+        const title = (b.title || '').toLowerCase();
+        const words = title.split(/[\s:;.,\-_—()]+/).filter(Boolean);
+        const excerpt = (b.excerpt || '').toLowerCase();
+        const linkedAnime = (b.linkedAnime || []).map((la: string) => la.toLowerCase());
+
+        let score = 999;
+        if (title.startsWith(q)) {
+          score = 1.0 + (title.length / 1000);
+        } else if (words.some((w: string) => w.startsWith(q))) {
+          score = 2.0 + (title.length / 1000);
+        } else if (title.includes(q)) {
+          score = 3.0 + (title.length / 1000);
+        } else if (linkedAnime.some((la: string) => la.includes(q))) {
+          score = 4.0 + (title.length / 1000);
+        } else if (excerpt.includes(q)) {
+          score = 4.5 + (title.length / 1000);
+        }
+
+        if (score < 999) {
+          scoredBlogs.push({ item: b, score });
+        }
+      }
+
+      scoredBlogs.sort((a, b) => a.score - b.score);
+      const matchedBlogs = scoredBlogs.map(s => s.item);
+
+      const totalMatches = matchedAnime.length + matchedBlogs.length;
+
+      if (totalMatches === 0) {
+        if (noResults) noResults.classList.remove('hidden');
+        if (queryEcho) queryEcho.textContent = `"${query}"`;
+        if (sectionAnime) sectionAnime.classList.add('hidden');
+        if (sectionBlogs) sectionBlogs.classList.add('hidden');
+        activeIndex = -1;
+        return;
+      }
+
+      if (noResults) noResults.classList.add('hidden');
+
+      // Render anime items (clean single clickable card with right chevron, no pill buttons)
+      if (matchedAnime.length > 0 && sectionAnime && animeListEl) {
+        sectionAnime.classList.remove('hidden');
+        animeListEl.innerHTML = matchedAnime.slice(0, 7).map((a: any) => {
+          const poster = a.poster
+            ? `<img src="${a.poster}" alt="${a.title}" class="w-10 h-13 object-cover rounded-lg shrink-0 border border-slate-200" />`
+            : `<div class="w-10 h-13 bg-slate-100 rounded-lg shrink-0 flex items-center justify-center text-slate-400 text-xs font-bold font-heading">CS</div>`;
+
+          const subtitle = `${a.year || ''} • ${a.type === 'movie' ? (a.runtime ? `${a.runtime}m Movie` : 'Movie') : `${a.episodes || '?'} eps`}`;
+
+          return `
+            <a
+              href="/anime/${a.slug}"
+              class="search-result-item group p-2.5 rounded-xl hover:bg-slate-50 transition flex items-center justify-between gap-3 cursor-pointer"
+            >
+              <div class="flex items-center gap-3 min-w-0 flex-1">
+                ${poster}
+                <div class="min-w-0 flex-1">
+                  <div class="text-sm font-bold text-slate-900 group-hover:text-indigo-600 transition-colors truncate">
+                    ${a.title}
+                  </div>
+                  <div class="text-xs text-slate-400 font-normal truncate">
+                    ${subtitle}
+                  </div>
+                </div>
+              </div>
+              <svg class="w-4 h-4 text-slate-300 group-hover:text-indigo-600 group-hover:translate-x-0.5 transition-all shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+              </svg>
+            </a>
+          `;
+        }).join('');
+      } else if (sectionAnime) {
+        sectionAnime.classList.add('hidden');
+      }
+
+      // Render blog items (clean single clickable card with right chevron)
+      if (matchedBlogs.length > 0 && sectionBlogs && blogsListEl) {
+        sectionBlogs.classList.remove('hidden');
+        blogsListEl.innerHTML = matchedBlogs.slice(0, 4).map((b: any) => {
+          const thumbnail = b.coverImage
+            ? `<img src="${b.coverImage}" alt="${b.title}" class="w-12 h-10 object-cover rounded-lg shrink-0 border border-slate-200" />`
+            : `<div class="w-12 h-10 bg-indigo-50 text-indigo-600 rounded-lg shrink-0 flex items-center justify-center text-xs font-bold">📝</div>`;
+
+          return `
+            <a
+              href="/blog/${b.slug}"
+              class="search-result-item group p-2.5 rounded-xl hover:bg-slate-50 transition flex items-center justify-between gap-3 cursor-pointer"
+            >
+              <div class="flex items-center gap-3 min-w-0 flex-1">
+                ${thumbnail}
+                <div class="min-w-0 flex-1">
+                  <div class="text-sm font-bold text-slate-900 group-hover:text-indigo-600 transition-colors truncate">
+                    ${b.title}
+                  </div>
+                  <div class="text-xs text-slate-500 font-normal truncate">
+                    ${b.excerpt || (b.readTime ? `Article • ${b.readTime}` : 'Article')}
+                  </div>
+                </div>
+              </div>
+              <svg class="w-4 h-4 text-slate-300 group-hover:text-indigo-600 group-hover:translate-x-0.5 transition-all shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+              </svg>
+            </a>
+          `;
+        }).join('');
+      } else if (sectionBlogs) {
+        sectionBlogs.classList.add('hidden');
+      }
+
+      activeIndex = -1;
+    }
+
+    // Input typing listener
+    input.addEventListener('input', () => {
+      runSearch(input.value);
+    });
+
+    // Clear input text button
+    if (clearBtn) {
+      clearBtn.addEventListener('click', () => {
+        input.value = '';
+        runSearch('');
+        input.focus();
+      });
+    }
+
+    // Close button
+    if (closeBtn) closeBtn.addEventListener('click', closeModal);
+
+    // Outside click to close (clicking backdrop or modal container outside panel)
+    if (backdrop) backdrop.addEventListener('click', closeModal);
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        closeModal();
+      }
+    });
+
+    // Keyboard navigation inside modal
+    input.addEventListener('keydown', (e) => {
+      const items = Array.from(modal.querySelectorAll<HTMLElement>('.search-result-item'));
+      if (items.length === 0) {
+        if (e.key === 'Escape') closeModal();
+        return;
+      }
+
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        activeIndex = (activeIndex + 1) % items.length;
+        items[activeIndex]?.focus();
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        activeIndex = (activeIndex - 1 + items.length) % items.length;
+        items[activeIndex]?.focus();
+      } else if (e.key === 'Enter') {
+        if (activeIndex >= 0 && items[activeIndex]) {
+          e.preventDefault();
+          items[activeIndex].click();
+        }
+      } else if (e.key === 'Escape') {
+        closeModal();
+      }
+    });
+
+    // Wire open buttons
+    document.querySelectorAll('[data-action="open-search"]').forEach((btn) => {
+      btn.addEventListener('click', openModal);
+    });
+
+    const openBtn = document.getElementById('btn-open-search');
+    if (openBtn) openBtn.addEventListener('click', openModal);
+  }
+
+  // Global hotkeys: Ctrl+K / Cmd+K or / (when not in input)
+  function setupGlobalHotkeys() {
+    window.addEventListener('keydown', (e) => {
+      const isSearchShortcut = (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k';
+      const isSlash = e.key === '/' && !['INPUT', 'TEXTAREA', 'SELECT'].includes((e.target as HTMLElement)?.tagName);
+
+      if (isSearchShortcut || isSlash) {
+        e.preventDefault();
+        const modal = document.getElementById('global-search-modal');
+        if (modal) {
+          if (modal.classList.contains('hidden')) {
+            const btn = document.getElementById('btn-open-search') || document.querySelector('[data-action="open-search"]');
+            if (btn instanceof HTMLElement) {
+              btn.click();
+            }
+          } else {
+            const input = document.getElementById('global-search-input');
+            input?.focus();
+          }
+        }
+      } else if (e.key === 'Escape') {
+        const modal = document.getElementById('global-search-modal');
+        if (modal && !modal.classList.contains('hidden')) {
+          modal.classList.add('hidden');
+          modal.classList.remove('flex');
+          document.body.style.overflow = '';
+        }
+      }
+    });
+  }
+
+  setupGlobalHotkeys();
+  document.addEventListener('astro:page-load', initGlobalSearch);
+  if (document.readyState !== 'loading') {
+    initGlobalSearch();
+  }
+</script>
