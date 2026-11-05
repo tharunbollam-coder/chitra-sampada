@@ -49,6 +49,7 @@ const currentPath = Astro.url.pathname;
         return (
           <a
             href={link.href}
+            data-astro-prefetch={isLive ? 'hover' : undefined}
             class:list={[
               'relative px-3.5 py-2 rounded-xl text-sm font-semibold flex items-center gap-2 transition-all duration-200',
               isActive

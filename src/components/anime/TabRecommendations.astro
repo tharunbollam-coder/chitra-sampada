@@ -1,6 +1,7 @@
 ---
 // src/components/anime/TabRecommendations.astro
 import { optimizeTmdbPoster } from '../../lib/image-utils.js';
+import { isRecentlyAdded } from '../../lib/date-utils.ts';
 
 interface Props {
   anime: any;
@@ -31,33 +32,46 @@ const recommendations = Array.isArray(anime.recommendations) ? anime.recommendat
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mt-6">
         {recommendations.map((rec: any) => (
-          <div class="bg-slate-50/70 hover:bg-slate-50 border border-slate-200/90 rounded-2xl p-5 flex flex-col justify-between gap-4 transition-all duration-200 shadow-2xs">
+          <div class="relative bg-slate-50/70 hover:bg-slate-50 border border-slate-200/90 rounded-2xl p-5 flex flex-col justify-between gap-4 transition-all duration-200 shadow-2xs">
+            {isRecentlyAdded(rec.targetAddedDate) && (
+              <span
+                class="absolute top-3.5 right-3.5 sm:top-4 sm:right-4 z-10 inline-flex items-center px-1.5 py-0.5 rounded bg-emerald-600/95 text-white text-[9px] font-extrabold uppercase tracking-wider border border-emerald-400/40 shadow-xs backdrop-blur-xs select-none pointer-events-none leading-none"
+                title="Recently added within the last 7 days"
+              >
+                NEW
+              </span>
+            )}
             <div class="space-y-3.5">
               <!-- Top Anime Summary -->
               <div class="flex items-start gap-3.5">
-                {rec.targetPoster ? (
-                  <img
-                    src={optimizeTmdbPoster(rec.targetPoster, 'w185')}
-                    alt={rec.targetTitle || 'Anime Poster'}
-                    width="56"
-                    height="80"
-                    loading="lazy"
-                    decoding="async"
-                    class="w-14 h-20 rounded-xl object-cover shrink-0 shadow-2xs border border-slate-200 bg-slate-200"
-                  />
-                ) : (
-                  <div class="w-14 h-20 rounded-xl bg-slate-200 text-slate-400 flex items-center justify-center shrink-0 border border-slate-300">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" />
-                    </svg>
-                  </div>
-                )}
+                <div class="relative shrink-0">
+                  {rec.targetPoster ? (
+                    <img
+                      src={optimizeTmdbPoster(rec.targetPoster, 'w185')}
+                      alt={rec.targetTitle || 'Anime Poster'}
+                      width="56"
+                      height="80"
+                      loading="lazy"
+                      decoding="async"
+                      class="w-14 h-20 rounded-xl object-cover shrink-0 shadow-2xs border border-slate-200 bg-slate-200"
+                    />
+                  ) : (
+                    <div class="w-14 h-20 rounded-xl bg-slate-200 text-slate-400 flex items-center justify-center shrink-0 border border-slate-300">
+                      <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" />
+                      </svg>
+                    </div>
+                  )}
+                </div>
 
                 <div class="flex-1 min-w-0 space-y-1">
                   <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-200/80">
                     {rec.categoryBadge}
                   </span>
-                  <h3 class="font-heading font-bold text-base sm:text-lg text-[#0F172A] truncate">
+                  <h3 class:list={[
+                    'font-heading font-bold text-base sm:text-lg text-[#0F172A] truncate',
+                    isRecentlyAdded(rec.targetAddedDate) ? 'pr-12' : ''
+                  ]}>
                     {rec.targetTitle || rec.targetAnimeId}
                   </h3>
                   <div class="flex items-center gap-2 text-xs text-slate-500 font-medium">

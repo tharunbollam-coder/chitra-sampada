@@ -21,7 +21,25 @@ if (!post) {
 Astro.response.headers.set('Cache-Control', 'public, max-age=0, must-revalidate, s-maxage=86400');
 
 // Compile markdown into clean HTML
-const renderedHtml = marked.parse(post.content);
+const rawHtml = await marked.parse(post.content);
+
+// Transform Key Takeaways section into a clean, scannable editorial summary box
+const renderedHtml = (typeof rawHtml === 'string' ? rawHtml : '').replace(
+  /<h[23][^>]*>\s*Key\s+takeaways\s*<\/h[23]>\s*<ul>([\s\S]*?)<\/ul>/i,
+  (_match: string, listContent: string) => `
+    <section class="key-takeaways-box" aria-label="Key Takeaways">
+      <div class="flex items-center gap-2 text-indigo-900 font-bold font-heading text-lg sm:text-xl mb-3 tracking-tight">
+        <svg class="w-5 h-5 text-indigo-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <span>Key Takeaways</span>
+      </div>
+      <ul>
+        ${listContent}
+      </ul>
+    </section>
+  `
+);
 
 // Format date in clean editorial style
 const pubDateObj = new Date(post.publishedDate);
@@ -93,11 +111,11 @@ const articleSchema = {
     <script type="application/ld+json" set:html={JSON.stringify(breadcrumbSchema)} />
     <script type="application/ld+json" set:html={JSON.stringify(articleSchema)} />
   </Fragment>
-  <main class="min-h-screen py-16 sm:py-24 lg:py-28">
-    <div class="max-w-[680px] mx-auto px-5 sm:px-6">
+  <main class="min-h-screen py-10 sm:py-14 lg:py-16">
+    <div class="max-w-[68ch] mx-auto px-5 sm:px-6">
       
       <!-- Minimalist Navigation Back Link -->
-      <nav class="mb-10 sm:mb-14">
+      <nav class="mb-8 sm:mb-10">
         <a
           href="/blog"
           class="inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-900 transition-colors group"
@@ -110,7 +128,7 @@ const articleSchema = {
       </nav>
 
       <!-- Dedicated Header Container (Title, Excerpt, Metadata, Tags) with Generous Whitespace Transition -->
-      <header class="space-y-4 sm:space-y-5 mb-16 sm:mb-20">
+      <header class="space-y-4 sm:space-y-5 mb-8 sm:mb-10">
         
         <!-- Main Title -->
         <h1 class="text-3xl sm:text-4xl lg:text-[2.75rem] font-bold text-slate-900 tracking-tight leading-[1.18] sm:leading-[1.15] font-heading">
@@ -174,21 +192,47 @@ const articleSchema = {
         <Fragment set:html={renderedHtml} />
       </article>
 
-      <!-- Subtle Footer Navigation (Clean, text-only, no divider lines) -->
-      <footer class="mt-24 sm:mt-32 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-slate-400">
-        <a
-          href="/blog"
-          class="hover:text-slate-900 transition-colors"
-        >
-          ← Back to all articles
-        </a>
+      <!-- Editorial Article Conclusion / Next Steps Block -->
+      <footer class="my-12 pt-10 border-t border-slate-200/80">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <!-- Back to Articles Button/Card -->
+          <a
+            href="/blog"
+            data-astro-prefetch="hover"
+            class="group flex items-center gap-3.5 p-4 sm:p-5 rounded-2xl bg-white border border-slate-200/90 hover:border-slate-300 hover:bg-slate-50/60 shadow-2xs hover:shadow-xs transition-all duration-200 active:scale-[0.98]"
+          >
+            <div class="w-10 h-10 rounded-xl bg-slate-100 group-hover:bg-slate-200/80 text-slate-600 group-hover:text-slate-900 flex items-center justify-center shrink-0 transition-colors">
+              <svg class="w-5 h-5 transition-transform group-hover:-translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
+            </div>
+            <div class="min-w-0">
+              <span class="block text-[11px] font-bold uppercase tracking-wider text-slate-400">Blog Archive</span>
+              <span class="block text-sm sm:text-base font-semibold text-slate-800 group-hover:text-slate-950 transition-colors truncate">
+                Back to all articles
+              </span>
+            </div>
+          </a>
 
-        <a
-          href="/anime"
-          class="text-indigo-600 hover:text-indigo-700 font-medium transition-colors"
-        >
-          Explore anime catalog →
-        </a>
+          <!-- Explore Anime Catalog Button/Card -->
+          <a
+            href="/anime"
+            data-astro-prefetch="hover"
+            class="group flex items-center justify-between sm:justify-end flex-row-reverse sm:flex-row gap-3.5 p-4 sm:p-5 rounded-2xl bg-white border border-indigo-100 hover:border-indigo-200 hover:bg-indigo-50/40 shadow-2xs hover:shadow-xs transition-all duration-200 active:scale-[0.98]"
+          >
+            <div class="min-w-0 sm:text-right">
+              <span class="block text-[11px] font-bold uppercase tracking-wider text-indigo-500">Guides & Orders</span>
+              <span class="block text-sm sm:text-base font-semibold text-indigo-700 group-hover:text-indigo-800 transition-colors truncate">
+                Explore anime catalog
+              </span>
+            </div>
+            <div class="w-10 h-10 rounded-xl bg-indigo-50 group-hover:bg-indigo-100 text-indigo-600 flex items-center justify-center shrink-0 transition-colors">
+              <svg class="w-5 h-5 transition-transform group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+              </svg>
+            </div>
+          </a>
+        </div>
       </footer>
 
     </div>

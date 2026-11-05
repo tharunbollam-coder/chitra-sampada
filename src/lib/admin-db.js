@@ -506,20 +506,20 @@ export async function saveAnimeReview(animeId, { heading = '', paragraphs = '', 
   try {
     await db.run(`
       UPDATE anime 
-      SET review_heading = ?, review_paragraphs = ?, review_type = ?, review_spoiler_level = ?, last_updated = date('now') 
+      SET review_heading = ?, review_paragraphs = ?, review_type = ?, review_spoiler_level = ?, last_updated = CURRENT_TIMESTAMP 
       WHERE id = ?
     `, heading.trim() || null, reviewContent, cleanType, cleanSpoilerLevel, animeId);
   } catch (err) {
     try {
       await db.run(`
         UPDATE anime 
-        SET review_heading = ?, review_paragraphs = ?, review_type = ?, last_updated = date('now') 
+        SET review_heading = ?, review_paragraphs = ?, review_type = ?, last_updated = CURRENT_TIMESTAMP 
         WHERE id = ?
       `, heading.trim() || null, reviewContent, cleanType, animeId);
     } catch {
       await db.run(`
         UPDATE anime 
-        SET review_heading = ?, review_paragraphs = ?, last_updated = date('now') 
+        SET review_heading = ?, review_paragraphs = ?, last_updated = CURRENT_TIMESTAMP 
         WHERE id = ?
       `, heading.trim() || null, reviewContent, animeId);
     }
@@ -569,20 +569,20 @@ export async function saveAnimeWatchOrderLink(animeId, { franchiseId, franchiseS
     if (cleanNote !== undefined) {
       await db.run(`
         UPDATE anime 
-        SET franchise_id = ?, franchise_step_order = ?, watch_order_note = ?, last_updated = date('now') 
+        SET franchise_id = ?, franchise_step_order = ?, watch_order_note = ?, last_updated = CURRENT_TIMESTAMP 
         WHERE id = ?
       `, cleanFranchiseId, cleanStep, cleanNote, animeId);
     } else {
       await db.run(`
         UPDATE anime 
-        SET franchise_id = ?, franchise_step_order = ?, last_updated = date('now') 
+        SET franchise_id = ?, franchise_step_order = ?, last_updated = CURRENT_TIMESTAMP 
         WHERE id = ?
       `, cleanFranchiseId, cleanStep, animeId);
     }
   } else if (cleanNote !== undefined) {
     await db.run(`
       UPDATE anime 
-      SET watch_order_note = ?, last_updated = date('now') 
+      SET watch_order_note = ?, last_updated = CURRENT_TIMESTAMP 
       WHERE id = ?
     `, cleanNote, animeId);
   }
@@ -664,13 +664,13 @@ export async function saveAnimeFillerList(animeId, breakdown = {}, contextOrLoca
     if (!anime.episodes && totalEpisodes > 0) {
       await db.run(`
         UPDATE anime 
-        SET filler_percentage = ?, episodes = ?, filler_note = ?, last_updated = date('now') 
+        SET filler_percentage = ?, episodes = ?, filler_note = ?, last_updated = CURRENT_TIMESTAMP 
         WHERE id = ?
       `, calculatedPercentage, totalEpisodes, cleanFillerNote, animeId);
     } else {
       await db.run(`
         UPDATE anime 
-        SET filler_percentage = ?, filler_note = ?, last_updated = date('now') 
+        SET filler_percentage = ?, filler_note = ?, last_updated = CURRENT_TIMESTAMP 
         WHERE id = ?
       `, calculatedPercentage, cleanFillerNote, animeId);
     }
@@ -678,13 +678,13 @@ export async function saveAnimeFillerList(animeId, breakdown = {}, contextOrLoca
     if (!anime.episodes && totalEpisodes > 0) {
       await db.run(`
         UPDATE anime 
-        SET filler_percentage = ?, episodes = ?, last_updated = date('now') 
+        SET filler_percentage = ?, episodes = ?, last_updated = CURRENT_TIMESTAMP 
         WHERE id = ?
       `, calculatedPercentage, totalEpisodes, animeId);
     } else {
       await db.run(`
         UPDATE anime 
-        SET filler_percentage = ?, last_updated = date('now') 
+        SET filler_percentage = ?, last_updated = CURRENT_TIMESTAMP 
         WHERE id = ?
       `, calculatedPercentage, animeId);
     }
@@ -752,9 +752,9 @@ export async function saveAnimeCharacters(animeId, characters = [], relatedPostS
 
   const cleanPostSlug = relPost !== undefined ? (relPost ? String(relPost).trim() : null) : undefined;
   if (cleanPostSlug !== undefined) {
-    await db.run(`UPDATE anime SET character_related_post_slug = ?, last_updated = date('now') WHERE id = ?`, cleanPostSlug, animeId);
+    await db.run(`UPDATE anime SET character_related_post_slug = ?, last_updated = CURRENT_TIMESTAMP WHERE id = ?`, cleanPostSlug, animeId);
   } else {
-    await db.run(`UPDATE anime SET last_updated = date('now') WHERE id = ?`, animeId);
+    await db.run(`UPDATE anime SET last_updated = CURRENT_TIMESTAMP WHERE id = ?`, animeId);
   }
 
   invalidateAnimeCache();
@@ -978,14 +978,14 @@ export async function saveFranchise({ id, originalId, name, description = '', wa
   if (Array.isArray(pickedAnimeIds)) {
     const targetFid = cleanId;
     if (cleanOriginalId && cleanOriginalId !== cleanId) {
-      await db.run(`UPDATE anime SET franchise_id = NULL, franchise_step_order = NULL WHERE franchise_id = ?`, cleanOriginalId);
+      await db.run(`UPDATE anime SET franchise_id = NULL, franchise_step_order = NULL, last_updated = CURRENT_TIMESTAMP WHERE franchise_id = ?`, cleanOriginalId);
     }
 
     // Clear currently associated anime that are not in pickedAnimeIds
     const currentLinked = await db.query('SELECT id FROM anime WHERE franchise_id = ?', targetFid);
     for (const row of currentLinked) {
       if (!pickedAnimeIds.includes(row.id)) {
-        await db.run('UPDATE anime SET franchise_id = NULL, franchise_step_order = NULL WHERE id = ?', row.id);
+        await db.run('UPDATE anime SET franchise_id = NULL, franchise_step_order = NULL, last_updated = CURRENT_TIMESTAMP WHERE id = ?', row.id);
       }
     }
 
@@ -994,13 +994,16 @@ export async function saveFranchise({ id, originalId, name, description = '', wa
       const animeId = String(pickedAnimeIds[idx]).trim();
       if (animeId) {
         await db.run(
-          'UPDATE anime SET franchise_id = ?, franchise_step_order = ? WHERE id = ?',
+          'UPDATE anime SET franchise_id = ?, franchise_step_order = ?, last_updated = CURRENT_TIMESTAMP WHERE id = ?',
           targetFid,
           idx + 1,
           animeId
         );
       }
     }
+  } else {
+    // Update last_updated on all anime belonging to this franchise when franchise details/notes change
+    await db.run('UPDATE anime SET last_updated = CURRENT_TIMESTAMP WHERE franchise_id = ?', cleanId);
   }
 
   invalidateAnimeCache();
@@ -1013,7 +1016,7 @@ export async function saveFranchise({ id, originalId, name, description = '', wa
  */
 export async function deleteFranchise(franchiseId, contextOrLocals = null) {
   const db = await getDatabase(contextOrLocals);
-  await db.run('UPDATE anime SET franchise_id = NULL, franchise_step_order = NULL WHERE franchise_id = ?', franchiseId);
+  await db.run('UPDATE anime SET franchise_id = NULL, franchise_step_order = NULL, last_updated = CURRENT_TIMESTAMP WHERE franchise_id = ?', franchiseId);
   await db.run(`DELETE FROM franchises WHERE id = ?`, franchiseId);
   invalidateAnimeCache();
   return { success: true };

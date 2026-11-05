@@ -333,7 +333,11 @@ export async function getCompactAnimeList(contextOrLocals = null) {
       communitySuggested: Boolean(row.community_suggested),
       rowid: row.rowid,
       addedDate: row.added_date || '',
-      added_date: row.added_date || ''
+      added_date: row.added_date || '',
+      createdAt: row.added_date || '',
+      created_at: row.added_date || '',
+      updatedAt: row.last_updated || '',
+      updated_at: row.last_updated || ''
     };
   });
 
@@ -832,7 +836,7 @@ export async function getAnimeDetailBySlugOrId(slugOrId, contextOrLocals = null)
           r.id, r.target_anime_id, r.category_badge, r.editorial_note, r.item_order,
           target.title AS target_title, target.slug AS target_slug, target.poster AS target_poster,
           target.year AS target_year, target.status AS target_status,
-          target.personal_rating AS target_rating
+          target.personal_rating AS target_rating, target.added_date AS target_added_date
         FROM anime_recommendations r
         JOIN anime target ON target.id = r.target_anime_id
         WHERE r.anime_id = ?
@@ -963,6 +967,10 @@ export async function getAnimeDetailBySlugOrId(slugOrId, contextOrLocals = null)
       backdrop: anime.backdrop,
       addedDate: anime.added_date,
       lastUpdated: anime.last_updated,
+      createdAt: anime.added_date,
+      created_at: anime.added_date,
+      updatedAt: anime.last_updated,
+      updated_at: anime.last_updated,
       honestyStatus: anime.honesty_status,
       hasFillerData,
       fillerPercentage: hasFillerData ? fillerList.fillerPercentage : null,

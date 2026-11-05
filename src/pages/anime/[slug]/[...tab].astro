@@ -16,6 +16,7 @@ import RelatedBlogPosts from '../../../components/RelatedBlogPosts.astro';
 import { getAnimeDetailBySlugOrId, getAvailableTabs, getDefaultTabKey, optimizeTmdbPoster } from '../../../lib/d1.js';
 import { siteConfig } from '../../../config/site.js';
 import { buildAnimeTabMetadata } from '../../../lib/seo-utils.ts';
+import { formatSmartUpdatedDate } from '../../../lib/date-utils.ts';
 
 export const prerender = false;
 
@@ -40,6 +41,9 @@ if (tab && !availableTabs.some((t: any) => t.key === tab)) {
 }
 
 const activeTabKey = tab || defaultTabKey;
+
+const rawLastUpdated = anime.lastUpdated || (anime as any).updatedAt;
+const smartUpdated = formatSmartUpdatedDate(rawLastUpdated);
 
 const hasFillerData = Boolean(anime.hasFillerData ?? (anime.fillerList && anime.fillerList.totalEpisodes > 0 && anime.sectionVisibility?.fillerList !== false));
 const isZeroFiller = hasFillerData && anime.fillerPercentage === 0;
@@ -489,7 +493,7 @@ if (anime.honestyStatus === 'watched' && anime.personalRating !== undefined && a
           )}
 
           <!-- Explicit Date Stamps (Anime Real-World Release vs Site Publishing Dates) -->
-          {(anime.addedDate || anime.lastUpdated) && (
+          {(anime.addedDate || smartUpdated) && (
             <div class="flex items-center gap-2.5 sm:gap-4 text-xs text-slate-500 flex-wrap pt-1 border-t border-slate-200/70">
               {anime.addedDate && (
                 <div class="flex items-center gap-1.5">
@@ -497,12 +501,14 @@ if (anime.honestyStatus === 'watched' && anime.personalRating !== undefined && a
                   <span class="font-semibold text-slate-700">{anime.addedDate}</span>
                 </div>
               )}
-              {anime.lastUpdated && (
+              {smartUpdated && (
                 <>
                   {anime.addedDate && <span class="text-slate-300 hidden sm:inline">•</span>}
-                  <div class="flex items-center gap-1.5">
-                    <span class="text-slate-400 font-medium">Last Updated:</span>
-                    <span class="font-semibold text-slate-700">{anime.lastUpdated}</span>
+                  <div class="flex items-center gap-1.5" title={rawLastUpdated ? String(rawLastUpdated) : undefined}>
+                    <svg class="w-3.5 h-3.5 text-indigo-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span class="font-semibold text-slate-700">{smartUpdated}</span>
                   </div>
                 </>
               )}

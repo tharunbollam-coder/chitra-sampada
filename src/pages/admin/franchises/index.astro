@@ -1004,7 +1004,7 @@ function getAdminTypeBadge(type: string): { label: string; badgeCls: string } {
             saveBtn.disabled = false;
             saveBtn.classList.remove('bg-indigo-600', 'hover:bg-indigo-500');
             saveBtn.classList.add('bg-emerald-600', 'hover:bg-emerald-500', 'text-white');
-            saveBtn.innerHTML = `<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg><span>Saved ✓</span>`;
+            saveBtn.innerHTML = `<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg><span>Saved</span>`;
             setTimeout(() => {
               saveBtn.classList.remove('bg-emerald-600', 'hover:bg-emerald-500');
               saveBtn.classList.add('bg-indigo-600', 'hover:bg-indigo-500');

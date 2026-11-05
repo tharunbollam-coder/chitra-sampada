@@ -324,6 +324,7 @@
             : `<div class="w-10 h-13 bg-slate-100 rounded-lg shrink-0 flex items-center justify-center text-slate-400 text-xs font-bold font-heading">CS</div>`;
 
           const subtitle = `${a.year || ''} • ${a.type === 'movie' ? (a.runtime ? `${a.runtime}m Movie` : 'Movie') : `${a.episodes || '?'} eps`}`;
+          const isNew = a.createdAt && (Date.now() - new Date(a.createdAt).getTime()) <= (7 * 24 * 60 * 60 * 1000) && (Date.now() - new Date(a.createdAt).getTime()) >= 0;
 
           return `
             <a
@@ -333,8 +334,11 @@
               <div class="flex items-center gap-3 min-w-0 flex-1">
                 ${poster}
                 <div class="min-w-0 flex-1">
-                  <div class="text-sm font-bold text-slate-900 group-hover:text-indigo-600 transition-colors truncate">
-                    ${a.title}
+                  <div class="flex items-center gap-1.5 min-w-0">
+                    <span class="text-sm font-bold text-slate-900 group-hover:text-indigo-600 transition-colors truncate">
+                      ${a.title}
+                    </span>
+                    ${isNew ? `<span class="px-1.5 py-0.2 rounded bg-emerald-600 text-white text-[9px] font-extrabold uppercase tracking-wider shrink-0 border border-emerald-400/40">NEW</span>` : ''}
                   </div>
                   <div class="text-xs text-slate-400 font-normal truncate">
                     ${subtitle}

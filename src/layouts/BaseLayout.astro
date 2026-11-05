@@ -99,6 +99,18 @@ const resolvedOgImage = ogImage.startsWith('http') ? ogImage : new URL(ogImage, 
   </head>
 
   <body class="min-h-screen flex flex-col antialiased bg-[#F8FAFC] text-[#334155]">
+    <!-- Fast Top-of-Viewport Navigation Progress Bar -->
+    <div
+      id="top-nav-progress"
+      class="fixed top-0 left-0 right-0 h-[2.5px] z-[9999] pointer-events-none opacity-0 transition-opacity duration-200"
+      aria-hidden="true"
+    >
+      <div
+        id="top-nav-progress-bar"
+        class="h-full w-0 bg-gradient-to-r from-indigo-500 via-indigo-600 to-emerald-500 shadow-[0_0_10px_rgba(99,102,241,0.7)] transition-all duration-300 ease-out"
+      ></div>
+    </div>
+
     <!-- Subtle ambient top glow for light mode -->
     <div class="fixed top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[300px] bg-[#6366F1]/5 blur-[140px] pointer-events-none -z-10"></div>
     
@@ -174,6 +186,79 @@ const resolvedOgImage = ogImage.startsWith('http') ? ogImage : new URL(ogImage, 
         document.addEventListener('astro:before-preparation', recordListingState);
         window.addEventListener('pagehide', recordListingState);
         document.addEventListener('astro:page-load', restoreListingScroll);
+
+        // Top-of-viewport progress bar & instant navigation feedback
+        let progressTimer = null;
+        function getProgressBar() {
+          return {
+            wrap: document.getElementById('top-nav-progress'),
+            bar: document.getElementById('top-nav-progress-bar')
+          };
+        }
+
+        function startNavProgress() {
+          const { wrap, bar } = getProgressBar();
+          if (!wrap || !bar) return;
+          if (progressTimer) clearInterval(progressTimer);
+          wrap.classList.remove('opacity-0');
+          bar.style.transition = 'width 250ms cubic-bezier(0.4, 0, 0.2, 1)';
+          bar.style.width = '30%';
+
+          let current = 30;
+          progressTimer = setInterval(function () {
+            if (current < 85) {
+              current += Math.random() * 12;
+              if (current > 85) current = 85;
+              bar.style.width = current + '%';
+            }
+          }, 200);
+        }
+
+        function finishNavProgress() {
+          const { wrap, bar } = getProgressBar();
+          if (!wrap || !bar) return;
+          if (progressTimer) clearInterval(progressTimer);
+          bar.style.transition = 'width 120ms ease-out';
+          bar.style.width = '100%';
+          setTimeout(function () {
+            wrap.classList.add('opacity-0');
+            setTimeout(function () {
+              bar.style.transition = 'none';
+              bar.style.width = '0%';
+            }, 200);
+          }, 140);
+        }
+
+        document.addEventListener('astro:before-preparation', startNavProgress);
+        document.addEventListener('astro:page-load', finishNavProgress);
+
+        // Immediate tactile feedback on internal link clicks
+        document.addEventListener('click', function (e) {
+          const target = e.target;
+          if (!target || !(target instanceof Element)) return;
+          const link = target.closest('a');
+          if (!link) return;
+          const href = link.getAttribute('href');
+          if (
+            href &&
+            !href.startsWith('#') &&
+            !href.startsWith('mailto:') &&
+            !href.startsWith('tel:') &&
+            !link.hasAttribute('download') &&
+            link.target !== '_blank' &&
+            (href.startsWith('/') || href.startsWith(window.location.origin))
+          ) {
+            const readBtn = target.closest('.btn-read-article');
+            if (readBtn) {
+              const label = readBtn.querySelector('.btn-read-label');
+              if (label) {
+                label.textContent = 'Opening...';
+              }
+              readBtn.classList.add('opacity-90', 'scale-[0.98]');
+            }
+            startNavProgress();
+          }
+        });
       })();
     </script>
   </body>

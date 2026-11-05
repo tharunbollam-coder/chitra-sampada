@@ -2,6 +2,7 @@
 // src/components/AnimeCard.astro
 import HonestyBadge from './HonestyBadge.astro';
 import { optimizeTmdbPoster } from '../lib/image-utils.js';
+import { isRecentlyAdded } from '../lib/date-utils.ts';
 
 interface Props {
   anime: any;
@@ -10,6 +11,7 @@ interface Props {
 
 const { anime, priority = false } = Astro.props;
 
+const isNew = isRecentlyAdded(anime.createdAt || anime.created_at || anime.addedDate || anime.added_date);
 const hasFillerData = Boolean(anime.hasFillerData ?? (anime.fillerList && anime.fillerList.totalEpisodes > 0 && anime.sectionVisibility?.fillerList !== false));
 const isZeroFiller = hasFillerData && anime.fillerPercentage === 0;
 const isMovie = anime.type === 'movie';
@@ -60,12 +62,23 @@ const formattedRating = hasRating ? (numRating % 1 === 0 ? numRating.toFixed(0) 
   data-community={anime.communitySuggested ? 'true' : 'false'}
   data-title={anime.title.toLowerCase()}
 >
+  <!-- Mobile NEW Badge (Top-right of card container, reduced size) -->
+  {isNew && (
+    <span
+      class="md:hidden absolute top-2.5 right-2.5 z-20 inline-flex items-center px-1.5 py-1.5 rounded bg-emerald-600/95 text-white text-[9px] font-extrabold uppercase tracking-wider border border-emerald-400/40 shadow-xs backdrop-blur-xs select-none pointer-events-none leading-none"
+      title="Recently added within the last 7 days"
+    >
+      NEW
+    </span>
+  )}
+
   <!-- Poster Image Container with Attached Top-Edge Rating Tab -->
   <a
     href={`/anime/${anime.slug}`}
+    data-astro-prefetch="hover"
     class:list={[
       'relative w-24 sm:w-28 md:w-full aspect-[2/3] mb-0 md:mb-3.5 shrink-0 block group/poster focus:outline-hidden',
-      formattedRating ? 'mt-1.5 md:mt-2' : ''
+      (formattedRating || isNew) ? 'mt-2.5 md:mt-3.5' : ''
     ]}
     aria-label={`View ${anime.title} details`}
   >
@@ -77,6 +90,14 @@ const formattedRating = hasRating ? (numRating % 1 === 0 ? numRating.toFixed(0) 
         <span class="text-amber-400 text-[10px]">★</span>
         <span>{formattedRating}</span>
       </div>
+    )}
+    {isNew && (
+      <span
+        class="hidden md:inline-flex absolute right-2 bottom-full translate-y-[1px] z-10 items-center px-1.5 py-0.5 rounded-t-md rounded-b-none bg-emerald-600/95 backdrop-blur-xs border border-b-0 border-emerald-400/40 text-white text-[10px] font-extrabold uppercase tracking-wider leading-none shadow-xs pointer-events-none select-none"
+        title="Recently added within the last 7 days"
+      >
+        NEW
+      </span>
     )}
     <div class="w-full h-full rounded-lg md:rounded-xl overflow-hidden bg-slate-100 border border-slate-200/80 shadow-2xs">
       <img
@@ -96,8 +117,11 @@ const formattedRating = hasRating ? (numRating % 1 === 0 ? numRating.toFixed(0) 
   <div class="flex md:hidden flex-col justify-between flex-1 min-w-0 py-0.5">
     <div>
       <!-- Title -->
-      <h3 class="text-base font-bold text-gray-900 dark:text-white group-hover:text-[#6366F1] transition-colors line-clamp-2 leading-snug font-heading tracking-tight">
-        <a href={`/anime/${anime.slug}`} class="hover:underline">
+      <h3 class:list={[
+        'text-base font-bold text-gray-900 dark:text-white group-hover:text-[#6366F1] transition-colors line-clamp-2 leading-snug font-heading tracking-tight',
+        isNew ? 'pr-12' : ''
+      ]}>
+        <a href={`/anime/${anime.slug}`} data-astro-prefetch="hover" class="hover:underline">
           {anime.title}
         </a>
       </h3>
@@ -160,6 +184,7 @@ const formattedRating = hasRating ? (numRating % 1 === 0 ? numRating.toFixed(0) 
     <div class="pt-2 border-t border-slate-100 dark:border-slate-800/80 mt-2 flex items-center justify-start">
       <a
         href={`/anime/${anime.slug}`}
+        data-astro-prefetch="hover"
         aria-label={`View watch order and filler guide for ${anime.title}`}
         class="text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:underline transition-colors"
       >
@@ -205,7 +230,7 @@ const formattedRating = hasRating ? (numRating % 1 === 0 ? numRating.toFixed(0) 
       <!-- Title -->
       <div>
         <h3 class="text-base font-bold text-[#0F172A] group-hover:text-[#6366F1] transition-colors line-clamp-1 leading-snug font-heading tracking-tight">
-          <a href={`/anime/${anime.slug}`} class="hover:underline">
+          <a href={`/anime/${anime.slug}`} data-astro-prefetch="hover" class="hover:underline">
             {anime.title}
           </a>
         </h3>
@@ -229,6 +254,7 @@ const formattedRating = hasRating ? (numRating % 1 === 0 ? numRating.toFixed(0) 
     <div class="pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs">
       <a
         href={`/anime/${anime.slug}`}
+        data-astro-prefetch="hover"
         aria-label={`View watch order and filler guide for ${anime.title}`}
         class="text-[11px] font-bold text-[#4F46E5] hover:text-[#4338CA] hover:underline transition-colors"
       >

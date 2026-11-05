@@ -29,7 +29,8 @@ export async function GET({ locals }) {
       poster: a.poster || null,
       hasFiller: Boolean(a.hasFillerData),
       genres: a.genres || [],
-      aliases: aliasesMap.get(a.id) || []
+      aliases: aliasesMap.get(a.id) || [],
+      createdAt: a.createdAt || a.created_at || a.addedDate || a.added_date || null
     }));
 
     const compactBlogs = (blogPosts || []).map((b) => ({
