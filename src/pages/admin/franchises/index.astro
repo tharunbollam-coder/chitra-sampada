@@ -55,16 +55,64 @@ function getAdminTypeBadge(type: string): { label: string; badgeCls: string } {
     </div>
   </div>
 
+  <!-- Real-Time Search Bar -->
+  <div class="mt-6 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+    <div class="relative flex-1 max-w-md">
+      <input
+        type="text"
+        id="franchise-search"
+        placeholder="Filter franchises or linked anime..."
+        autocomplete="off"
+        class="w-full px-3.5 py-2 pl-9 pr-8 bg-slate-900 border border-slate-800 rounded-xl text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition shadow-2xs"
+      />
+      <svg class="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+      </svg>
+      <button
+        type="button"
+        id="franchise-search-clear"
+        class="hidden absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 p-0.5 rounded transition cursor-pointer"
+        title="Clear search"
+        aria-label="Clear search"
+      >
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+    <div class="text-xs text-slate-400 font-medium" id="franchise-search-count">
+      Showing {franchises.length} {franchises.length === 1 ? 'franchise' : 'franchises'}
+    </div>
+  </div>
+
+  <!-- Empty state when no search results match -->
+  <div id="franchises-no-match" class="hidden mt-8 p-12 bg-slate-900 border border-slate-800 rounded-2xl text-center">
+    <div class="w-12 h-12 mx-auto rounded-full bg-slate-800/80 flex items-center justify-center text-slate-500 mb-3">
+      <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+      </svg>
+    </div>
+    <h3 class="text-base font-bold text-white mb-1">No matching franchises found</h3>
+    <p class="text-xs text-slate-400">Try searching with a different franchise name, ID, or linked anime title.</p>
+  </div>
+
   <!-- Franchises List -->
   <div class="mt-8 space-y-6" id="franchises-list">
     {franchises.map((franchise: any) => {
       const animeCount = franchise.anime?.length || 0;
       const hasNote = Boolean(franchise.watchOrderNote && franchise.watchOrderNote.trim().length > 0);
+      const franchiseSearchable = [
+        franchise.name,
+        franchise.id,
+        franchise.description || '',
+        ...(franchise.anime || []).map((a: any) => `${a.title} ${a.slug || ''} ${a.id || ''}`)
+      ].filter(Boolean).join(' ').toLowerCase();
       return (
         <div
           class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-sm franchise-card"
           data-franchise-id={franchise.id}
           data-original-id={franchise.id}
+          data-search={franchiseSearchable}
         >
           <!-- Franchise Header Bar (Clickable Accordion Header) -->
           <div
@@ -748,6 +796,7 @@ function getAdminTypeBadge(type: string): { label: string; badgeCls: string } {
         const clearBtn = card.querySelector('.btn-clear-search');
         if (clearBtn) clearBtn.classList.add('hidden');
 
+        updateCardSearchIndex(card);
         window.showAdminToast(`Added "${anime.title}"`, 'success');
         return;
       }
@@ -773,8 +822,10 @@ function getAdminTypeBadge(type: string): { label: string; badgeCls: string } {
         const chip = removeBtn.closest('.picked-anime-chip');
         const container = chip?.closest('.picked-anime-container');
         if (chip && container) {
+          const card = container.closest('.franchise-card');
           chip.remove();
           refreshPickedAnimeList(container);
+          if (card) updateCardSearchIndex(card);
         }
         return;
       }
@@ -1302,6 +1353,8 @@ function getAdminTypeBadge(type: string): { label: string; badgeCls: string } {
 
       bindFranchiseCardEvents(card);
       bindSearchEvents(card);
+      updateCardSearchIndex(card);
+      filterFranchises();
 
       const nameInput = card.querySelector('.franchise-name-input');
       nameInput?.focus();
@@ -1309,6 +1362,80 @@ function getAdminTypeBadge(type: string): { label: string; badgeCls: string } {
     });
 
     // Bind all existing franchise cards on initial load
+    // Real-Time Client-Side Search for Franchises
+    const franchiseSearchInput = document.getElementById('franchise-search');
+    const franchiseSearchClear = document.getElementById('franchise-search-clear');
+    const franchiseSearchCount = document.getElementById('franchise-search-count');
+    const franchiseNoMatch = document.getElementById('franchises-no-match');
+
+    function normalizeFranchiseSearchText(str) {
+      if (!str) return '';
+      return str
+        .toLowerCase()
+        .replace(/[\u2018\u2019'"]/g, '')
+        .replace(/[^a-z0-9]+/g, ' ')
+        .trim();
+    }
+
+    function filterFranchises() {
+      const rawQuery = franchiseSearchInput?.value || '';
+      const normQuery = normalizeFranchiseSearchText(rawQuery);
+      const queryWords = normQuery ? normQuery.split(/\s+/).filter(Boolean) : [];
+
+      if (franchiseSearchClear) {
+        franchiseSearchClear.classList.toggle('hidden', rawQuery.trim().length === 0);
+      }
+
+      const cards = document.querySelectorAll('.franchise-card');
+      let visibleCount = 0;
+
+      cards.forEach((card) => {
+        if (queryWords.length === 0) {
+          card.style.display = '';
+          visibleCount++;
+          return;
+        }
+
+        const searchText = normalizeFranchiseSearchText(card.getAttribute('data-search') || '');
+        const matches = queryWords.every((word) => searchText.includes(word));
+
+        if (matches) {
+          card.style.display = '';
+          visibleCount++;
+        } else {
+          card.style.display = 'none';
+        }
+      });
+
+      if (franchiseSearchCount) {
+        if (queryWords.length === 0) {
+          franchiseSearchCount.textContent = `Showing ${visibleCount} ${visibleCount === 1 ? 'franchise' : 'franchises'}`;
+        } else {
+          franchiseSearchCount.textContent = `${visibleCount} of ${cards.length} ${cards.length === 1 ? 'franchise' : 'franchises'}`;
+        }
+      }
+
+      if (franchiseNoMatch) {
+        franchiseNoMatch.classList.toggle('hidden', visibleCount > 0 || cards.length === 0);
+      }
+    }
+
+    franchiseSearchInput?.addEventListener('input', filterFranchises);
+    franchiseSearchClear?.addEventListener('click', () => {
+      if (franchiseSearchInput) {
+        franchiseSearchInput.value = '';
+        filterFranchises();
+        franchiseSearchInput.focus();
+      }
+    });
+
+    function updateCardSearchIndex(card) {
+      const name = card.querySelector('.franchise-name-input')?.value.trim() || '';
+      const id = card.querySelector('.franchise-id-input')?.value.trim() || '';
+      const animeTitles = Array.from(card.querySelectorAll('.picked-anime-chip')).map(el => el.getAttribute('title') || el.textContent.trim()).join(' ');
+      card.setAttribute('data-search', `${name} ${id} ${animeTitles}`.toLowerCase());
+    }
+
     function bindFranchiseCardEvents(card) {
       const nameInput = card.querySelector('.franchise-name-input');
       const idInput = card.querySelector('.franchise-id-input');
@@ -1319,16 +1446,20 @@ function getAdminTypeBadge(type: string): { label: string; badgeCls: string } {
       nameInput?.addEventListener('input', () => {
         const nameDisplay = card.querySelector('.franchise-name-display');
         if (nameDisplay) nameDisplay.textContent = nameInput.value.trim() || 'New Franchise';
+        updateCardSearchIndex(card);
       });
       idInput?.addEventListener('input', () => {
         const idDisplay = card.querySelector('.franchise-id-display');
         if (idDisplay) idDisplay.textContent = idInput.value.trim() || 'draft';
+        updateCardSearchIndex(card);
       });
     }
 
     document.querySelectorAll('.franchise-card').forEach((card) => {
       bindFranchiseCardEvents(card);
       bindSearchEvents(card);
+      updateCardSearchIndex(card);
+      filterFranchises();
     });
   </script>
 </AdminLayout>

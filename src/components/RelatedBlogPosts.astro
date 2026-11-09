@@ -1,20 +1,25 @@
 ---
 // src/components/RelatedBlogPosts.astro
 // Displays related blog articles for an anime on its detail page.
-import { getBlogPostsForAnime } from '../lib/d1.js';
+import { getBlogPostsBySlugs } from '../lib/d1.js';
 
 interface Props {
-  animeId: string;
+  animeId?: string;
   animeTitle?: string;
+  relatedBlogSlugs?: string[];
 }
 
-const { animeId, animeTitle } = Astro.props;
-const relatedPosts = await getBlogPostsForAnime(animeId, Astro.locals);
+const { animeId: _animeId, animeTitle, relatedBlogSlugs = [] } = Astro.props;
+
+let relatedPosts: any[] = [];
+if (Array.isArray(relatedBlogSlugs) && relatedBlogSlugs.length > 0) {
+  relatedPosts = await getBlogPostsBySlugs(relatedBlogSlugs, Astro.locals);
+}
 ---
 
 {relatedPosts && relatedPosts.length > 0 && (
   <section class="mt-14 pt-10 border-t border-slate-200/90 space-y-6" aria-label="Related reading">
-    <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
       <div class="space-y-1">
         <div class="flex items-center gap-2 text-[#4F46E5]">
           <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -25,14 +30,11 @@ const relatedPosts = await getBlogPostsForAnime(animeId, Astro.locals);
         <h3 class="font-heading text-xl sm:text-2xl font-extrabold text-[#0F172A] tracking-tight">
           Articles Discussing {animeTitle || 'This Series'}
         </h3>
-        <p class="text-xs sm:text-sm text-slate-500 font-normal">
-          In-depth commentary, watch-order deep dives, and pacing analyses from our blog.
-        </p>
       </div>
 
       <a
         href="/blog"
-        class="inline-flex items-center gap-1.5 text-xs font-bold text-[#4F46E5] hover:text-[#4338CA] transition-colors self-start sm:self-auto"
+        class="inline-flex items-center gap-1.5 text-xs font-bold text-[#4F46E5] hover:text-[#4338CA] transition-colors self-start sm:self-auto shrink-0"
       >
         <span>Browse all articles</span>
         <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

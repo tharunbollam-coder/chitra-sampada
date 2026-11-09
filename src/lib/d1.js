@@ -267,7 +267,9 @@ export async function getCompactAnimeList(contextOrLocals = null) {
   const genresMap = new Map();
   for (const row of genresRows) {
     if (!genresMap.has(row.anime_id)) genresMap.set(row.anime_id, []);
-    genresMap.get(row.anime_id).push(row.genre);
+    if (!row.genre.startsWith('__blog__:')) {
+      genresMap.get(row.anime_id).push(row.genre);
+    }
   }
 
   const vibesMap = new Map();
@@ -451,7 +453,9 @@ export async function getAllAnime(contextOrLocals = null) {
   const genresMap = new Map();
   for (const row of genresRows) {
     if (!genresMap.has(row.anime_id)) genresMap.set(row.anime_id, []);
-    genresMap.get(row.anime_id).push(row.genre);
+    if (!row.genre.startsWith('__blog__:')) {
+      genresMap.get(row.anime_id).push(row.genre);
+    }
   }
 
   const vibesMap = new Map();
@@ -974,7 +978,8 @@ export async function getAnimeDetailBySlugOrId(slugOrId, contextOrLocals = null)
       honestyStatus: anime.honesty_status,
       hasFillerData,
       fillerPercentage: hasFillerData ? fillerList.fillerPercentage : null,
-      genres: safeGenres.map((row) => row.genre),
+      genres: safeGenres.map((row) => row.genre).filter((g) => !g.startsWith('__blog__:')),
+      relatedBlogSlugs: safeGenres.filter((row) => row.genre.startsWith('__blog__:')).map((row) => row.genre.replace('__blog__:', '')),
       vibes: safeVibes.map((row) => row.vibe_id),
       trending: Boolean(anime.trending),
       communitySuggested: Boolean(anime.community_suggested),
@@ -1339,6 +1344,38 @@ export async function getBlogPostsForAnime(animeId, contextOrLocals = null) {
     ORDER BY bp.published_date DESC
     LIMIT 6
   `, animeId);
+
+  return rows.map((row) => {
+    const wordCount = row.content ? row.content.trim().split(/\s+/).length : 0;
+    return {
+      id: row.id,
+      slug: row.slug,
+      title: row.title,
+      excerpt: row.excerpt,
+      publishedDate: row.published_date,
+      lastUpdated: row.last_updated,
+      status: row.status,
+      coverImage: row.cover_image || null,
+      readTime: `${Math.max(1, Math.ceil(wordCount / 200))} min read`
+    };
+  });
+}
+
+/**
+ * Fetch published blog posts by specific slugs or IDs
+ * @param {string[]} slugsOrIds
+ * @param {any} [contextOrLocals]
+ */
+export async function getBlogPostsBySlugs(slugsOrIds, contextOrLocals = null) {
+  if (!Array.isArray(slugsOrIds) || slugsOrIds.length === 0) return [];
+  const db = await getDatabase(contextOrLocals);
+  const placeholders = slugsOrIds.map(() => '?').join(',');
+  const rows = await db.query(`
+    SELECT id, slug, title, excerpt, content, cover_image, published_date, last_updated, status
+    FROM blog_posts
+    WHERE (slug IN (${placeholders}) OR id IN (${placeholders})) AND status = 'published'
+    ORDER BY published_date DESC
+  `, ...slugsOrIds, ...slugsOrIds);
 
   return rows.map((row) => {
     const wordCount = row.content ? row.content.trim().split(/\s+/).length : 0;

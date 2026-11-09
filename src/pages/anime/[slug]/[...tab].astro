@@ -601,13 +601,13 @@ if (anime.honestyStatus === 'watched' && anime.personalRating !== undefined && a
         </div>
 
         <!-- Related Blog Posts / Articles discussing this anime -->
-        <RelatedBlogPosts animeId={anime.id} animeTitle={anime.title} />
+        <RelatedBlogPosts animeId={anime.id} animeTitle={anime.title} relatedBlogSlugs={anime.relatedBlogSlugs || []} />
       </main>
     )}
 
     <!-- Related Blog Posts / Articles discussing this anime (when zero tabs are active) -->
     {!hasTabs && (
-      <RelatedBlogPosts animeId={anime.id} animeTitle={anime.title} />
+      <RelatedBlogPosts animeId={anime.id} animeTitle={anime.title} relatedBlogSlugs={anime.relatedBlogSlugs || []} />
     )}
 
     <!-- 5. END-OF-PAGE BUTTON (Back to Anime Home + Explore Full Catalog) -->

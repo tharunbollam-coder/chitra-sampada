@@ -30,11 +30,18 @@ const completeness = getAnimeCompleteness({
   franchiseWatchOrderNote: anime?.franchiseWatchOrderNote || currentFranchise?.watchOrderNote
 });
 const adminBlogPosts: any[] = adminBlogPostsResult || [];
+const currentCharRelatedPost = adminBlogPosts.find((p: any) => p.slug === anime?.characterRelatedPostSlug) || null;
+const initialTickedBlogSlugs = (anime?.genres || [])
+  .filter((g: string) => g.startsWith('__blog__:'))
+  .map((g: string) => g.replace('__blog__:', ''));
+
 const dbVibes: any[] = dbVibesResult || [];
 const editorVibes: any[] = dbVibes.length > 0 ? dbVibes : fallbackVibes;
 const db: any = await getDatabase(Astro.locals);
 const existingGenreRows: any[] = (await db.query('SELECT DISTINCT genre FROM anime_genres ORDER BY genre ASC')) || [];
-const existingGenres: string[] = Array.isArray(existingGenreRows) ? existingGenreRows.map((r: any) => r.genre).filter(Boolean) : [];
+const existingGenres: string[] = Array.isArray(existingGenreRows)
+  ? existingGenreRows.map((r: any) => r.genre).filter((g: string) => g && !g.startsWith('__blog__:'))
+  : [];
 const defaultGenres = ['Adventure', 'Fantasy', 'Action', 'Drama', 'Comedy', 'Romance', 'Mystery', 'Sci-Fi', 'Slice of Life', 'Supernatural', 'Thriller'];
 const availableGenres: string[] = Array.from(new Set([...defaultGenres, ...existingGenres]));
 const platformAnimeList: any[] = (await db.query('SELECT id, title, slug FROM anime ORDER BY title ASC')) || [];
@@ -1536,21 +1543,108 @@ if (standardSourceTypes.includes(rawSourceType)) {
           </div>
 
           <div class="pt-4 border-t border-slate-800">
-            <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5" for="chars-related-post">
+            <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5" for="chars-article-search">
               Related Article (Optional)
             </label>
-            <select
+
+            <!-- Hidden input maintaining exact value binding for characterRelatedPostSlug -->
+            <input
+              type="hidden"
               id="chars-related-post"
-              class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700/80 rounded-xl text-sm text-white focus:outline-none focus:border-indigo-500"
+              value={anime?.characterRelatedPostSlug || ''}
+            />
+
+            <!-- Selected Article Highlighted Card/Pill -->
+            <div
+              id="chars-selected-article-card"
+              class={`mb-2.5 p-2.5 bg-indigo-950/50 border border-indigo-700/60 rounded-xl flex items-center justify-between gap-3 shadow-2xs ${currentCharRelatedPost ? '' : 'hidden'}`}
             >
-              <option value="">None / No Related Article</option>
-              {adminBlogPosts.map((p: any) => (
-                <option value={p.slug} selected={anime?.characterRelatedPostSlug === p.slug}>
-                  {p.title} ({p.status === 'published' ? 'Published' : 'Draft'})
-                </option>
-              ))}
-            </select>
-            <p class="text-xs text-slate-400 mt-1">Select an article or blog post to recommend at the bottom of the public Characters tab.</p>
+              <div class="min-w-0 flex items-center gap-2">
+                <div class="w-6 h-6 rounded-lg bg-indigo-500/20 text-indigo-300 flex items-center justify-center shrink-0">
+                  <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+                <span id="chars-selected-article-title" class="text-xs font-semibold text-indigo-100 truncate">
+                  {currentCharRelatedPost?.title || ''}
+                </span>
+                <span id="chars-selected-article-slug" class="text-[10px] font-mono text-indigo-400/80 truncate">
+                  {currentCharRelatedPost?.slug ? `(${currentCharRelatedPost.slug})` : ''}
+                </span>
+              </div>
+              <button
+                type="button"
+                id="btn-remove-chars-article"
+                class="text-xs text-rose-400 hover:text-rose-200 hover:bg-rose-950/60 px-2 py-1 rounded-lg border border-rose-800/50 transition shrink-0 cursor-pointer flex items-center gap-1"
+                title="Remove selected article / Set to None"
+              >
+                <span>Remove</span>
+                <span class="font-bold text-sm leading-none">×</span>
+              </button>
+            </div>
+
+            <!-- Search input -->
+            <div class="relative mb-2">
+              <input
+                type="text"
+                id="chars-article-search"
+                placeholder="Search articles by title or slug..."
+                autocomplete="off"
+                class="w-full px-3 py-1.5 pl-8 pr-8 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition"
+              />
+              <svg class="w-3.5 h-3.5 text-slate-500 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <button
+                type="button"
+                id="chars-article-search-clear"
+                class="hidden absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 p-0.5 rounded transition cursor-pointer"
+                title="Clear search"
+                aria-label="Clear search"
+              >
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <!-- Scrollable list of articles with title, slug, and Published/Draft badge -->
+            <div id="chars-article-list" class="max-h-48 overflow-y-auto p-1.5 bg-slate-950 border border-slate-800 rounded-xl space-y-1 custom-dark-scrollbar">
+              {adminBlogPosts.map((p: any) => {
+                const isSelected = anime?.characterRelatedPostSlug === p.slug;
+                return (
+                  <div
+                    class={`chars-article-item flex items-center justify-between gap-3 p-2 rounded-lg cursor-pointer transition select-none ${
+                      isSelected
+                        ? 'bg-indigo-950/60 border border-indigo-700/60 text-white shadow-2xs'
+                        : 'hover:bg-slate-900 border border-transparent text-slate-300'
+                    }`}
+                    data-slug={p.slug}
+                    data-title={p.title}
+                    data-search={`${p.title} ${p.slug}`.toLowerCase()}
+                  >
+                    <div class="min-w-0 flex-1">
+                      <div class="text-xs font-semibold truncate chars-item-title">{p.title}</div>
+                      <div class="text-[10px] text-slate-500 font-mono truncate">{p.slug}</div>
+                    </div>
+                    <span class={`text-[10px] font-semibold px-2 py-0.5 rounded shrink-0 border ${
+                      p.status === 'published'
+                        ? 'bg-emerald-950/60 text-emerald-400 border-emerald-800/60'
+                        : 'bg-amber-950/60 text-amber-400 border-amber-800/60'
+                    }`}>
+                      {p.status === 'published' ? 'Published' : 'Draft'}
+                    </span>
+                  </div>
+                );
+              })}
+              {adminBlogPosts.length === 0 && (
+                <div class="text-center py-3 text-xs text-slate-500">No blog posts found in catalog.</div>
+              )}
+              <div id="chars-article-no-match" class="hidden text-center py-3 text-xs text-slate-500">
+                No matching articles found
+              </div>
+            </div>
+            <p class="text-xs text-slate-400 mt-1.5">Select an article or blog post to recommend at the bottom of the public Characters tab.</p>
           </div>
 
           <div class="pt-4 border-t border-slate-800 flex items-center justify-between gap-3">
@@ -2296,6 +2390,133 @@ if (standardSourceTypes.includes(rawSourceType)) {
             </button>
           </div>
         </form>
+      </div>
+    </div>
+
+    <!-- ============================================================= -->
+    <!-- SECTION 12: RELATED BLOG ARTICLES (PAGE BOTTOM) -->
+    <!-- ============================================================= -->
+    <div class={`bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden transition dependent-section ${isNew ? 'opacity-50 pointer-events-none' : ''}`} id="section-related-articles-container">
+      <button
+        type="button"
+        class="w-full px-4 sm:px-6 py-3.5 sm:py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-left hover:bg-slate-850/50 transition cursor-pointer section-toggle"
+        data-target="section-related-articles-body"
+      >
+        <div class="flex items-center gap-3">
+          <span class="w-7 h-7 shrink-0 rounded-lg bg-indigo-600/20 text-indigo-400 font-bold text-xs flex items-center justify-center border border-indigo-500/30">
+            12
+          </span>
+          <div>
+            <h2 class="text-base font-semibold text-white font-heading">Related Blog Articles (Page Bottom)</h2>
+            <p class="text-xs text-slate-400">Search and select which blog posts to display in the "Articles Discussing" section at the bottom of this anime's page</p>
+          </div>
+        </div>
+        <div class="w-full sm:w-auto flex items-center justify-between sm:justify-end gap-2.5 sm:gap-3 border-t border-slate-800/60 pt-2 sm:pt-0 sm:border-0">
+          <span id="related-articles-count-badge" class="text-xs font-semibold px-2.5 py-1 rounded-lg bg-indigo-950/80 text-indigo-300 border border-indigo-800/60">
+            {initialTickedBlogSlugs.length} Selected
+          </span>
+          <svg class="w-5 h-5 text-slate-400 transform transition-transform duration-200 section-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+          </svg>
+        </div>
+      </button>
+
+      <div id="section-related-articles-body" class="hidden px-4 sm:px-6 pb-6 pt-2 border-t border-slate-800/80 space-y-4">
+        <div>
+          <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
+            Selected Articles (Shown at page bottom)
+          </div>
+          <div id="selected-articles-pills-container" class="flex flex-wrap gap-2 min-h-[36px] p-2.5 bg-slate-950 border border-slate-800 rounded-xl items-center">
+            <!-- Dynamic Pills with remove '×' button -->
+          </div>
+        </div>
+
+        <div class="relative">
+          <input
+            type="text"
+            id="related-articles-search"
+            placeholder="Search articles by title or slug..."
+            autocomplete="off"
+            class="w-full px-3.5 py-2 pl-9 pr-8 bg-slate-950 border border-slate-800 rounded-xl text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition shadow-2xs"
+          />
+          <svg class="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <button
+            type="button"
+            id="related-articles-search-clear"
+            class="hidden absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 p-0.5 rounded transition cursor-pointer"
+            title="Clear search"
+            aria-label="Clear search"
+          >
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <div id="related-articles-list" class="max-h-60 overflow-y-auto p-2 bg-slate-950 border border-slate-800 rounded-xl space-y-1 custom-dark-scrollbar">
+          {adminBlogPosts.map((p: any) => {
+            const isChecked = initialTickedBlogSlugs.includes(p.slug);
+            return (
+              <label
+                class={`related-article-row flex items-center justify-between gap-3 p-2.5 rounded-lg cursor-pointer transition select-none ${
+                  isChecked
+                    ? 'bg-indigo-950/50 border border-indigo-700/60 text-white'
+                    : 'hover:bg-slate-900 border border-transparent text-slate-300'
+                }`}
+                data-slug={p.slug}
+                data-title={p.title}
+                data-search={`${p.title} ${p.slug}`.toLowerCase()}
+              >
+                <div class="flex items-center gap-3 min-w-0 flex-1">
+                  <input
+                    type="checkbox"
+                    name="related-blog-post"
+                    value={p.slug}
+                    checked={isChecked}
+                    class="related-blog-post-cb rounded text-indigo-600 focus:ring-indigo-500 bg-slate-900 border-slate-700 cursor-pointer"
+                  />
+                  <div class="min-w-0 flex-1">
+                    <div class="text-xs font-semibold truncate article-row-title">{p.title}</div>
+                    <div class="text-[10px] text-slate-500 font-mono truncate">{p.slug}</div>
+                  </div>
+                </div>
+                <span class={`text-[10px] font-semibold px-2 py-0.5 rounded shrink-0 border ${
+                  p.status === 'published'
+                    ? 'bg-emerald-950/60 text-emerald-400 border-emerald-800/60'
+                    : 'bg-amber-950/60 text-amber-400 border-amber-800/60'
+                }`}>
+                  {p.status === 'published' ? 'Published' : 'Draft'}
+                </span>
+              </label>
+            );
+          })}
+          {adminBlogPosts.length === 0 && (
+            <div class="text-center py-4 text-xs text-slate-500">No blog posts found in catalog.</div>
+          )}
+          <div id="related-articles-no-match" class="hidden text-center py-4 text-xs text-slate-500">
+            No matching articles found
+          </div>
+        </div>
+
+        <div class="pt-4 border-t border-slate-800 flex items-center justify-between gap-3">
+          <button
+            type="button"
+            class="btn-collapse-section px-3.5 py-2 text-xs font-medium text-slate-400 hover:text-white bg-slate-800/80 hover:bg-slate-800 rounded-xl border border-slate-700/60 transition flex items-center gap-1.5 cursor-pointer"
+            data-target="section-related-articles-body"
+          >
+            <span>Collapse Section</span>
+            <span>↑</span>
+          </button>
+          <button
+            type="button"
+            id="btn-save-related-articles"
+            class="w-full sm:w-auto px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold rounded-xl shadow-sm transition cursor-pointer"
+          >
+            Save Related Articles
+          </button>
+        </div>
       </div>
     </div>
 
@@ -3479,7 +3700,7 @@ if (standardSourceTypes.includes(rawSourceType)) {
           cb.checked = false;
         }
       });
-      const customGenres = (a.genres || []).filter(g => !matchedGenres.has(g));
+      const customGenres = (a.genres || []).filter(g => !g.startsWith('__blog__:') && !matchedGenres.has(g));
       const customGenreInput = document.getElementById('core-custom-genres');
       if (customGenreInput) customGenreInput.value = customGenres.join(', ');
 
@@ -3543,6 +3764,20 @@ if (standardSourceTypes.includes(rawSourceType)) {
       // 8. Populate Section 6: Characters
       const charsRelatedPost = document.getElementById('chars-related-post');
       if (charsRelatedPost) charsRelatedPost.value = a.characterRelatedPostSlug || '';
+      selectCharsArticle(a.characterRelatedPostSlug || '', '');
+
+      // Populate Section 12: Related Blog Articles
+      const relatedSlugs = new Set(
+        (a.genres || [])
+          .filter(g => g.startsWith('__blog__:'))
+          .map(g => g.replace('__blog__:', ''))
+      );
+      document.querySelectorAll('#related-articles-list input[name="related-blog-post"]').forEach(cb => {
+        cb.checked = relatedSlugs.has(cb.value);
+        const row = cb.closest('.related-article-row');
+        updateRelatedArticleRowState(row, cb.checked);
+      });
+      renderSelectedArticlePills();
 
       const charsContainer = document.getElementById('chars-container');
       if (charsContainer) {
@@ -3675,7 +3910,8 @@ if (standardSourceTypes.includes(rawSourceType)) {
         .split(',')
         .map(s => s.trim())
         .filter(Boolean);
-      const allGenres = Array.from(new Set([...checkedGenres, ...customGenres]));
+      const blogPostGenres = getTickedBlogSlugs();
+      const allGenres = Array.from(new Set([...checkedGenres, ...customGenres, ...blogPostGenres]));
 
       // Gather vibes
       const checkedVibes = Array.from(formCore.querySelectorAll('input[name="vibes"]:checked')).map(el => el.value);
@@ -4088,6 +4324,249 @@ if (standardSourceTypes.includes(rawSourceType)) {
       }
     });
 
+    // -------------------------------------------------------------
+    // SECTION 6: SEARCHABLE RELATED ARTICLE SELECTOR
+    // -------------------------------------------------------------
+    function selectCharsArticle(slug, title) {
+      const hiddenInput = document.getElementById('chars-related-post');
+      const card = document.getElementById('chars-selected-article-card');
+      const titleEl = document.getElementById('chars-selected-article-title');
+      const slugEl = document.getElementById('chars-selected-article-slug');
+      if (hiddenInput) hiddenInput.value = slug || '';
+      if (slug) {
+        if (!title) {
+          const matchingItem = document.querySelector('#chars-article-list .chars-article-item[data-slug="' + slug + '"]');
+          title = matchingItem ? (matchingItem.getAttribute('data-title') || slug) : slug;
+        }
+        if (titleEl) titleEl.textContent = title;
+        if (slugEl) slugEl.textContent = '(' + slug + ')';
+        if (card) card.classList.remove('hidden');
+      } else {
+        if (titleEl) titleEl.textContent = '';
+        if (slugEl) slugEl.textContent = '';
+        if (card) card.classList.add('hidden');
+      }
+      document.querySelectorAll('#chars-article-list .chars-article-item').forEach(item => {
+        const itemSlug = item.getAttribute('data-slug');
+        if (slug && itemSlug === slug) {
+          item.className = 'chars-article-item flex items-center justify-between gap-3 p-2 rounded-lg cursor-pointer transition select-none bg-indigo-950/60 border border-indigo-700/60 text-white shadow-2xs';
+        } else {
+          item.className = 'chars-article-item flex items-center justify-between gap-3 p-2 rounded-lg cursor-pointer transition select-none hover:bg-slate-900 border border-transparent text-slate-300';
+        }
+      });
+    }
+
+    document.querySelectorAll('#chars-article-list .chars-article-item').forEach(item => {
+      item.addEventListener('click', () => {
+        const slug = item.getAttribute('data-slug') || '';
+        const title = item.getAttribute('data-title') || '';
+        selectCharsArticle(slug, title);
+      });
+    });
+
+    document.getElementById('btn-remove-chars-article')?.addEventListener('click', () => {
+      selectCharsArticle('', '');
+    });
+
+    const charsSearchInput = document.getElementById('chars-article-search');
+    const charsSearchClear = document.getElementById('chars-article-search-clear');
+    if (charsSearchInput) {
+      charsSearchInput.addEventListener('input', () => {
+        const query = charsSearchInput.value.trim().toLowerCase();
+        if (charsSearchClear) charsSearchClear.classList.toggle('hidden', !query);
+        let matchCount = 0;
+        document.querySelectorAll('#chars-article-list .chars-article-item').forEach(item => {
+          const searchData = item.getAttribute('data-search') || '';
+          const matches = !query || searchData.includes(query);
+          item.style.display = matches ? '' : 'none';
+          if (matches) matchCount++;
+        });
+        const noMatch = document.getElementById('chars-article-no-match');
+        if (noMatch) noMatch.classList.toggle('hidden', matchCount > 0);
+      });
+    }
+    if (charsSearchClear) {
+      charsSearchClear.addEventListener('click', () => {
+        if (charsSearchInput) {
+          charsSearchInput.value = '';
+          charsSearchInput.dispatchEvent(new Event('input'));
+          charsSearchInput.focus();
+        }
+      });
+    }
+
+    // -------------------------------------------------------------
+    // SECTION 12: RELATED BLOG ARTICLES (PAGE BOTTOM) MULTI-PICKER
+    // -------------------------------------------------------------
+    function getTickedBlogSlugs() {
+      const checked = document.querySelectorAll('#related-articles-list input[name="related-blog-post"]:checked');
+      return Array.from(checked).map(cb => '__blog__:' + cb.value);
+    }
+
+    function updateRelatedArticleRowState(row, isChecked) {
+      if (!row) return;
+      if (isChecked) {
+        row.className = 'related-article-row flex items-center justify-between gap-3 p-2.5 rounded-lg cursor-pointer transition select-none bg-indigo-950/50 border border-indigo-700/60 text-white';
+      } else {
+        row.className = 'related-article-row flex items-center justify-between gap-3 p-2.5 rounded-lg cursor-pointer transition select-none hover:bg-slate-900 border border-transparent text-slate-300';
+      }
+    }
+
+    function renderSelectedArticlePills() {
+      const container = document.getElementById('selected-articles-pills-container');
+      const badge = document.getElementById('related-articles-count-badge');
+      const checkedBoxes = Array.from(document.querySelectorAll('#related-articles-list input[name="related-blog-post"]:checked'));
+
+      if (badge) {
+        badge.textContent = checkedBoxes.length + ' Selected';
+      }
+
+      if (!container) return;
+      container.innerHTML = '';
+
+      if (checkedBoxes.length === 0) {
+        const emptyMsg = document.createElement('span');
+        emptyMsg.className = 'text-xs text-slate-500 italic p-1';
+        emptyMsg.textContent = 'No articles selected yet. Check articles below to feature them at the bottom of the anime page.';
+        container.appendChild(emptyMsg);
+        return;
+      }
+
+      checkedBoxes.forEach(cb => {
+        const row = cb.closest('.related-article-row');
+        const title = row ? (row.getAttribute('data-title') || cb.value) : cb.value;
+        const slug = cb.value;
+
+        const pill = document.createElement('div');
+        pill.className = 'inline-flex items-center gap-1.5 px-2.5 py-1 bg-indigo-950/70 border border-indigo-700/60 text-indigo-200 text-xs rounded-lg shadow-2xs';
+        pill.innerHTML = '<span class="max-w-[200px] sm:max-w-xs truncate font-medium" title="' + title + ' (' + slug + ')">' + title + '</span>' +
+          '<button type="button" class="btn-remove-blog-pill text-indigo-400 hover:text-rose-400 hover:bg-rose-950/50 rounded p-0.5 transition cursor-pointer" data-slug="' + slug + '" title="Remove article">' +
+          '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>' +
+          '</button>';
+
+        pill.querySelector('.btn-remove-blog-pill')?.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          cb.checked = false;
+          updateRelatedArticleRowState(row, false);
+          renderSelectedArticlePills();
+        });
+
+        container.appendChild(pill);
+      });
+    }
+
+    document.querySelectorAll('#related-articles-list input[name="related-blog-post"]').forEach(cb => {
+      cb.addEventListener('change', () => {
+        const row = cb.closest('.related-article-row');
+        updateRelatedArticleRowState(row, cb.checked);
+        renderSelectedArticlePills();
+      });
+    });
+
+    const relatedSearchInput = document.getElementById('related-articles-search');
+    const relatedSearchClear = document.getElementById('related-articles-search-clear');
+    if (relatedSearchInput) {
+      relatedSearchInput.addEventListener('input', () => {
+        const query = relatedSearchInput.value.trim().toLowerCase();
+        if (relatedSearchClear) relatedSearchClear.classList.toggle('hidden', !query);
+        let matchCount = 0;
+        document.querySelectorAll('#related-articles-list .related-article-row').forEach(row => {
+          const searchData = row.getAttribute('data-search') || '';
+          const matches = !query || searchData.includes(query);
+          row.style.display = matches ? '' : 'none';
+          if (matches) matchCount++;
+        });
+        const noMatch = document.getElementById('related-articles-no-match');
+        if (noMatch) noMatch.classList.toggle('hidden', matchCount > 0);
+      });
+    }
+    if (relatedSearchClear) {
+      relatedSearchClear.addEventListener('click', () => {
+        if (relatedSearchInput) {
+          relatedSearchInput.value = '';
+          relatedSearchInput.dispatchEvent(new Event('input'));
+          relatedSearchInput.focus();
+        }
+      });
+    }
+
+    const btnSaveRelated = document.getElementById('btn-save-related-articles');
+    if (btnSaveRelated) {
+      btnSaveRelated.addEventListener('click', async () => {
+        if (!currentAnimeId) {
+          window.showAdminToast('Please save Section 1 Core Details first.', 'error');
+          return;
+        }
+
+        const restoreBtn = setButtonLoading(btnSaveRelated, 'Saving Articles...');
+        try {
+          const checkedGenres = Array.from(formCore.querySelectorAll('input[name="genres"]:checked')).map(el => el.value);
+          const customGenres = (document.getElementById('core-custom-genres').value || '')
+            .split(',')
+            .map(s => s.trim())
+            .filter(Boolean);
+          const blogPostGenres = getTickedBlogSlugs();
+          const allGenres = Array.from(new Set([...checkedGenres, ...customGenres, ...blogPostGenres]));
+
+          const checkedVibes = Array.from(formCore.querySelectorAll('input[name="vibes"]:checked')).map(el => el.value);
+          const aliases = (document.getElementById('core-aliases').value || '')
+            .split(',')
+            .map(s => s.trim())
+            .filter(Boolean);
+
+          const typeVal = document.getElementById('core-type')?.value || 'series';
+          const isMovie = typeVal === 'movie';
+          const runtimeVal = document.getElementById('core-runtime')?.value;
+          const movieCanonVal = document.getElementById('core-movie-canon')?.value;
+          const episodesVal = isMovie ? (document.getElementById('core-episodes')?.value || '1') : document.getElementById('core-episodes')?.value;
+
+          const payload = {
+            id: currentAnimeId,
+            slug: (document.getElementById('core-slug')?.value || '').trim(),
+            title: (document.getElementById('core-title')?.value || '').trim(),
+            originalTitle: (document.getElementById('core-original-title')?.value || '').trim(),
+            type: typeVal,
+            runtime: isMovie && runtimeVal ? parseInt(runtimeVal, 10) : null,
+            movieCanonType: isMovie ? movieCanonVal : null,
+            year: document.getElementById('core-year')?.value,
+            episodes: episodesVal,
+            status: document.getElementById('core-status')?.value,
+            honestyStatus: document.getElementById('core-honesty')?.value,
+            personalRating: document.getElementById('core-rating')?.value,
+            ageRating: document.getElementById('core-age-rating')?.value,
+            poster: (document.getElementById('core-poster')?.value || '').trim(),
+            backdrop: (document.getElementById('core-backdrop')?.value || '').trim(),
+            synopsis: (document.getElementById('core-synopsis')?.value || '').trim(),
+            trending: document.getElementById('core-trending')?.checked ? 1 : 0,
+            communitySuggested: document.getElementById('core-community-suggested')?.checked ? 1 : 0,
+            aliases,
+            genres: allGenres,
+            vibes: checkedVibes
+          };
+
+          const res = await fetch('/api/admin/anime/core', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          const data = await res.json();
+          if (data.success) {
+            window.showAdminToast('Related blog articles saved successfully', 'success');
+            restoreBtn(true, 'Saved');
+          } else {
+            window.showAdminToast(data.error || 'Failed to save related blog articles', 'error');
+            restoreBtn();
+          }
+        } catch (err) {
+          window.showAdminToast('Network error: ' + err.message, 'error');
+          restoreBtn();
+        }
+      });
+    }
+
+    renderSelectedArticlePills();
+
     formChars.addEventListener('submit', async (e) => {
       e.preventDefault();
       if (isSavingChars) return;
@@ -4456,7 +4935,8 @@ if (standardSourceTypes.includes(rawSourceType)) {
         .split(',')
         .map(s => s.trim())
         .filter(Boolean);
-      const allGenres = Array.from(new Set([...checkedGenres, ...customGenres]));
+      const blogPostGenres = getTickedBlogSlugs();
+      const allGenres = Array.from(new Set([...checkedGenres, ...customGenres, ...blogPostGenres]));
       const checkedVibes = Array.from(formCore.querySelectorAll('input[name="vibes"]:checked')).map(el => el.value);
       const aliases = (document.getElementById('core-aliases').value || '')
         .split(',')
