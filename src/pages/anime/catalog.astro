@@ -221,6 +221,50 @@ const breadcrumbSchema = {
       ))}
     </div>
 
+    <!-- Pagination Controls (Hidden when total matching results are 24 or fewer) -->
+    <nav
+      id="pagination-container"
+      class="hidden mt-10 pt-8 border-t border-slate-200/80 flex flex-col sm:flex-row items-center justify-between gap-4"
+      aria-label="Anime catalog pagination"
+    >
+      <!-- "Showing X–Y of Z anime" counter -->
+      <p id="pagination-range-counter" class="text-xs sm:text-sm text-slate-600 font-normal order-2 sm:order-1">
+        Showing <span id="pagination-range-start" class="font-bold text-slate-900">1</span>–<span id="pagination-range-end" class="font-bold text-slate-900">24</span> of <span id="pagination-range-total" class="font-bold text-slate-900">0</span> anime
+      </p>
+
+      <!-- Page navigation buttons -->
+      <div class="flex items-center gap-1.5 order-1 sm:order-2 flex-wrap justify-center">
+        <!-- Previous Page Button -->
+        <button
+          type="button"
+          id="pagination-prev-btn"
+          class="inline-flex items-center gap-1 px-3 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 border border-slate-200 hover:border-slate-300 text-xs font-semibold shadow-2xs transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white disabled:hover:border-slate-200"
+          aria-label="Previous Page"
+        >
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+          </svg>
+          <span class="hidden sm:inline">Previous</span>
+        </button>
+
+        <!-- Numbered Page Buttons & Ellipsis Container -->
+        <div id="pagination-pages-list" class="flex items-center gap-1.5"></div>
+
+        <!-- Next Page Button -->
+        <button
+          type="button"
+          id="pagination-next-btn"
+          class="inline-flex items-center gap-1 px-3 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 border border-slate-200 hover:border-slate-300 text-xs font-semibold shadow-2xs transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white disabled:hover:border-slate-200"
+          aria-label="Next Page"
+        >
+          <span class="hidden sm:inline">Next</span>
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
+      </div>
+    </nav>
+
     <!-- Empty State Message when no cards match -->
     <div id="empty-state" class="hidden text-center py-20 bg-white rounded-3xl border border-slate-200 p-8 shadow-xs">
       <div class="w-16 h-16 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center mx-auto mb-4 text-slate-400">
@@ -253,9 +297,36 @@ const breadcrumbSchema = {
     pageTitle: v.pageTitle
   })))} />
 
-  <!-- CLIENT-SIDE FILTERING SCRIPT -->
+  <!-- CLIENT-SIDE FILTERING & PAGINATION SCRIPT -->
   <script>
     // @ts-nocheck
+    const STORAGE_KEY = 'chitra_catalog_state';
+    const NAV_AWAY_KEY = 'chitra_catalog_nav_away';
+    let isPopStateActive = false;
+
+    window.addEventListener('popstate', () => {
+      isPopStateActive = true;
+    });
+
+    if ('scrollRestoration' in history) {
+      try {
+        history.scrollRestoration = 'manual';
+      } catch (e) {}
+    }
+
+    function isBackForwardNavigation() {
+      try {
+        const navEntries = performance.getEntriesByType('navigation');
+        if (navEntries && navEntries.length > 0) {
+          return navEntries[0].type === 'back_forward';
+        }
+        if (window.performance && window.performance.navigation) {
+          return window.performance.navigation.type === 2;
+        }
+      } catch (e) {}
+      return false;
+    }
+
     function setupCatalogFiltering() {
       const grid = document.getElementById('anime-grid');
       if (!grid) return;
@@ -268,194 +339,568 @@ const breadcrumbSchema = {
         } catch (e) {}
       }
 
-    const cards = Array.from(document.querySelectorAll('#anime-grid > article'));
-    const tabBtns = Array.from(document.querySelectorAll('.filter-tab-btn'));
-    const formatBtns = Array.from(document.querySelectorAll('.format-tab-btn'));
-    const searchInput = document.getElementById('search-input');
-    const visibleCount = document.getElementById('visible-count');
-    const emptyState = document.getElementById('empty-state');
-    const clearFiltersBtn = document.getElementById('clear-filters-btn');
-    const activeVibePill = document.getElementById('active-vibe-pill');
-    const vibeBadgeContainer = document.getElementById('vibe-badge-container');
-    const vibeCategoryBadge = document.getElementById('vibe-category-badge');
-    const catalogH1 = document.getElementById('catalog-h1');
-    const catalogIntroDesc = document.getElementById('catalog-intro-desc');
-    const breadcrumbPageLabel = document.getElementById('breadcrumb-page-label');
+      const cards = Array.from(document.querySelectorAll('#anime-grid > article'));
+      const tabBtns = Array.from(document.querySelectorAll('.filter-tab-btn'));
+      const formatBtns = Array.from(document.querySelectorAll('.format-tab-btn'));
+      const searchInput = document.getElementById('search-input');
+      const visibleCount = document.getElementById('visible-count');
+      const emptyState = document.getElementById('empty-state');
+      const clearFiltersBtn = document.getElementById('clear-filters-btn');
+      const activeVibePill = document.getElementById('active-vibe-pill');
+      const vibeBadgeContainer = document.getElementById('vibe-badge-container');
+      const vibeCategoryBadge = document.getElementById('vibe-category-badge');
+      const catalogH1 = document.getElementById('catalog-h1');
+      const catalogIntroDesc = document.getElementById('catalog-intro-desc');
+      const breadcrumbPageLabel = document.getElementById('breadcrumb-page-label');
 
-    const urlParams = new URLSearchParams(window.location.search);
-    const initialFilter = urlParams.get('filter');
-    let currentFilter = ['watched', 'watchlist', 'reference', 'zero', 'community'].includes(initialFilter) ? initialFilter : 'all';
-    let currentFormat = ['series', 'movie'].includes(urlParams.get('format')) ? urlParams.get('format') : 'all';
-    let searchQuery = urlParams.get('q') || '';
-    let currentVibe = urlParams.get('vibe') || null;
-    if (searchInput && searchQuery) searchInput.value = searchQuery;
+      // Pagination DOM elements
+      const paginationContainer = document.getElementById('pagination-container');
+      const rangeStart = document.getElementById('pagination-range-start');
+      const rangeEnd = document.getElementById('pagination-range-end');
+      const rangeTotal = document.getElementById('pagination-range-total');
+      const prevBtn = document.getElementById('pagination-prev-btn');
+      const nextBtn = document.getElementById('pagination-next-btn');
+      const pagesList = document.getElementById('pagination-pages-list');
 
-    const defaultTitle = "Full Anime Catalog";
-    const defaultDesc = "Search and filter through every anime title on the site with chronological watch orders, filler percentage guides, and honest viewer notes.";
+      const ITEMS_PER_PAGE = 24;
 
-    function updateHeaderForVibe(vibe) {
-      if (vibe) {
-        if (catalogH1) catalogH1.textContent = vibe.h1;
-        if (catalogIntroDesc) catalogIntroDesc.textContent = vibe.intro;
-        if (vibeBadgeContainer && vibeCategoryBadge) {
-          vibeBadgeContainer.classList.remove('hidden');
-          vibeCategoryBadge.textContent = `${vibe.badge} • Curated Trope Guide`;
-        }
-        if (breadcrumbPageLabel) breadcrumbPageLabel.textContent = vibe.title;
-        document.title = `${vibe.pageTitle} — Chitra Sampada`;
-      } else {
-        if (catalogH1) catalogH1.textContent = defaultTitle;
-        if (catalogIntroDesc) catalogIntroDesc.textContent = defaultDesc;
-        if (vibeBadgeContainer) vibeBadgeContainer.classList.add('hidden');
-        if (breadcrumbPageLabel) breadcrumbPageLabel.textContent = "Full Catalog";
-        document.title = "Full Anime Catalog — Chitra Sampada";
+      const urlParams = new URLSearchParams(window.location.search);
+
+      // Check sessionStorage for saved state
+      let savedState = null;
+      try {
+        const raw = sessionStorage.getItem(STORAGE_KEY);
+        if (raw) savedState = JSON.parse(raw);
+      } catch (e) {}
+
+      // Check if this navigation is a browser Back/Forward return
+      let wasCardNav = false;
+      try {
+        wasCardNav = sessionStorage.getItem(NAV_AWAY_KEY) === 'true';
+        sessionStorage.removeItem(NAV_AWAY_KEY);
+      } catch (e) {}
+
+      const isBack = isPopStateActive || isBackForwardNavigation() || wasCardNav;
+      isPopStateActive = false;
+
+      // 1. Current Filter
+      const validFilters = ['watched', 'watchlist', 'reference', 'zero', 'community'];
+      let currentFilter = 'all';
+      if (urlParams.has('filter') && validFilters.includes(urlParams.get('filter'))) {
+        currentFilter = urlParams.get('filter');
+      } else if (isBack && savedState?.currentFilter && validFilters.includes(savedState.currentFilter)) {
+        currentFilter = savedState.currentFilter;
       }
-    }
 
-    function updateTabButtonUI() {
+      // 2. Current Format
+      const validFormats = ['series', 'movie'];
+      let currentFormat = 'all';
+      if (urlParams.has('format') && validFormats.includes(urlParams.get('format'))) {
+        currentFormat = urlParams.get('format');
+      } else if (isBack && savedState?.currentFormat && validFormats.includes(savedState.currentFormat)) {
+        currentFormat = savedState.currentFormat;
+      }
+
+      // 3. Current Vibe
+      let currentVibe = null;
+      if (urlParams.has('vibe')) {
+        currentVibe = urlParams.get('vibe');
+      } else if (isBack && savedState?.currentVibe) {
+        currentVibe = savedState.currentVibe;
+      }
+
+      // 4. Search Query
+      let searchQuery = '';
+      if (urlParams.has('q')) {
+        searchQuery = urlParams.get('q');
+      } else if (isBack && savedState?.searchQuery) {
+        searchQuery = savedState.searchQuery;
+      }
+      if (searchInput && searchQuery) {
+        searchInput.value = searchQuery;
+      }
+
+      // 5. Current Page
+      let currentPage = 1;
+      if (urlParams.has('page')) {
+        const p = parseInt(urlParams.get('page'), 10);
+        if (!isNaN(p) && p > 0) currentPage = p;
+      } else if (isBack && savedState?.currentPage) {
+        const p = parseInt(savedState.currentPage, 10);
+        if (!isNaN(p) && p > 0) currentPage = p;
+      }
+
+      const defaultTitle = "Full Anime Catalog";
+      const defaultDesc = "Search and filter through every anime title on the site with chronological watch orders, filler percentage guides, and honest viewer notes.";
+
+      function saveCatalogState() {
+        try {
+          const currentScrollY = window.scrollY || window.pageYOffset || document.documentElement.scrollTop || 0;
+          const state = {
+            currentPage,
+            scrollY: currentScrollY,
+            searchQuery: searchQuery || '',
+            currentFilter: currentFilter || 'all',
+            currentFormat: currentFormat || 'all',
+            currentVibe: currentVibe || null,
+            url: window.location.pathname + window.location.search,
+            timestamp: Date.now()
+          };
+          sessionStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        } catch (e) {}
+      }
+
+      function restoreScrollPosition(scrollY) {
+        if (typeof scrollY !== 'number' || scrollY <= 0) return;
+        try {
+          window.scrollTo({ top: scrollY, behavior: 'instant' });
+        } catch (e) {
+          window.scrollTo(0, scrollY);
+        }
+        requestAnimationFrame(() => {
+          try {
+            window.scrollTo({ top: scrollY, behavior: 'instant' });
+          } catch (e) {
+            window.scrollTo(0, scrollY);
+          }
+        });
+        setTimeout(() => {
+          try {
+            window.scrollTo({ top: scrollY, behavior: 'instant' });
+          } catch (e) {
+            window.scrollTo(0, scrollY);
+          }
+        }, 50);
+      }
+
+      function updateHeaderForVibe(vibe) {
+        if (vibe) {
+          if (catalogH1) catalogH1.textContent = vibe.h1;
+          if (catalogIntroDesc) catalogIntroDesc.textContent = vibe.intro;
+          if (vibeBadgeContainer && vibeCategoryBadge) {
+            vibeBadgeContainer.classList.remove('hidden');
+            vibeCategoryBadge.textContent = `${vibe.badge} • Curated Trope Guide`;
+          }
+          if (breadcrumbPageLabel) breadcrumbPageLabel.textContent = vibe.title;
+          document.title = `${vibe.pageTitle} — Chitra Sampada`;
+        } else {
+          if (catalogH1) catalogH1.textContent = defaultTitle;
+          if (catalogIntroDesc) catalogIntroDesc.textContent = defaultDesc;
+          if (vibeBadgeContainer) vibeBadgeContainer.classList.add('hidden');
+          if (breadcrumbPageLabel) breadcrumbPageLabel.textContent = "Full Catalog";
+          document.title = "Full Anime Catalog — Chitra Sampada";
+        }
+      }
+
+      function updateTabButtonUI() {
+        tabBtns.forEach((btn) => {
+          const filterVal = btn.getAttribute('data-filter');
+          if (filterVal === currentFilter) {
+            btn.classList.add('bg-[#6366F1]', 'text-white', 'shadow-sm', 'shadow-indigo-500/20');
+            btn.classList.remove('bg-white', 'text-slate-700');
+          } else {
+            btn.classList.remove('bg-[#6366F1]', 'text-white', 'shadow-sm', 'shadow-indigo-500/20');
+            btn.classList.add('bg-white', 'text-slate-700');
+          }
+        });
+      }
+
+      function updateFormatButtonUI() {
+        formatBtns.forEach((btn) => {
+          const formatVal = btn.getAttribute('data-format');
+          if (formatVal === currentFormat) {
+            btn.classList.add('bg-[#6366F1]', 'text-white', 'shadow-2xs');
+            btn.classList.remove('text-slate-700', 'hover:text-slate-900');
+          } else {
+            btn.classList.remove('bg-[#6366F1]', 'text-white', 'shadow-2xs');
+            btn.classList.add('text-slate-700', 'hover:text-slate-900');
+          }
+        });
+      }
+
+      function updateUrl(push = false) {
+        const params = new URLSearchParams();
+        if (currentFilter && currentFilter !== 'all') params.set('filter', currentFilter);
+        if (currentFormat && currentFormat !== 'all') params.set('format', currentFormat);
+        if (currentVibe) params.set('vibe', currentVibe);
+        if (searchQuery && searchQuery.trim()) params.set('q', searchQuery.trim());
+        if (currentPage > 1) params.set('page', String(currentPage));
+
+        const query = params.toString();
+        const newUrl = query ? `${window.location.pathname}?${query}` : window.location.pathname;
+        if (window.location.pathname + window.location.search !== newUrl) {
+          if (push) {
+            window.history.pushState({ page: currentPage, filter: currentFilter, format: currentFormat, vibe: currentVibe, q: searchQuery }, '', newUrl);
+          } else {
+            window.history.replaceState({ page: currentPage, filter: currentFilter, format: currentFormat, vibe: currentVibe, q: searchQuery }, '', newUrl);
+          }
+        }
+      }
+
+      function scrollGridIntoView() {
+        const target = document.getElementById('anime-grid');
+        if (target) {
+          const headerOffset = 90;
+          const elementPosition = target.getBoundingClientRect().top;
+          const offsetPosition = elementPosition + window.scrollY - headerOffset;
+          window.scrollTo({
+            top: offsetPosition,
+            behavior: 'smooth'
+          });
+        }
+      }
+
+      function getPageNumbers(total, current) {
+        if (total <= 7) {
+          const pages = [];
+          for (let i = 1; i <= total; i++) pages.push(i);
+          return pages;
+        }
+        if (current <= 4) {
+          return [1, 2, 3, 4, 5, '...', total];
+        }
+        if (current >= total - 3) {
+          return [1, '...', total - 4, total - 3, total - 2, total - 1, total];
+        }
+        return [1, '...', current - 1, current, current + 1, '...', total];
+      }
+
+      let currentMatchingCards = [];
+
+      function renderPaginationControls(totalMatches, totalPages) {
+        if (!paginationContainer) return;
+
+        if (totalMatches <= ITEMS_PER_PAGE || totalPages <= 1) {
+          paginationContainer.classList.add('hidden');
+          return;
+        }
+
+        paginationContainer.classList.remove('hidden');
+
+        const startIndex = (currentPage - 1) * ITEMS_PER_PAGE + 1;
+        const endIndex = Math.min(currentPage * ITEMS_PER_PAGE, totalMatches);
+
+        if (rangeStart) rangeStart.textContent = startIndex;
+        if (rangeEnd) rangeEnd.textContent = endIndex;
+        if (rangeTotal) rangeTotal.textContent = totalMatches;
+
+        if (prevBtn) {
+          prevBtn.disabled = (currentPage <= 1);
+        }
+        if (nextBtn) {
+          nextBtn.disabled = (currentPage >= totalPages);
+        }
+
+        if (pagesList) {
+          pagesList.innerHTML = '';
+          const pages = getPageNumbers(totalPages, currentPage);
+
+          pages.forEach((p) => {
+            if (p === '...') {
+              const span = document.createElement('span');
+              span.className = 'w-9 h-9 flex items-center justify-center text-xs text-slate-400 font-bold select-none';
+              span.textContent = '…';
+              pagesList.appendChild(span);
+            } else {
+              const btn = document.createElement('button');
+              btn.type = 'button';
+              btn.className = p === currentPage
+                ? 'w-9 h-9 rounded-xl bg-[#6366F1] text-white text-xs font-bold shadow-sm shadow-indigo-500/20 flex items-center justify-center transition-all cursor-pointer'
+                : 'w-9 h-9 rounded-xl bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 border border-slate-200 hover:border-slate-300 text-xs font-semibold shadow-2xs flex items-center justify-center transition-all cursor-pointer';
+              btn.textContent = p;
+              btn.setAttribute('aria-label', `Page ${p}`);
+              if (p === currentPage) btn.setAttribute('aria-current', 'page');
+              btn.onclick = () => {
+                goToPage(p, totalPages);
+              };
+              pagesList.appendChild(btn);
+            }
+          });
+        }
+      }
+
+      function applyPagination() {
+        const totalMatches = currentMatchingCards.length;
+        const totalPages = Math.ceil(totalMatches / ITEMS_PER_PAGE) || 1;
+
+        if (currentPage > totalPages) {
+          currentPage = totalPages;
+        }
+        if (currentPage < 1) {
+          currentPage = 1;
+        }
+
+        const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+        const endIndex = startIndex + ITEMS_PER_PAGE;
+
+        currentMatchingCards.forEach((card, idx) => {
+          if (idx >= startIndex && idx < endIndex) {
+            card.classList.remove('hidden');
+          } else {
+            card.classList.add('hidden');
+          }
+        });
+
+        renderPaginationControls(totalMatches, totalPages);
+      }
+
+      function goToPage(newPage, totalPages) {
+        if (newPage < 1 || newPage > totalPages || newPage === currentPage) return;
+        currentPage = newPage;
+        updateUrl(true);
+        applyPagination();
+        scrollGridIntoView();
+        saveCatalogState();
+      }
+
+      function filterCards(resetPage = false, pushHistory = false) {
+        if (resetPage) {
+          currentPage = 1;
+        }
+
+        const vibeObj = vibes.find((v) => v.id === currentVibe || v.slug === currentVibe);
+        updateHeaderForVibe(vibeObj);
+
+        currentMatchingCards = [];
+        cards.forEach((card) => {
+          const cardStatus = card.getAttribute('data-status');
+          const cardFiller = card.getAttribute('data-filler');
+          const cardType = card.getAttribute('data-type') || 'series';
+          const cardCommunity = card.getAttribute('data-community');
+          const cardVibes = (card.getAttribute('data-vibe') || '').split(' ');
+          const cardTitle = card.getAttribute('data-title') || '';
+
+          // Status match
+          let matchesTab = true;
+          if (currentFilter === 'watched') matchesTab = (cardStatus === 'watched');
+          if (currentFilter === 'watchlist') matchesTab = (cardStatus === 'watchlist');
+          if (currentFilter === 'reference') matchesTab = (cardStatus === 'reference');
+          if (currentFilter === 'zero') matchesTab = (cardFiller === 'zero');
+          if (currentFilter === 'community') matchesTab = (cardCommunity === 'true');
+
+          // Format match
+          let matchesFormat = true;
+          if (currentFormat === 'series') matchesFormat = (cardType === 'series');
+          if (currentFormat === 'movie') matchesFormat = (cardType === 'movie');
+
+          // Vibe match
+          let matchesVibe = true;
+          if (currentVibe) {
+            matchesVibe = cardVibes.includes(currentVibe) || (vibeObj && cardVibes.includes(vibeObj.id));
+          }
+
+          // Search match
+          let matchesSearch = true;
+          if (searchQuery.trim()) {
+            matchesSearch = cardTitle.includes(searchQuery.toLowerCase().trim());
+          }
+
+          if (matchesTab && matchesFormat && matchesVibe && matchesSearch) {
+            currentMatchingCards.push(card);
+          } else {
+            card.classList.add('hidden');
+          }
+        });
+
+        const totalMatches = currentMatchingCards.length;
+
+        if (visibleCount) {
+          visibleCount.textContent = totalMatches;
+        }
+
+        if (emptyState) {
+          if (totalMatches === 0) {
+            emptyState.classList.remove('hidden');
+          } else {
+            emptyState.classList.add('hidden');
+          }
+        }
+
+        // Update active vibe pill
+        if (activeVibePill) {
+          if (currentVibe) {
+            activeVibePill.classList.remove('hidden');
+            activeVibePill.textContent = `Vibe: ${vibeObj ? vibeObj.title : currentVibe} ✕`;
+          } else {
+            activeVibePill.classList.add('hidden');
+          }
+        }
+
+        applyPagination();
+        updateUrl(pushHistory);
+        saveCatalogState();
+      }
+
+      if (prevBtn) {
+        prevBtn.onclick = () => {
+          const totalPages = Math.ceil(currentMatchingCards.length / ITEMS_PER_PAGE) || 1;
+          goToPage(currentPage - 1, totalPages);
+        };
+      }
+
+      if (nextBtn) {
+        nextBtn.onclick = () => {
+          const totalPages = Math.ceil(currentMatchingCards.length / ITEMS_PER_PAGE) || 1;
+          goToPage(currentPage + 1, totalPages);
+        };
+      }
+
       tabBtns.forEach((btn) => {
-        const filterVal = btn.getAttribute('data-filter');
-        if (filterVal === currentFilter) {
-          btn.classList.add('bg-[#6366F1]', 'text-white', 'shadow-sm', 'shadow-indigo-500/20');
-          btn.classList.remove('bg-white', 'text-slate-700');
-        } else {
-          btn.classList.remove('bg-[#6366F1]', 'text-white', 'shadow-sm', 'shadow-indigo-500/20');
-          btn.classList.add('bg-white', 'text-slate-700');
-        }
+        btn.onclick = () => {
+          currentFilter = btn.getAttribute('data-filter') || 'all';
+          updateTabButtonUI();
+          filterCards(true, true);
+        };
       });
-    }
 
-    function updateFormatButtonUI() {
       formatBtns.forEach((btn) => {
-        const formatVal = btn.getAttribute('data-format');
-        if (formatVal === currentFormat) {
-          btn.classList.add('bg-[#6366F1]', 'text-white', 'shadow-2xs');
-          btn.classList.remove('text-slate-700', 'hover:text-slate-900');
-        } else {
-          btn.classList.remove('bg-[#6366F1]', 'text-white', 'shadow-2xs');
-          btn.classList.add('text-slate-700', 'hover:text-slate-900');
-        }
-      });
-    }
-
-    function filterCards() {
-      let count = 0;
-      const vibeObj = vibes.find((v) => v.id === currentVibe || v.slug === currentVibe);
-      updateHeaderForVibe(vibeObj);
-
-      cards.forEach((card) => {
-        const cardStatus = card.getAttribute('data-status');
-        const cardFiller = card.getAttribute('data-filler');
-        const cardType = card.getAttribute('data-type') || 'series';
-        const cardCommunity = card.getAttribute('data-community');
-        const cardVibes = (card.getAttribute('data-vibe') || '').split(' ');
-        const cardTitle = card.getAttribute('data-title') || '';
-
-        // Status match
-        let matchesTab = true;
-        if (currentFilter === 'watched') matchesTab = (cardStatus === 'watched');
-        if (currentFilter === 'watchlist') matchesTab = (cardStatus === 'watchlist');
-        if (currentFilter === 'reference') matchesTab = (cardStatus === 'reference');
-        if (currentFilter === 'zero') matchesTab = (cardFiller === 'zero');
-        if (currentFilter === 'community') matchesTab = (cardCommunity === 'true');
-
-        // Format match
-        let matchesFormat = true;
-        if (currentFormat === 'series') matchesFormat = (cardType === 'series');
-        if (currentFormat === 'movie') matchesFormat = (cardType === 'movie');
-
-        // Vibe match
-        let matchesVibe = true;
-        if (currentVibe) {
-          matchesVibe = cardVibes.includes(currentVibe) || (vibeObj && cardVibes.includes(vibeObj.id));
-        }
-
-        // Search match
-        let matchesSearch = true;
-        if (searchQuery.trim()) {
-          matchesSearch = cardTitle.includes(searchQuery.toLowerCase().trim());
-        }
-
-        if (matchesTab && matchesFormat && matchesVibe && matchesSearch) {
-          card.classList.remove('hidden');
-          count++;
-        } else {
-          card.classList.add('hidden');
-        }
+        btn.onclick = () => {
+          currentFormat = btn.getAttribute('data-format') || 'all';
+          updateFormatButtonUI();
+          filterCards(true, true);
+        };
       });
 
-      if (visibleCount) {
-        visibleCount.textContent = count;
-      }
-
-      if (emptyState) {
-        if (count === 0) {
-          emptyState.classList.remove('hidden');
-        } else {
-          emptyState.classList.add('hidden');
-        }
-      }
-
-      // Update active vibe pill
       if (activeVibePill) {
-        if (currentVibe) {
-          activeVibePill.classList.remove('hidden');
-          activeVibePill.textContent = `Vibe: ${vibeObj ? vibeObj.title : currentVibe} ✕`;
-        } else {
-          activeVibePill.classList.add('hidden');
+        activeVibePill.onclick = () => {
+          currentVibe = null;
+          filterCards(true, true);
+        };
+      }
+
+      if (searchInput) {
+        searchInput.oninput = (e) => {
+          searchQuery = e.target.value;
+          filterCards(true, false);
+        };
+      }
+
+      if (clearFiltersBtn) {
+        clearFiltersBtn.onclick = () => {
+          currentFilter = 'all';
+          currentFormat = 'all';
+          currentVibe = null;
+          searchQuery = '';
+          if (searchInput) searchInput.value = '';
+          updateTabButtonUI();
+          updateFormatButtonUI();
+          filterCards(true, true);
+        };
+      }
+
+      function handleCardLinkClick(e) {
+        const link = e.target.closest('a');
+        if (link) {
+          try {
+            sessionStorage.setItem(NAV_AWAY_KEY, 'true');
+          } catch (err) {}
+          saveCatalogState();
         }
+      }
+      grid.removeEventListener('click', handleCardLinkClick);
+      grid.addEventListener('click', handleCardLinkClick);
+
+      function handlePageHide() {
+        saveCatalogState();
+      }
+      window.removeEventListener('pagehide', handlePageHide);
+      window.addEventListener('pagehide', handlePageHide);
+
+      function handleBeforeUnload() {
+        saveCatalogState();
+      }
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.addEventListener('beforeunload', handleBeforeUnload);
+
+      function handleBeforePreparation() {
+        saveCatalogState();
+      }
+      document.removeEventListener('astro:before-preparation', handleBeforePreparation);
+      document.addEventListener('astro:before-preparation', handleBeforePreparation);
+
+      function handleDocClick(e) {
+        const anchor = e.target.closest('a');
+        if (anchor && !anchor.closest('#anime-grid')) {
+          try {
+            sessionStorage.removeItem(NAV_AWAY_KEY);
+          } catch (err) {}
+        }
+      }
+      document.removeEventListener('click', handleDocClick);
+      document.addEventListener('click', handleDocClick);
+
+      function handlePopState() {
+        const p = new URLSearchParams(window.location.search);
+        const f = p.get('filter');
+        currentFilter = validFilters.includes(f) ? f : 'all';
+        const fmt = p.get('format');
+        currentFormat = validFormats.includes(fmt) ? fmt : 'all';
+        currentVibe = p.get('vibe') || null;
+        searchQuery = p.get('q') || '';
+        if (searchInput) searchInput.value = searchQuery;
+        const pg = parseInt(p.get('page') || '1', 10);
+        currentPage = (!isNaN(pg) && pg > 0) ? pg : 1;
+
+        updateTabButtonUI();
+        updateFormatButtonUI();
+        filterCards(false, false);
+
+        // Restore scroll if popstate returns to a saved catalog position
+        let popStateSaved = null;
+        try {
+          const raw = sessionStorage.getItem(STORAGE_KEY);
+          if (raw) popStateSaved = JSON.parse(raw);
+        } catch (err) {}
+        if (popStateSaved && typeof popStateSaved.scrollY === 'number' && popStateSaved.scrollY > 0) {
+          const curUrl = window.location.pathname + window.location.search;
+          if (popStateSaved.url === curUrl) {
+            restoreScrollPosition(popStateSaved.scrollY);
+          }
+        }
+      }
+
+      window.removeEventListener('popstate', handlePopState);
+      window.addEventListener('popstate', handlePopState);
+
+      function handlePageShow(event) {
+        if (event.persisted) {
+          let psState = null;
+          try {
+            const raw = sessionStorage.getItem(STORAGE_KEY);
+            if (raw) psState = JSON.parse(raw);
+          } catch (err) {}
+          if (psState) {
+            if (psState.currentPage && psState.currentPage !== currentPage) {
+              currentPage = psState.currentPage;
+            }
+            if (psState.currentFilter) currentFilter = psState.currentFilter;
+            if (psState.currentFormat) currentFormat = psState.currentFormat;
+            if (psState.currentVibe !== undefined) currentVibe = psState.currentVibe;
+            if (psState.searchQuery !== undefined) {
+              searchQuery = psState.searchQuery;
+              if (searchInput) searchInput.value = searchQuery;
+            }
+            updateTabButtonUI();
+            updateFormatButtonUI();
+            filterCards(false, false);
+            if (typeof psState.scrollY === 'number' && psState.scrollY > 0) {
+              restoreScrollPosition(psState.scrollY);
+            }
+          }
+        }
+      }
+      window.removeEventListener('pageshow', handlePageShow);
+      window.addEventListener('pageshow', handlePageShow);
+
+      updateTabButtonUI();
+      updateFormatButtonUI();
+      filterCards(false, false);
+
+      // Restore scroll if returning via Back/Forward
+      if (isBack && savedState && typeof savedState.scrollY === 'number' && savedState.scrollY > 0) {
+        restoreScrollPosition(savedState.scrollY);
       }
     }
 
-    tabBtns.forEach((btn) => {
-      btn.onclick = () => {
-        currentFilter = btn.getAttribute('data-filter') || 'all';
-        updateTabButtonUI();
-        filterCards();
-      };
-    });
-
-    formatBtns.forEach((btn) => {
-      btn.onclick = () => {
-        currentFormat = btn.getAttribute('data-format') || 'all';
-        updateFormatButtonUI();
-        filterCards();
-      };
-    });
-
-    if (activeVibePill) {
-      activeVibePill.onclick = () => {
-        currentVibe = null;
-        window.history.pushState({}, '', '/anime/catalog');
-        filterCards();
-      };
-    }
-
-    if (searchInput) {
-      searchInput.oninput = (e) => {
-        searchQuery = e.target.value;
-        filterCards();
-      };
-    }
-
-    if (clearFiltersBtn) {
-      clearFiltersBtn.onclick = () => {
-        currentFilter = 'all';
-        currentFormat = 'all';
-        currentVibe = null;
-        searchQuery = '';
-        if (searchInput) searchInput.value = '';
-        window.history.pushState({}, '', '/anime/catalog');
-        updateTabButtonUI();
-        updateFormatButtonUI();
-        filterCards();
-      };
-    }
-
-    updateTabButtonUI();
-    updateFormatButtonUI();
-    filterCards();
-  }
-
-  document.addEventListener('astro:page-load', setupCatalogFiltering);
-</script>
+    document.addEventListener('astro:page-load', setupCatalogFiltering);
+  </script>

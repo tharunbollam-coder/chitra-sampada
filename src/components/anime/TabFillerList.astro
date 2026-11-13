@@ -59,7 +59,7 @@ if (hasBreakdownData && totalEpisodes > 0) {
     if (mixedCount > 0) {
       const canonParts: string[] = [];
       if (mangaCanonCount > 0) {
-        canonParts.push(`${mangaCanonCount} manga canon episode${mangaCanonCount === 1 ? '' : 's'}`);
+        canonParts.push(`${mangaCanonCount} canon episode${mangaCanonCount === 1 ? '' : 's'}`);
       }
       if (animeCanonCount > 0) {
         canonParts.push(`${animeCanonCount} anime canon episode${animeCanonCount === 1 ? '' : 's'}`);
@@ -81,13 +81,13 @@ if (hasBreakdownData && totalEpisodes > 0) {
     const breakdownParts: string[] = [];
     if (animeCanonCount > 0) {
       if (mangaCanonCount > 0) {
-        breakdownParts.push(`${mangaCanonCount} manga canon episode${mangaCanonCount === 1 ? '' : 's'}`);
+        breakdownParts.push(`${mangaCanonCount} canon episode${mangaCanonCount === 1 ? '' : 's'}`);
       }
       breakdownParts.push(`${animeCanonCount} anime canon episode${animeCanonCount === 1 ? '' : 's'}`);
     } else if (mangaCanonCount > 0) {
-      breakdownParts.push(`${mangaCanonCount} manga canon episode${mangaCanonCount === 1 ? '' : 's'}`);
+      breakdownParts.push(`${mangaCanonCount} canon episode${mangaCanonCount === 1 ? '' : 's'}`);
     } else if (canonEpisodes > 0) {
-      breakdownParts.push(`${canonEpisodes} primary canon episode${canonEpisodes === 1 ? '' : 's'}`);
+      breakdownParts.push(`${canonEpisodes} canon episode${canonEpisodes === 1 ? '' : 's'}`);
     }
 
     if (mixedCount > 0) {
@@ -120,15 +120,15 @@ const TYPE_CONFIG = {
     badge: 'bg-emerald-100 text-emerald-900 border-emerald-300',
     container: 'bg-slate-50/70 border-slate-200 text-slate-800',
     dot: 'bg-emerald-500',
-    label: 'Manga Canon',
-    tagline: 'Directly adapts the manga story, no additions.'
+    label: 'Canon',
+    tagline: 'Directly adapts the main story or source material.'
   },
   'Anime Canon': {
     badge: 'bg-sky-100 text-sky-900 border-sky-300',
     container: 'bg-slate-50/70 border-slate-200 text-slate-800',
     dot: 'bg-sky-500',
     label: 'Anime Canon',
-    tagline: 'Not from the manga, but still official/legitimate story content — usually written or approved by the original creator, not just filler padding.'
+    tagline: 'Anime-original episodes that expand the world or connect to the main storyline.'
   },
   'Mixed Canon/Filler': {
     badge: 'bg-purple-100 text-purple-900 border-purple-300',
@@ -189,7 +189,7 @@ function getEpisodeRanges(episodesStr: string | null | undefined): string[] {
                 {summaryBreakdownText} {summaryGuidanceText}
               </p>
               <p class="text-xs text-slate-500 font-normal leading-relaxed">
-                <strong class="text-slate-700 font-semibold">Manga Canon:</strong> adapts manga storyline. <strong class="text-slate-700 font-semibold">Anime Canon:</strong> creator-approved story content. <strong class="text-slate-700 font-semibold">Mixed:</strong> blends canon with anime padding. <strong class="text-slate-700 font-semibold">Filler:</strong> anime-original and skippable.
+                <strong class="text-slate-700 font-semibold">Canon:</strong> adapts the main storyline. <strong class="text-slate-700 font-semibold">Anime Canon:</strong> anime-original story content connected to the plot. <strong class="text-slate-700 font-semibold">Mixed:</strong> blends canon with filler scenes. <strong class="text-slate-700 font-semibold">Filler:</strong> standalone side stories, safe to skip.
               </p>
             </div>
           ) : (

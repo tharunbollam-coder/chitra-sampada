@@ -1324,13 +1324,13 @@ if (standardSourceTypes.includes(rawSourceType)) {
           </p>
 
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <!-- 1. Manga Canon -->
+            <!-- 1. Canon (Internal key remains mangaCanon) -->
             <div class="p-4 bg-slate-950 border border-slate-800 rounded-xl space-y-1.5">
               <div class="flex items-center justify-between">
                 <label class="block text-xs font-bold text-slate-200 uppercase tracking-wider" for="filler-manga-canon">
-                  Manga Canon
+                  Canon
                 </label>
-                <span class="text-[11px] text-emerald-400 font-medium">Adapts Manga Story (No Additions)</span>
+                <span class="text-[11px] text-emerald-400 font-medium">Adapts Main Story / Source Material</span>
               </div>
               <textarea
                 id="filler-manga-canon"
@@ -1347,7 +1347,7 @@ if (standardSourceTypes.includes(rawSourceType)) {
                 <label class="block text-xs font-bold text-slate-200 uppercase tracking-wider" for="filler-anime-canon">
                   Anime Canon
                 </label>
-                <span class="text-[11px] text-sky-400 font-medium">Official Story by Creator (Not in Manga)</span>
+                <span class="text-[11px] text-sky-400 font-medium">Anime-Original Story Connected to Plot</span>
               </div>
               <textarea
                 id="filler-anime-canon"
@@ -1483,7 +1483,7 @@ if (standardSourceTypes.includes(rawSourceType)) {
                     </span>
                     <input
                       type="text"
-                      value={c.name}
+                      value={c.name || ''}
                       placeholder="Character Name"
                       class="char-input-name flex-1 min-w-0 px-3 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-sm text-white font-medium"
                       required
@@ -1520,12 +1520,11 @@ if (standardSourceTypes.includes(rawSourceType)) {
                     placeholder="Role / Title (e.g. Elven Mage)"
                     class="char-input-role px-3 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-xs text-slate-200"
                   />
-                  <input
-                    type="text"
-                    value={c.commentary || ''}
+                  <textarea
+                    rows="2"
                     placeholder="Short commentary or key trait"
-                    class="char-input-commentary px-3 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-xs text-slate-200"
-                  />
+                    class="char-input-commentary px-3 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                  >{c.commentary || ''}</textarea>
                 </div>
               </div>
             ))}
@@ -2577,6 +2576,16 @@ if (standardSourceTypes.includes(rawSourceType)) {
   <!-- Client JavaScript for Interactivity, Dynamic Rows, Hydration, and Section Saves -->
   <script is:inline define:vars={{ initialAnime: anime, isNewRecord: isNew, platformAnimeList }}>
     let currentAnimeId = initialAnime?.id || null;
+
+    function escapeHtml(str) {
+      if (str === null || str === undefined) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
 
     // Checklist toggle collapse logic
     const btnToggleChecklist = document.getElementById('btn-toggle-checklist');
@@ -3791,7 +3800,7 @@ if (standardSourceTypes.includes(rawSourceType)) {
                 <span class="w-6 h-6 rounded bg-slate-800 text-slate-400 text-xs flex items-center justify-center font-bold shrink-0 char-rank-badge">
                   ${c.rank || idx + 1}
                 </span>
-                <input type="text" value="${c.name || ''}" placeholder="Character Name" class="char-input-name flex-1 min-w-0 px-3 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-sm text-white font-medium" required />
+                <input type="text" value="${escapeHtml(c.name || '')}" placeholder="Character Name" class="char-input-name flex-1 min-w-0 px-3 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-sm text-white font-medium" required />
                 <button type="button" class="sm:hidden btn-remove-char p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg shrink-0 cursor-pointer transition" title="Remove character">
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                 </button>
@@ -3809,10 +3818,17 @@ if (standardSourceTypes.includes(rawSourceType)) {
               </div>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              <input type="text" value="${c.role || ''}" placeholder="Role / Title (e.g. Elven Mage)" class="char-input-role px-3 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-xs text-slate-200" />
-              <input type="text" value="${c.commentary || ''}" placeholder="Short commentary or key trait" class="char-input-commentary px-3 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-xs text-slate-200" />
+              <input type="text" value="${escapeHtml(c.role || '')}" placeholder="Role / Title (e.g. Elven Mage)" class="char-input-role px-3 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-xs text-slate-200" />
+              <textarea rows="2" placeholder="Short commentary or key trait" class="char-input-commentary px-3 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500">${escapeHtml(c.commentary || '')}</textarea>
             </div>
           `;
+          const nameInput = div.querySelector('.char-input-name');
+          if (nameInput) nameInput.value = c.name || '';
+          const roleInput = div.querySelector('.char-input-role');
+          if (roleInput) roleInput.value = c.role || '';
+          const commentaryInput = div.querySelector('.char-input-commentary');
+          if (commentaryInput) commentaryInput.value = c.commentary || '';
+
           div.querySelectorAll('.btn-remove-char').forEach(btn => {
             btn.addEventListener('click', () => {
               div.remove();
@@ -4289,7 +4305,7 @@ if (standardSourceTypes.includes(rawSourceType)) {
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
           <input type="text" placeholder="Role / Title (e.g. Apprentice Mage)" class="char-input-role px-3 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-xs text-slate-200" />
-          <input type="text" placeholder="Short commentary or key trait" class="char-input-commentary px-3 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-xs text-slate-200" />
+          <textarea rows="2" placeholder="Short commentary or key trait" class="char-input-commentary px-3 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500"></textarea>
         </div>
       `;
       div.querySelectorAll('.btn-remove-char').forEach(btn => {
