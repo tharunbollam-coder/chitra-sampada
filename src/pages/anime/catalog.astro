@@ -183,29 +183,54 @@ const breadcrumbSchema = {
           </button>
         </div>
 
-        <!-- Format Filter Segment -->
-        <div class="flex items-center gap-1 self-start lg:self-auto bg-slate-100 p-1 rounded-full border border-slate-200/80 shadow-2xs shrink-0" id="format-tabs">
-          <button
-            type="button"
-            data-format="all"
-            class="format-tab-btn active px-3 py-1 rounded-full text-xs font-bold transition-all bg-[#6366F1] text-white shadow-2xs"
-          >
-            All Formats
-          </button>
-          <button
-            type="button"
-            data-format="series"
-            class="format-tab-btn px-3 py-1 rounded-full text-xs font-semibold text-slate-700 hover:text-slate-900 transition-all"
-          >
-            TV Series ({seriesCount})
-          </button>
-          <button
-            type="button"
-            data-format="movie"
-            class="format-tab-btn px-3 py-1 rounded-full text-xs font-semibold text-slate-700 hover:text-slate-900 transition-all"
-          >
-            Movies ({movieCount})
-          </button>
+        <!-- Controls: Format Filter Segment & Sort By Dropdown -->
+        <div class="flex flex-wrap items-center gap-2.5 self-start lg:self-auto shrink-0">
+          <!-- Format Filter Segment -->
+          <div class="flex items-center gap-1 bg-slate-100 p-1 rounded-full border border-slate-200/80 shadow-2xs shrink-0" id="format-tabs">
+            <button
+              type="button"
+              data-format="all"
+              class="format-tab-btn active px-3 py-1 rounded-full text-xs font-bold transition-all bg-[#6366F1] text-white shadow-2xs"
+            >
+              All Formats
+            </button>
+            <button
+              type="button"
+              data-format="series"
+              class="format-tab-btn px-3 py-1 rounded-full text-xs font-semibold text-slate-700 hover:text-slate-900 transition-all"
+            >
+              TV Series ({seriesCount})
+            </button>
+            <button
+              type="button"
+              data-format="movie"
+              class="format-tab-btn px-3 py-1 rounded-full text-xs font-semibold text-slate-700 hover:text-slate-900 transition-all"
+            >
+              Movies ({movieCount})
+            </button>
+          </div>
+
+          <!-- Sort Dropdown -->
+          <div class="relative inline-flex items-center">
+            <label for="catalog-sort-select" class="sr-only">Sort anime by</label>
+            <div class="relative">
+              <select
+                id="catalog-sort-select"
+                class="appearance-none bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 border border-slate-200/80 rounded-full pl-3.5 pr-8 py-1.5 text-xs font-semibold shadow-2xs transition-all focus:outline-none focus:ring-2 focus:ring-[#6366F1]/20 focus:border-[#6366F1] cursor-pointer"
+              >
+                <option value="default">Sort: Default</option>
+                <option value="rating-desc">Rating: High to Low</option>
+                <option value="rating-asc">Rating: Low to High</option>
+                <option value="episodes-desc">Episodes: High to Low</option>
+                <option value="episodes-asc">Episodes: Low to High</option>
+              </select>
+              <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2.5 text-slate-400">
+                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -340,8 +365,14 @@ const breadcrumbSchema = {
       }
 
       const cards = Array.from(document.querySelectorAll('#anime-grid > article'));
+      cards.forEach((card, idx) => {
+        if (!card.dataset.defaultIndex) {
+          card.dataset.defaultIndex = String(idx);
+        }
+      });
       const tabBtns = Array.from(document.querySelectorAll('.filter-tab-btn'));
       const formatBtns = Array.from(document.querySelectorAll('.format-tab-btn'));
+      const sortSelect = document.getElementById('catalog-sort-select');
       const searchInput = document.getElementById('search-input');
       const visibleCount = document.getElementById('visible-count');
       const emptyState = document.getElementById('empty-state');
@@ -409,7 +440,19 @@ const breadcrumbSchema = {
         currentVibe = savedState.currentVibe;
       }
 
-      // 4. Search Query
+      // 4. Current Sort
+      const validSorts = ['default', 'rating-desc', 'rating-asc', 'episodes-desc', 'episodes-asc'];
+      let currentSort = 'default';
+      if (urlParams.has('sort') && validSorts.includes(urlParams.get('sort'))) {
+        currentSort = urlParams.get('sort');
+      } else if (isBack && savedState?.currentSort && validSorts.includes(savedState.currentSort)) {
+        currentSort = savedState.currentSort;
+      }
+      if (sortSelect) {
+        sortSelect.value = currentSort;
+      }
+
+      // 5. Search Query
       let searchQuery = '';
       if (urlParams.has('q')) {
         searchQuery = urlParams.get('q');
@@ -420,7 +463,7 @@ const breadcrumbSchema = {
         searchInput.value = searchQuery;
       }
 
-      // 5. Current Page
+      // 6. Current Page
       let currentPage = 1;
       if (urlParams.has('page')) {
         const p = parseInt(urlParams.get('page'), 10);
@@ -443,6 +486,7 @@ const breadcrumbSchema = {
             currentFilter: currentFilter || 'all',
             currentFormat: currentFormat || 'all',
             currentVibe: currentVibe || null,
+            currentSort: currentSort || 'default',
             url: window.location.pathname + window.location.search,
             timestamp: Date.now()
           };
@@ -523,6 +567,7 @@ const breadcrumbSchema = {
         if (currentFilter && currentFilter !== 'all') params.set('filter', currentFilter);
         if (currentFormat && currentFormat !== 'all') params.set('format', currentFormat);
         if (currentVibe) params.set('vibe', currentVibe);
+        if (currentSort && currentSort !== 'default') params.set('sort', currentSort);
         if (searchQuery && searchQuery.trim()) params.set('q', searchQuery.trim());
         if (currentPage > 1) params.set('page', String(currentPage));
 
@@ -530,9 +575,9 @@ const breadcrumbSchema = {
         const newUrl = query ? `${window.location.pathname}?${query}` : window.location.pathname;
         if (window.location.pathname + window.location.search !== newUrl) {
           if (push) {
-            window.history.pushState({ page: currentPage, filter: currentFilter, format: currentFormat, vibe: currentVibe, q: searchQuery }, '', newUrl);
+            window.history.pushState({ page: currentPage, filter: currentFilter, format: currentFormat, vibe: currentVibe, sort: currentSort, q: searchQuery }, '', newUrl);
           } else {
-            window.history.replaceState({ page: currentPage, filter: currentFilter, format: currentFormat, vibe: currentVibe, q: searchQuery }, '', newUrl);
+            window.history.replaceState({ page: currentPage, filter: currentFilter, format: currentFormat, vibe: currentVibe, sort: currentSort, q: searchQuery }, '', newUrl);
           }
         }
       }
@@ -702,6 +747,62 @@ const breadcrumbSchema = {
           }
         });
 
+        // Apply selected sort order across all matching cards before pagination slicing
+        currentMatchingCards.sort((a, b) => {
+          const idxA = parseInt(a.dataset.defaultIndex, 10) || 0;
+          const idxB = parseInt(b.dataset.defaultIndex, 10) || 0;
+
+          if (currentSort === 'rating-desc' || currentSort === 'rating-asc') {
+            const rawA = a.getAttribute('data-rating');
+            const rawB = b.getAttribute('data-rating');
+            const valA = parseFloat(rawA);
+            const valB = parseFloat(rawB);
+            const hasA = !isNaN(valA) && valA > 0;
+            const hasB = !isNaN(valB) && valB > 0;
+
+            // Missing, null, or 0 ratings always appear at the bottom
+            if (!hasA && hasB) return 1;
+            if (hasA && !hasB) return -1;
+            if (!hasA && !hasB) return idxA - idxB;
+
+            if (currentSort === 'rating-desc') {
+              if (valB !== valA) return valB - valA;
+            } else {
+              if (valA !== valB) return valA - valB;
+            }
+            return idxA - idxB;
+          }
+
+          if (currentSort === 'episodes-desc' || currentSort === 'episodes-asc') {
+            const rawA = a.getAttribute('data-episodes');
+            const rawB = b.getAttribute('data-episodes');
+            const valA = parseInt(rawA, 10);
+            const valB = parseInt(rawB, 10);
+            const hasA = !isNaN(valA) && valA > 0;
+            const hasB = !isNaN(valB) && valB > 0;
+
+            // Missing, null, or 0 episode counts always appear at the bottom
+            if (!hasA && hasB) return 1;
+            if (hasA && !hasB) return -1;
+            if (!hasA && !hasB) return idxA - idxB;
+
+            if (currentSort === 'episodes-desc') {
+              if (valB !== valA) return valB - valA;
+            } else {
+              if (valA !== valB) return valA - valB;
+            }
+            return idxA - idxB;
+          }
+
+          // Default catalog order
+          return idxA - idxB;
+        });
+
+        // Reorder DOM nodes inside #anime-grid so CSS grid flow matches sorted order
+        currentMatchingCards.forEach((card) => {
+          grid.appendChild(card);
+        });
+
         const totalMatches = currentMatchingCards.length;
 
         if (visibleCount) {
@@ -768,6 +869,13 @@ const breadcrumbSchema = {
         };
       }
 
+      if (sortSelect) {
+        sortSelect.onchange = (e) => {
+          currentSort = e.target.value;
+          filterCards(true, true);
+        };
+      }
+
       if (searchInput) {
         searchInput.oninput = (e) => {
           searchQuery = e.target.value;
@@ -780,8 +888,10 @@ const breadcrumbSchema = {
           currentFilter = 'all';
           currentFormat = 'all';
           currentVibe = null;
+          currentSort = 'default';
           searchQuery = '';
           if (searchInput) searchInput.value = '';
+          if (sortSelect) sortSelect.value = 'default';
           updateTabButtonUI();
           updateFormatButtonUI();
           filterCards(true, true);
@@ -836,6 +946,9 @@ const breadcrumbSchema = {
         const fmt = p.get('format');
         currentFormat = validFormats.includes(fmt) ? fmt : 'all';
         currentVibe = p.get('vibe') || null;
+        const s = p.get('sort');
+        currentSort = validSorts.includes(s) ? s : 'default';
+        if (sortSelect) sortSelect.value = currentSort;
         searchQuery = p.get('q') || '';
         if (searchInput) searchInput.value = searchQuery;
         const pg = parseInt(p.get('page') || '1', 10);
@@ -876,6 +989,10 @@ const breadcrumbSchema = {
             if (psState.currentFilter) currentFilter = psState.currentFilter;
             if (psState.currentFormat) currentFormat = psState.currentFormat;
             if (psState.currentVibe !== undefined) currentVibe = psState.currentVibe;
+            if (psState.currentSort) {
+              currentSort = psState.currentSort;
+              if (sortSelect) sortSelect.value = currentSort;
+            }
             if (psState.searchQuery !== undefined) {
               searchQuery = psState.searchQuery;
               if (searchInput) searchInput.value = searchQuery;

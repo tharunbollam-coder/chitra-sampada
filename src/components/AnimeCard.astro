@@ -51,6 +51,11 @@ const rawRating = anime.personalRating ?? anime.personal_rating ?? anime.rating;
 const numRating = (rawRating !== null && rawRating !== undefined && rawRating !== '') ? Number(rawRating) : NaN;
 const hasRating = !isNaN(numRating) && numRating > 0;
 const formattedRating = hasRating ? (numRating % 1 === 0 ? numRating.toFixed(0) : numRating.toFixed(1)) : null;
+
+// Episode count for sorting
+const rawEpisodes = anime.episodes;
+const numEpisodes = (rawEpisodes !== null && rawEpisodes !== undefined && rawEpisodes !== '') ? Number(rawEpisodes) : NaN;
+const hasEpisodes = !isNaN(numEpisodes) && numEpisodes > 0;
 ---
 
 <article
@@ -61,6 +66,8 @@ const formattedRating = hasRating ? (numRating % 1 === 0 ? numRating.toFixed(0) 
   data-type={anime.type || 'series'}
   data-community={anime.communitySuggested ? 'true' : 'false'}
   data-title={anime.title.toLowerCase()}
+  data-rating={hasRating ? numRating : ''}
+  data-episodes={hasEpisodes ? numEpisodes : ''}
 >
   <!-- Mobile NEW Badge (Top-right of card container, reduced size) -->
   {isNew && (
