@@ -13,7 +13,7 @@ import TabUniverse from '../../../components/anime/TabUniverse.astro';
 import TabRecommendations from '../../../components/anime/TabRecommendations.astro';
 import StreamingAvailability from '../../../components/anime/StreamingAvailability.astro';
 import RelatedBlogPosts from '../../../components/RelatedBlogPosts.astro';
-import { getAnimeDetailBySlugOrId, getAvailableTabs, getDefaultTabKey, optimizeTmdbPoster } from '../../../lib/d1.js';
+import { getAnimeDetailBySlugOrId, getAvailableTabs, getDefaultTabKey, optimizeAniListPoster } from '../../../lib/d1.js';
 import { siteConfig } from '../../../config/site.js';
 import { buildAnimeTabMetadata } from '../../../lib/seo-utils.ts';
 import { formatSmartUpdatedDate } from '../../../lib/date-utils.ts';
@@ -278,8 +278,8 @@ if (anime.honestyStatus === 'watched' && anime.personalRating !== undefined && a
         <div class="md:col-span-4 max-w-[280px] mx-auto md:mx-0 w-full">
           <div class="relative aspect-[2/3] rounded-2xl overflow-hidden bg-slate-100 border border-slate-200/90 shadow-sm">
             <img
-              src={optimizeTmdbPoster(anime.poster, 'w500')}
-              srcset={`${optimizeTmdbPoster(anime.poster, 'w342')} 342w, ${optimizeTmdbPoster(anime.poster, 'w500')} 500w`}
+              src={optimizeAniListPoster(anime.poster, 'w500')}
+              srcset={`${optimizeAniListPoster(anime.poster, 'w342')} 342w, ${optimizeAniListPoster(anime.poster, 'w500')} 500w`}
               sizes="(min-width: 768px) 280px, min(100vw - 2rem, 280px)"
               alt={`${anime.title} poster`}
               width="280"

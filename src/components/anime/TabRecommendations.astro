@@ -1,6 +1,6 @@
 ---
 // src/components/anime/TabRecommendations.astro
-import { optimizeTmdbPoster } from '../../lib/image-utils.js';
+import { optimizeAniListPoster } from '../../lib/image-utils.js';
 import { isRecentlyAdded } from '../../lib/date-utils.ts';
 
 interface Props {
@@ -47,7 +47,7 @@ const recommendations = Array.isArray(anime.recommendations) ? anime.recommendat
                 <div class="relative shrink-0">
                   {rec.targetPoster ? (
                     <img
-                      src={optimizeTmdbPoster(rec.targetPoster, 'w185')}
+                      src={optimizeAniListPoster(rec.targetPoster, 'w185')}
                       alt={rec.targetTitle || 'Anime Poster'}
                       width="56"
                       height="80"

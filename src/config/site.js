@@ -41,8 +41,8 @@ export const siteConfig = {
   ],
 
   footer: {
-    tmdbAttribution:
-      "This product uses the TMDB API but is not endorsed or certified by TMDB. Posters and imagery are sourced via TMDB.",
+    aniListAttribution:
+      "Poster imagery is provided via AniList. This site is independent and is not endorsed by or affiliated with AniList.",
     copyrightNotice:
       "All titles, character names, imagery, and related media are copyright and trademarks of their respective owners and production studios.",
     editorialPledge:

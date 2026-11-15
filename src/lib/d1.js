@@ -222,7 +222,7 @@ function getRequestCache(contextOrLocals) {
   return target.__chitraRequestCache;
 }
 
-export { optimizeTmdbPoster } from './image-utils.js';
+export { optimizeAniListPoster, optimizePoster } from './image-utils.js';
 
 export function invalidateAnimeCache(contextOrLocals = null) {
   const reqCache = getRequestCache(contextOrLocals);

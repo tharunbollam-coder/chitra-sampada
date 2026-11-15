@@ -1,7 +1,7 @@
 ---
 // src/components/AnimeCard.astro
 import HonestyBadge from './HonestyBadge.astro';
-import { optimizeTmdbPoster } from '../lib/image-utils.js';
+import { optimizeAniListPoster } from '../lib/image-utils.js';
 import { isRecentlyAdded } from '../lib/date-utils.ts';
 
 interface Props {
@@ -101,7 +101,7 @@ const formattedRating = hasRating ? (numRating % 1 === 0 ? numRating.toFixed(0) 
     )}
     <div class="w-full h-full rounded-lg md:rounded-xl overflow-hidden bg-slate-100 border border-slate-200/80 shadow-2xs">
       <img
-        src={optimizeTmdbPoster(anime.poster, 'w342')}
+        src={optimizeAniListPoster(anime.poster, 'w342')}
         alt={`${anime.title} poster`}
         width="300"
         height="450"
