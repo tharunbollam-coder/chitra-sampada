@@ -210,24 +210,92 @@ const breadcrumbSchema = {
             </button>
           </div>
 
-          <!-- Sort Dropdown -->
-          <div class="relative inline-flex items-center">
-            <label for="catalog-sort-select" class="sr-only">Sort anime by</label>
-            <div class="relative">
-              <select
-                id="catalog-sort-select"
-                class="appearance-none bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 border border-slate-200/80 rounded-full pl-3.5 pr-8 py-1.5 text-xs font-semibold shadow-2xs transition-all focus:outline-none focus:ring-2 focus:ring-[#6366F1]/20 focus:border-[#6366F1] cursor-pointer"
-              >
-                <option value="default">Sort: Default</option>
-                <option value="rating-desc">Rating: High to Low</option>
-                <option value="rating-asc">Rating: Low to High</option>
-                <option value="episodes-desc">Episodes: High to Low</option>
-                <option value="episodes-asc">Episodes: Low to High</option>
-              </select>
-              <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2.5 text-slate-400">
-                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                </svg>
+          <!-- Custom Styled Sort Dropdown -->
+          <div class="relative inline-flex items-center" id="catalog-sort-container">
+            <button
+              type="button"
+              id="catalog-sort-trigger"
+              aria-haspopup="listbox"
+              aria-expanded="false"
+              class="flex items-center gap-2 bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 border border-slate-200/80 rounded-full pl-3.5 pr-2.5 py-1.5 text-xs font-semibold shadow-2xs transition-all focus:outline-none focus:ring-2 focus:ring-[#6366F1]/20 focus:border-[#6366F1] cursor-pointer shrink-0"
+            >
+              <svg class="w-3.5 h-3.5 text-slate-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6h18M6 12h12M10 18h4" />
+              </svg>
+              <span id="sort-dropdown-label">Sort: Default</span>
+              <svg id="sort-dropdown-chevron" class="w-3.5 h-3.5 text-slate-400 transition-transform duration-200 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+
+            <!-- Floating Popover Menu -->
+            <div
+              id="catalog-sort-menu"
+              role="listbox"
+              aria-label="Sort anime by"
+              tabindex="-1"
+              class="hidden absolute left-0 sm:left-auto sm:right-0 top-full mt-2 z-50 w-52 p-1.5 bg-white border border-slate-200 rounded-2xl shadow-lg ring-1 ring-slate-900/5 focus:outline-none"
+            >
+              <div class="space-y-0.5">
+                <button
+                  type="button"
+                  role="option"
+                  data-sort-val="default"
+                  class="sort-menu-item w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer text-left"
+                >
+                  <span>Sort: Default</span>
+                  <svg class="sort-check-icon w-3.5 h-3.5 text-[#6366F1] hidden shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                </button>
+
+                <button
+                  type="button"
+                  role="option"
+                  data-sort-val="rating-desc"
+                  class="sort-menu-item w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer text-left"
+                >
+                  <span>Rating: High to Low</span>
+                  <svg class="sort-check-icon w-3.5 h-3.5 text-[#6366F1] hidden shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                </button>
+
+                <button
+                  type="button"
+                  role="option"
+                  data-sort-val="rating-asc"
+                  class="sort-menu-item w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer text-left"
+                >
+                  <span>Rating: Low to High</span>
+                  <svg class="sort-check-icon w-3.5 h-3.5 text-[#6366F1] hidden shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                </button>
+
+                <button
+                  type="button"
+                  role="option"
+                  data-sort-val="episodes-desc"
+                  class="sort-menu-item w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer text-left"
+                >
+                  <span>Episodes: High to Low</span>
+                  <svg class="sort-check-icon w-3.5 h-3.5 text-[#6366F1] hidden shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                </button>
+
+                <button
+                  type="button"
+                  role="option"
+                  data-sort-val="episodes-asc"
+                  class="sort-menu-item w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer text-left"
+                >
+                  <span>Episodes: Low to High</span>
+                  <svg class="sort-check-icon w-3.5 h-3.5 text-[#6366F1] hidden shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                </button>
               </div>
             </div>
           </div>
@@ -372,7 +440,12 @@ const breadcrumbSchema = {
       });
       const tabBtns = Array.from(document.querySelectorAll('.filter-tab-btn'));
       const formatBtns = Array.from(document.querySelectorAll('.format-tab-btn'));
-      const sortSelect = document.getElementById('catalog-sort-select');
+      const sortContainer = document.getElementById('catalog-sort-container');
+      const sortTrigger = document.getElementById('catalog-sort-trigger');
+      const sortMenu = document.getElementById('catalog-sort-menu');
+      const sortChevron = document.getElementById('sort-dropdown-chevron');
+      const sortDropdownLabel = document.getElementById('sort-dropdown-label');
+      const sortMenuItems = Array.from(document.querySelectorAll('.sort-menu-item'));
       const searchInput = document.getElementById('search-input');
       const visibleCount = document.getElementById('visible-count');
       const emptyState = document.getElementById('empty-state');
@@ -383,6 +456,58 @@ const breadcrumbSchema = {
       const catalogH1 = document.getElementById('catalog-h1');
       const catalogIntroDesc = document.getElementById('catalog-intro-desc');
       const breadcrumbPageLabel = document.getElementById('breadcrumb-page-label');
+
+      const sortLabels = {
+        'default': 'Sort: Default',
+        'rating-desc': 'Rating: High to Low',
+        'rating-asc': 'Rating: Low to High',
+        'episodes-desc': 'Episodes: High to Low',
+        'episodes-asc': 'Episodes: Low to High'
+      };
+
+      function updateSortUI() {
+        if (sortDropdownLabel) {
+          sortDropdownLabel.textContent = sortLabels[currentSort] || 'Sort: Default';
+        }
+        sortMenuItems.forEach((item) => {
+          const val = item.getAttribute('data-sort-val');
+          const checkIcon = item.querySelector('.sort-check-icon');
+          if (val === currentSort) {
+            item.classList.add('text-[#6366F1]', 'bg-indigo-50/70', 'font-semibold');
+            item.classList.remove('text-slate-700', 'font-medium');
+            if (checkIcon) checkIcon.classList.remove('hidden');
+            item.setAttribute('aria-selected', 'true');
+          } else {
+            item.classList.remove('text-[#6366F1]', 'bg-indigo-50/70', 'font-semibold');
+            item.classList.add('text-slate-700', 'font-medium');
+            if (checkIcon) checkIcon.classList.add('hidden');
+            item.setAttribute('aria-selected', 'false');
+          }
+        });
+      }
+
+      function openSortMenu() {
+        if (!sortMenu || !sortTrigger || !sortChevron) return;
+        sortMenu.classList.remove('hidden');
+        sortChevron.classList.add('rotate-180');
+        sortTrigger.setAttribute('aria-expanded', 'true');
+      }
+
+      function closeSortMenu() {
+        if (!sortMenu || !sortTrigger || !sortChevron) return;
+        sortMenu.classList.add('hidden');
+        sortChevron.classList.remove('rotate-180');
+        sortTrigger.setAttribute('aria-expanded', 'false');
+      }
+
+      function toggleSortMenu() {
+        if (!sortMenu) return;
+        if (sortMenu.classList.contains('hidden')) {
+          openSortMenu();
+        } else {
+          closeSortMenu();
+        }
+      }
 
       // Pagination DOM elements
       const paginationContainer = document.getElementById('pagination-container');
@@ -448,9 +573,7 @@ const breadcrumbSchema = {
       } else if (isBack && savedState?.currentSort && validSorts.includes(savedState.currentSort)) {
         currentSort = savedState.currentSort;
       }
-      if (sortSelect) {
-        sortSelect.value = currentSort;
-      }
+      updateSortUI();
 
       // 5. Search Query
       let searchQuery = '';
@@ -869,12 +992,44 @@ const breadcrumbSchema = {
         };
       }
 
-      if (sortSelect) {
-        sortSelect.onchange = (e) => {
-          currentSort = e.target.value;
-          filterCards(true, true);
+      if (sortTrigger) {
+        sortTrigger.onclick = (e) => {
+          e.stopPropagation();
+          toggleSortMenu();
         };
       }
+
+      sortMenuItems.forEach((item) => {
+        item.onclick = (e) => {
+          e.stopPropagation();
+          const val = item.getAttribute('data-sort-val');
+          if (val && validSorts.includes(val)) {
+            closeSortMenu();
+            if (currentSort !== val) {
+              currentSort = val;
+              updateSortUI();
+              filterCards(true, true);
+            }
+          }
+        };
+      });
+
+      function handleSortDocClick(e) {
+        if (sortContainer && !sortContainer.contains(e.target)) {
+          closeSortMenu();
+        }
+      }
+      document.removeEventListener('click', handleSortDocClick);
+      document.addEventListener('click', handleSortDocClick);
+
+      function handleSortKeydown(e) {
+        if (e.key === 'Escape') {
+          closeSortMenu();
+          if (sortTrigger) sortTrigger.focus();
+        }
+      }
+      document.removeEventListener('keydown', handleSortKeydown);
+      document.addEventListener('keydown', handleSortKeydown);
 
       if (searchInput) {
         searchInput.oninput = (e) => {
@@ -891,7 +1046,7 @@ const breadcrumbSchema = {
           currentSort = 'default';
           searchQuery = '';
           if (searchInput) searchInput.value = '';
-          if (sortSelect) sortSelect.value = 'default';
+          updateSortUI();
           updateTabButtonUI();
           updateFormatButtonUI();
           filterCards(true, true);
@@ -948,7 +1103,7 @@ const breadcrumbSchema = {
         currentVibe = p.get('vibe') || null;
         const s = p.get('sort');
         currentSort = validSorts.includes(s) ? s : 'default';
-        if (sortSelect) sortSelect.value = currentSort;
+        updateSortUI();
         searchQuery = p.get('q') || '';
         if (searchInput) searchInput.value = searchQuery;
         const pg = parseInt(p.get('page') || '1', 10);
@@ -991,7 +1146,7 @@ const breadcrumbSchema = {
             if (psState.currentVibe !== undefined) currentVibe = psState.currentVibe;
             if (psState.currentSort) {
               currentSort = psState.currentSort;
-              if (sortSelect) sortSelect.value = currentSort;
+              updateSortUI();
             }
             if (psState.searchQuery !== undefined) {
               searchQuery = psState.searchQuery;
