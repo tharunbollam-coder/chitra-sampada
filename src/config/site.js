@@ -14,7 +14,7 @@ export const siteConfig = {
   description:
     "Honest anime companion featuring curated watch orders, spoiler-free filler lists, and episode guides across popular series, movies, and franchises.",
   contactEmail: "contact@chitrasampada.com",
-  policyLastUpdated: "September 15, 2026",
+  policyLastUpdated: "November 16, 2026",
 
   navLinks: [
     {
