@@ -547,13 +547,15 @@ if (anime.honestyStatus === 'watched' && anime.personalRating !== undefined && a
           <div class="flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar py-0.5" id="anime-tabs-nav">
             {availableTabs.map((tab) => {
               const isActive = tab.key === activeTab?.key;
-              const tabUrl = `/anime/${anime.slug}/${tab.key}`;
+              const isDefault = tab.key === 'review' || (!availableTabs.some((t: any) => t.key === 'review') && tab.key === defaultTabKey);
+              const tabUrl = isDefault ? `/anime/${anime.slug}` : `/anime/${anime.slug}/${tab.key}`;
 
               return (
                 <a
                   href={tabUrl}
                   data-tab-link={tab.key}
                   data-astro-history="replace"
+                  aria-current={isActive ? 'page' : undefined}
                   class:list={[
                     'anime-tab-link px-3.5 sm:px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap transition-all duration-150 shrink-0 select-none flex items-center gap-1.5 cursor-pointer',
                     isActive

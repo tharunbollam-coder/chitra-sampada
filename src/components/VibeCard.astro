@@ -91,6 +91,9 @@ const style = (vibeStyles as Record<string, any>)[themeKey] || (vibeStyles as Re
 const displayTitle = vibe.title || vibe.name;
 const displayBadge = vibe.badge || vibe.group_label || vibe.groupLabel || 'CURATED';
 const Component = href ? 'a' : 'button';
+
+const animeCount = Number(vibe.animeCount ?? vibe.anime_count ?? 0);
+const countBadgeText = animeCount > 0 ? `${animeCount} Anime` : 'Curated Picks';
 ---
 
 <Component
@@ -130,7 +133,7 @@ const Component = href ? 'a' : 'button';
         </svg>
       </span>
       <span class="text-[10px] px-2 py-0.5 rounded-md bg-slate-100 border border-slate-200/80 text-slate-600 font-medium">
-        Curated Picks
+        {countBadgeText}
       </span>
     </div>
 

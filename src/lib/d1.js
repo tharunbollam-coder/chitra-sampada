@@ -1528,7 +1528,14 @@ export async function getAllVibes(contextOrLocals = null) {
   }
 
   const db = await getDatabase(contextOrLocals);
-  const rows = await db.query(`SELECT * FROM vibes ORDER BY name ASC`);
+  const rows = await db.query(`
+    SELECT v.*, COUNT(DISTINCT a.id) as anime_count
+    FROM vibes v
+    LEFT JOIN anime_vibes av ON v.id = av.vibe_id
+    LEFT JOIN anime a ON av.anime_id = a.id
+    GROUP BY v.id
+    ORDER BY v.name ASC
+  `);
   const formatted = rows.map(r => ({
     id: r.id,
     slug: r.slug,
@@ -1548,6 +1555,8 @@ export async function getAllVibes(contextOrLocals = null) {
     pageTitle: `${r.name} Anime — Honest Watch Orders & Episode Guides`,
     isActive: Boolean(r.is_active),
     is_active: r.is_active,
+    animeCount: Number(r.anime_count || 0),
+    anime_count: Number(r.anime_count || 0),
     createdAt: r.created_at,
     updatedAt: r.updated_at
   }));
