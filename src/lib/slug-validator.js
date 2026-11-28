@@ -2,6 +2,8 @@
 // Standardized slug & internal ID validation and sanitization.
 
 export const SLUG_REGEX = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+export const RESERVED_ANIME_SLUGS = new Set(['catalog']);
+export const RESERVED_ANIME_SLUG_MESSAGE = 'This URL slug is reserved for an existing anime route.';
 
 /**
  * Trims leading/trailing whitespace and converts value to lowercase.

@@ -1,5 +1,6 @@
 ---
 // src/layouts/AdminLayout.astro
+import { siteConfig } from '../config/site.js';
 import '../styles/global.css';
 
 interface Props {
@@ -9,8 +10,6 @@ interface Props {
 
 const { title, activeSection = 'anime' } = Astro.props;
 
-// Disable all caching for admin dashboard pages
-Astro.response.headers.set('Cache-Control', 'private, no-cache, no-store, must-revalidate');
 ---
 
 <!DOCTYPE html>
@@ -47,7 +46,7 @@ Astro.response.headers.set('Cache-Control', 'private, no-cache, no-store, must-r
           <div class="flex items-center gap-6">
             <a href="/admin" class="flex items-center gap-2.5 text-white font-bold text-lg font-heading tracking-tight hover:opacity-90">
               <img
-                src="/cs.webp"
+                src={siteConfig.logoUrl}
                 alt="Chitra Sampada Logo"
                 width="32"
                 height="32"
@@ -212,11 +211,12 @@ Astro.response.headers.set('Cache-Control', 'private, no-cache, no-store, must-r
 
         toast.innerHTML = `
           ${icon}
-          <div class="flex-1 font-medium">${message}</div>
+          <div class="flex-1 font-medium" data-toast-message></div>
           <button type="button" class="text-slate-400 hover:text-white" onclick="this.parentElement.remove()">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
           </button>
         `;
+        toast.querySelector('[data-toast-message]').textContent = message;
 
         container.appendChild(toast);
         requestAnimationFrame(() => {

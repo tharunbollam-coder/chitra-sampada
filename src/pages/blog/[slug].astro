@@ -2,9 +2,12 @@
 // src/pages/blog/[slug].astro
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { getBlogPostBySlug } from '../../lib/d1.js';
+import { publicDataUnavailable } from '../../lib/public-response.js';
+import { serializeScriptJson } from '../../lib/script-json.ts';
 import { siteConfig } from '../../config/site.js';
-import { marked } from 'marked';
+import { renderArticleMarkdown } from '../../lib/markdown.js';
 import { buildBlogPostMetadata } from '../../lib/seo-utils.ts';
+import { resolveHttpImageUrl } from '../../lib/image-utils.js';
 
 export const prerender = false;
 
@@ -12,19 +15,20 @@ const { slug } = Astro.params;
 if (!slug) {
   return new Response('Blog post not found', { status: 404 });
 }
-const post = await getBlogPostBySlug(slug, { includeDrafts: false }, Astro.locals);
+const post = await getBlogPostBySlug(slug, { includeDrafts: false, strictReads: true }, Astro.locals)
+  .catch(publicDataUnavailable);
+if (post instanceof Response) return post;
 
 if (!post) {
   return new Response('Blog post not found', { status: 404 });
 }
 
-Astro.response.headers.set('Cache-Control', 'public, max-age=0, must-revalidate, s-maxage=86400');
-
-// Compile markdown into clean HTML
-const rawHtml = await marked.parse(post.content);
+const siteOrigin = (siteConfig.siteUrl || (Astro.site ? Astro.site.origin : 'https://chitrasampada.com')).replace(/\/+$/, '');
+const canonicalUrl = `${siteOrigin}/blog/${post.slug}`;
+const coverImageUrl = resolveHttpImageUrl(post.coverImage, siteOrigin);
 
 // Transform Key Takeaways section into a clean, scannable editorial summary box
-const renderedHtml = (typeof rawHtml === 'string' ? rawHtml : '').replace(
+const renderedHtml = renderArticleMarkdown(post.content, canonicalUrl).replace(
   /<h[23][^>]*>\s*Key\s+takeaways\s*<\/h[23]>\s*<ul>([\s\S]*?)<\/ul>/i,
   (_match: string, listContent: string) => `
     <section class="key-takeaways-box" aria-label="Key Takeaways">
@@ -48,9 +52,6 @@ const formattedPubDate = !isNaN(pubDateObj.getTime())
   : post.publishedDate;
 
 const { pageTitle, pageDescription } = buildBlogPostMetadata(post);
-
-const siteOrigin = (siteConfig.siteUrl || (Astro.site ? Astro.site.origin : 'https://chitrasampada.com')).replace(/\/+$/, '');
-const canonicalUrl = `${siteOrigin}/blog/${post.slug}`;
 
 const breadcrumbSchema = {
   "@context": "https://schema.org",
@@ -82,21 +83,21 @@ const articleSchema = {
   "@type": "Article",
   "headline": post.title,
   "description": pageDescription,
-  ...(post.coverImage ? { "image": post.coverImage } : {}),
+  ...(coverImageUrl ? { "image": coverImageUrl } : {}),
   "datePublished": post.publishedDate,
   "dateModified": post.lastUpdated || post.publishedDate,
   "author": {
-    "@type": "Person",
-    "name": "Chitra Sampada Editorial",
-    "url": `${siteOrigin}/about`
+    "@type": "Organization",
+    "name": siteConfig.name,
+    "url": siteOrigin
   },
   "publisher": {
     "@type": "Organization",
-    "name": "Chitra Sampada",
+    "name": siteConfig.name,
     "url": siteOrigin,
     "logo": {
       "@type": "ImageObject",
-      "url": `${siteOrigin}/cs.webp`
+      "url": new URL(siteConfig.logoUrl, siteOrigin).href
     }
   },
   "mainEntityOfPage": {
@@ -106,12 +107,12 @@ const articleSchema = {
 };
 ---
 
-<BaseLayout title={pageTitle} description={pageDescription} canonicalUrl={canonicalUrl} ogType="article" ogImage={post.coverImage || undefined}>
+<BaseLayout title={pageTitle} description={pageDescription} canonicalUrl={canonicalUrl} ogType="article" ogImage={coverImageUrl} ogImageAlt={post.title}>
   <Fragment slot="structured-data">
-    <script type="application/ld+json" set:html={JSON.stringify(breadcrumbSchema)} />
-    <script type="application/ld+json" set:html={JSON.stringify(articleSchema)} />
+    <script type="application/ld+json" set:html={serializeScriptJson(breadcrumbSchema)} />
+    <script type="application/ld+json" set:html={serializeScriptJson(articleSchema)} />
   </Fragment>
-  <main class="min-h-screen py-10 sm:py-14 lg:py-16">
+  <div class="min-h-screen py-10 sm:py-14 lg:py-16">
     <div class="max-w-[68ch] mx-auto px-5 sm:px-6">
       
       <!-- Minimalist Navigation Back Link -->
@@ -236,5 +237,5 @@ const articleSchema = {
       </footer>
 
     </div>
-  </main>
+  </div>
 </BaseLayout>

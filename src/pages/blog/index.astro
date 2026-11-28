@@ -3,13 +3,13 @@
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import BlogPostCard from '../../components/BlogPostCard.astro';
 import { getAllBlogPosts } from '../../lib/d1.js';
+import { publicDataUnavailable } from '../../lib/public-response.js';
 import { siteConfig } from '../../config/site.js';
 
 export const prerender = false;
 
-const posts = await getAllBlogPosts(Astro.locals);
-
-Astro.response.headers.set('Cache-Control', 'public, max-age=0, must-revalidate, s-maxage=86400');
+const posts = await getAllBlogPosts({ strictReads: true }, Astro.locals).catch(publicDataUnavailable);
+if (posts instanceof Response) return posts;
 
 const pageTitle = 'Anime Articles, Guides & Editorial Breakdowns';
 const pageDescription = 'Read honest anime articles, pacing breakdowns, watch order essays, and companion guides written with transparent, no-fluff editorial insight.';

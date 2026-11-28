@@ -1,15 +1,16 @@
 // src/pages/api/search.json.js
 import { getCompactAnimeList, getAllBlogPosts, getDatabase } from '../../lib/d1.js';
+import { SEARCH_INDEX_TTL_SECONDS } from '../../lib/search-cache.js';
 
 export const prerender = false;
 
 export async function GET({ locals }) {
   try {
-    const db = await getDatabase(locals);
+    const db = await getDatabase(locals, { strictReads: true });
     const [animeList, blogPosts, aliasesRows] = await Promise.all([
-      getCompactAnimeList(locals),
-      getAllBlogPosts(locals),
-      db.query('SELECT anime_id, alias FROM anime_aliases').catch(() => [])
+      getCompactAnimeList(locals, { forSearch: true }),
+      getAllBlogPosts({ strictReads: true }, locals),
+      db.query('SELECT anime_id, alias FROM anime_aliases')
     ]);
 
     const aliasesMap = new Map();
@@ -53,16 +54,17 @@ export async function GET({ locals }) {
         status: 200,
         headers: {
           'Content-Type': 'application/json; charset=utf-8',
-          'Cache-Control': 'public, max-age=60, s-maxage=300'
+          'Cache-Control': 'public, max-age=0, must-revalidate, s-maxage=' + SEARCH_INDEX_TTL_SECONDS
         }
       }
     );
   } catch (err) {
+    console.error('Failed to build search index:', err);
     return new Response(
-      JSON.stringify({ error: 'Failed to build search index', details: err?.message || String(err) }),
+      JSON.stringify({ error: 'Search temporarily unavailable' }),
       {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' }
+        status: 503,
+        headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }
       }
     );
   }

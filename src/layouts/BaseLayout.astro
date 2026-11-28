@@ -6,12 +6,14 @@ import Footer from '../components/Footer.astro';
 import CookieConsent from '../components/CookieConsent.astro';
 import WellnessNote from '../components/WellnessNote.astro';
 import { siteConfig } from '../config/site.js';
+import { resolveHttpImageUrl } from '../lib/image-utils.js';
 import '../styles/global.css';
 
 interface Props {
   title?: string;
   description?: string;
   ogImage?: string;
+  ogImageAlt?: string;
   canonicalUrl?: string;
   showWellnessNote?: boolean;
   includeBrandSuffix?: boolean;
@@ -21,7 +23,8 @@ interface Props {
 const {
   title = siteConfig.name,
   description = siteConfig.description,
-  ogImage = '/cs.webp',
+  ogImage,
+  ogImageAlt,
   canonicalUrl: propCanonicalUrl,
   showWellnessNote,
   includeBrandSuffix = false,
@@ -42,7 +45,9 @@ const siteOrigin = siteConfig.siteUrl || (Astro.site ? Astro.site.origin : 'http
 const cleanPathname = Astro.url.pathname === '/' ? '/' : Astro.url.pathname.replace(/\/+$/, '');
 const isHomepage = showWellnessNote !== undefined ? showWellnessNote : (cleanPathname === '' || cleanPathname === '/');
 const canonicalUrl = propCanonicalUrl || new URL(cleanPathname, siteOrigin).href;
-const resolvedOgImage = ogImage.startsWith('http') ? ogImage : new URL(ogImage, siteOrigin).href;
+const socialImage = resolveHttpImageUrl(ogImage, siteOrigin);
+const resolvedOgImage = socialImage || new URL(siteConfig.logoUrl, siteOrigin).href;
+const resolvedOgImageAlt = socialImage && ogImageAlt ? ogImageAlt : `${siteConfig.name} logo`;
 
 ---
 
@@ -87,13 +92,15 @@ const resolvedOgImage = ogImage.startsWith('http') ? ogImage : new URL(ogImage, 
     <meta property="og:title" content={pageTitle} />
     <meta property="og:description" content={description} />
     <meta property="og:image" content={resolvedOgImage} />
+    <meta property="og:image:alt" content={resolvedOgImageAlt} />
 
     <!-- Twitter -->
-    <meta property="twitter:card" content="summary_large_image" />
-    <meta property="twitter:url" content={canonicalUrl} />
-    <meta property="twitter:title" content={pageTitle} />
-    <meta property="twitter:description" content={description} />
-    <meta property="twitter:image" content={resolvedOgImage} />
+    <meta name="twitter:card" content={socialImage ? 'summary_large_image' : 'summary'} />
+    <meta name="twitter:url" content={canonicalUrl} />
+    <meta name="twitter:title" content={pageTitle} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={resolvedOgImage} />
+    <meta name="twitter:image:alt" content={resolvedOgImageAlt} />
 
     <!-- Structured Data Slot (JSON-LD) -->
     <slot name="structured-data" />

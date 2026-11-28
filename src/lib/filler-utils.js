@@ -1,11 +1,103 @@
 // src/lib/filler-utils.js
 
-export const FILLER_TYPES = [
-  'Manga Canon',
-  'Anime Canon',
-  'Mixed Canon/Filler',
-  'Filler'
-];
+export const FILLER_CATEGORY = /** @type {const} */ ({
+  mangaCanon: 'Manga Canon',
+  animeCanon: 'Anime Canon',
+  mixedCanon: 'Mixed Canon/Filler',
+  filler: 'Filler'
+});
+
+/** @typedef {{ type: string, episodes: string, count: number }} FillerEntry */
+/** @typedef {{ hasFillerData?: boolean, fillerPercentage?: number | null, fillerList?: {totalEpisodes: number} | null, sectionVisibility?: {fillerList?: boolean} }} AnimeFillerData */
+
+/** @param {string} type */
+export function getFillerCategoryRank(type) {
+  const label = String(type || '').trim().toLowerCase();
+  if (label.includes('manga')) return 1;
+  if (label.includes('anime')) return 2;
+  if (label.includes('mixed')) return 3;
+  if (label.includes('filler')) return 4;
+  return 99;
+}
+
+/**
+ * Keep the stored-count fallback for older records. The caller determines
+ * whether zero or negative stored counts are considered usable.
+ * @param {string} episodes
+ * @param {unknown} storedCount
+ * @param {'any' | 'positive' | 'nonnegative'} [policy]
+ */
+export function getStoredEpisodeCount(episodes, storedCount, policy = 'any') {
+  if (typeof storedCount === 'number' && (
+    policy === 'any' || (policy === 'positive' ? storedCount > 0 : storedCount >= 0)
+  )) {
+    return storedCount;
+  }
+  return episodes ? episodes.split(',').length : 0;
+}
+
+/**
+ * @param {number} fillerEpisodes
+ * @param {number} totalEpisodes
+ * @param {{fallback?: number, capAt100?: boolean}} [options]
+ */
+export function calculateFillerPercentage(fillerEpisodes, totalEpisodes, { fallback = 0, capAt100 = false } = {}) {
+  if (!(totalEpisodes > 0)) return fallback;
+  const percentage = Math.round((fillerEpisodes / totalEpisodes) * 100);
+  return capAt100 ? Math.min(100, percentage) : percentage;
+}
+
+/**
+ * @param {number} mangaCanonEpisodes
+ * @param {number} animeCanonEpisodes
+ * @param {number} mixedEpisodes
+ * @param {number} fillerEpisodes
+ */
+export function summarizeFillerCounts(mangaCanonEpisodes, animeCanonEpisodes, mixedEpisodes, fillerEpisodes) {
+  const canonEpisodes = mangaCanonEpisodes + animeCanonEpisodes;
+  return {
+    totalEpisodes: canonEpisodes + mixedEpisodes + fillerEpisodes,
+    fillerEpisodes,
+    canonEpisodes,
+    mangaCanonEpisodes,
+    animeCanonEpisodes,
+    mixedEpisodes
+  };
+}
+
+/**
+ * The bulk reader historically uses the last duplicate entry. The detail
+ * page and its tab use the first matching entry.
+ * @param {FillerEntry[]} entries
+ * @param {'first' | 'last'} [duplicate]
+ */
+export function summarizeFillerEntries(entries, duplicate = 'first') {
+  const count = (/** @type {string} */ type) => {
+    if (duplicate === 'last') {
+      return entries.findLast((entry) => entry.type === type)?.count ?? 0;
+    }
+    return entries.find((entry) => entry.type === type)?.count || 0;
+  };
+  return summarizeFillerCounts(
+    count(FILLER_CATEGORY.mangaCanon),
+    count(FILLER_CATEGORY.animeCanon),
+    count(FILLER_CATEGORY.mixedCanon),
+    count(FILLER_CATEGORY.filler)
+  );
+}
+
+/** @param {AnimeFillerData} anime */
+export function getAnimeFillerBadge(anime) {
+  const hasFillerData = Boolean(anime.hasFillerData ?? (
+    anime.fillerList && anime.fillerList.totalEpisodes > 0 && anime.sectionVisibility?.fillerList !== false
+  ));
+  return { hasFillerData, isZeroFiller: hasFillerData && anime.fillerPercentage === 0 };
+}
+
+/** @param {AnimeFillerData} anime */
+export function isZeroFiller(anime) {
+  return Boolean(anime.hasFillerData && anime.fillerPercentage === 0);
+}
 
 /**
  * Validate an episode range string (e.g. "1-44, 48-49, 52-53, 62-67, 100, 103-130").

@@ -1,131 +1,91 @@
-import { getAllAnime, getAvailableTabs, getAllBlogPosts, getAllVibes } from '../lib/d1.js';
+import { getDatabase } from '../lib/d1.js';
+import { publicDataUnavailable } from '../lib/public-response.js';
+import { RESERVED_ANIME_SLUGS } from '../lib/slug-validator.js';
 import { siteConfig } from '../config/site.js';
 
 export const prerender = false;
 
-export async function GET(context) {
+const staticPaths = [
+  '/', '/anime', '/anime/catalog', '/blog',
+  '/about', '/contact', '/privacy', '/terms', '/disclaimer', '/dmca', '/cookies'
+];
+
+function formatDate(value) {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}(?:$|[T ])/.test(value)) return null;
+  // D1 timestamps without an explicit offset are UTC.
+  const iso = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(value)
+    ? value.replace(' ', 'T') + 'Z'
+    : value;
+  const date = new Date(iso);
+  return Number.isNaN(date.getTime()) ? null : date.toISOString().slice(0, 10);
+}
+
+function escapeXml(value) {
+  return value.replace(/[&<>"']/g, (character) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&apos;'
+  }[character]));
+}
+
+export async function GET({ locals }) {
   const siteUrl = (siteConfig.siteUrl || 'https://chitrasampada.com').replace(/\/+$/, '');
 
-  // Fetch live records from D1
-  const [animeList, blogPosts, allVibes] = await Promise.all([
-    getAllAnime(context?.locals).catch(() => []),
-    getAllBlogPosts({ includeDrafts: false }, context?.locals).catch(() => []),
-    getAllVibes(context?.locals).catch(() => [])
-  ]);
+  try {
+    const db = await getDatabase(locals, { strictReads: true });
+    const [anime, posts, vibes] = await Promise.all([
+      // Independently editable related records can change a page without updating its own timestamp.
+      db.query(`
+        SELECT a.slug, a.last_updated, a.added_date,
+          (a.franchise_id IS NOT NULL OR NULLIF(TRIM(a.character_related_post_slug), '') IS NOT NULL
+            OR EXISTS (SELECT 1 FROM anime_recommendations r WHERE r.anime_id = a.id)
+            OR EXISTS (SELECT 1 FROM anime_genres g WHERE g.anime_id = a.id AND substr(g.genre, 1, 9) = '__blog__:'))
+            AS has_independent_content
+        FROM anime a
+        ORDER BY a.year DESC, a.title ASC
+      `),
+      db.query(`
+        SELECT p.slug, p.last_updated, p.published_date,
+          EXISTS (SELECT 1 FROM blog_post_anime bpa WHERE bpa.post_id = p.id) AS has_independent_content
+        FROM blog_posts p
+        WHERE p.status = 'published'
+        ORDER BY p.published_date DESC
+      `),
+      db.query(`
+        SELECT v.slug FROM vibes v
+        WHERE v.is_active = 1 AND EXISTS (
+          SELECT 1 FROM anime_vibes av JOIN anime a ON a.id = av.anime_id WHERE av.vibe_id = v.id
+        )
+        ORDER BY v.name ASC
+      `)
+    ]);
 
-  const urls = [];
+    const urls = [
+      ...staticPaths.map((path) => ({ path, lastmod: null })),
+      ...vibes.map(({ slug }) => ({ path: '/anime/tag/' + encodeURIComponent(slug), lastmod: null })),
+      ...anime.filter(({ slug }) => !RESERVED_ANIME_SLUGS.has(slug)).map((row) => ({
+        path: '/anime/' + encodeURIComponent(row.slug),
+        lastmod: row.has_independent_content ? null : formatDate(row.last_updated) || formatDate(row.added_date)
+      })),
+      ...posts.map((row) => ({
+        path: '/blog/' + encodeURIComponent(row.slug),
+        lastmod: row.has_independent_content ? null : formatDate(row.last_updated) || formatDate(row.published_date)
+      }))
+    ];
 
-  function formatDate(d) {
-    if (!d) return null;
-    try {
-      const date = new Date(d);
-      if (isNaN(date.getTime())) return null;
-      return date.toISOString().split('T')[0];
-    } catch {
-      return null;
-    }
-  }
+    const entries = urls.map(({ path, lastmod }) =>
+      '  <url>\n    <loc>' + escapeXml(siteUrl + path) + '</loc>' +
+      (lastmod ? '\n    <lastmod>' + lastmod + '</lastmod>' : '') + '\n  </url>'
+    );
+    const xml = '<?xml version="1.0" encoding="UTF-8"?>\n' +
+      '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' +
+      entries.join('\n') + '\n</urlset>';
 
-  // 1. Core hub & section homepages
-  urls.push({
-    loc: `${siteUrl}/`,
-    changefreq: 'daily',
-    priority: '1.0'
-  });
-
-  urls.push({
-    loc: `${siteUrl}/anime`,
-    changefreq: 'daily',
-    priority: '0.9'
-  });
-
-  urls.push({
-    loc: `${siteUrl}/anime/catalog`,
-    changefreq: 'weekly',
-    priority: '0.8'
-  });
-
-  urls.push({
-    loc: `${siteUrl}/blog`,
-    changefreq: 'daily',
-    priority: '0.8'
-  });
-
-  // 2. Curated vibes & tag pages (only include if active and at least 1 published anime is assigned)
-  for (const vibe of allVibes) {
-    if (vibe.isActive && animeList.some(a => a.vibes && a.vibes.includes(vibe.id))) {
-      urls.push({
-        loc: `${siteUrl}/anime/tag/${vibe.slug}`,
-        changefreq: 'weekly',
-        priority: '0.7'
-      });
-    }
-  }
-
-  // 3. Dynamic Anime Detail Pages and their active tabs
-  for (const anime of animeList) {
-    const animeLastMod = formatDate(anime.lastUpdated) || formatDate(anime.addedDate);
-
-    // Root anime detail page
-    urls.push({
-      loc: `${siteUrl}/anime/${anime.slug}`,
-      lastmod: animeLastMod,
-      changefreq: 'weekly',
-      priority: '0.8'
+    return new Response(xml, {
+      headers: {
+        'Content-Type': 'application/xml',
+        'Cache-Control': 'public, max-age=0, must-revalidate, s-maxage=86400'
+      }
     });
-
-    // Sub-page tabs that have content and are set to Show in section_visibility
-    const tabs = getAvailableTabs(anime);
-    for (const tab of tabs) {
-      urls.push({
-        loc: `${siteUrl}/anime/${anime.slug}/${tab.key}`,
-        lastmod: animeLastMod,
-        changefreq: 'weekly',
-        priority: '0.7'
-      });
-    }
+  } catch (error) {
+    return publicDataUnavailable(error);
   }
-
-  // 4. Published Blog posts
-  for (const post of blogPosts) {
-    const postLastMod = formatDate(post.lastUpdated) || formatDate(post.publishedDate);
-    urls.push({
-      loc: `${siteUrl}/blog/${post.slug}`,
-      lastmod: postLastMod,
-      changefreq: 'monthly',
-      priority: '0.7'
-    });
-  }
-
-  // 5. Legal & static reference pages
-  const staticPages = [
-    { path: '/about', priority: '0.5', changefreq: 'monthly' },
-    { path: '/contact', priority: '0.4', changefreq: 'monthly' },
-    { path: '/privacy', priority: '0.3', changefreq: 'monthly' },
-    { path: '/terms', priority: '0.3', changefreq: 'monthly' },
-    { path: '/disclaimer', priority: '0.3', changefreq: 'monthly' },
-    { path: '/dmca', priority: '0.3', changefreq: 'monthly' }
-  ];
-
-  for (const p of staticPages) {
-    urls.push({
-      loc: `${siteUrl}${p.path}`,
-      changefreq: p.changefreq,
-      priority: p.priority
-    });
-  }
-
-  const xml = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${urls.map((u) => `  <url>
-    <loc>${u.loc}</loc>${u.lastmod ? `\n    <lastmod>${u.lastmod}</lastmod>` : ''}${u.changefreq ? `\n    <changefreq>${u.changefreq}</changefreq>` : ''}${u.priority ? `\n    <priority>${u.priority}</priority>` : ''}
-  </url>`).join('\n')}
-</urlset>`;
-
-  return new Response(xml, {
-    headers: {
-      'Content-Type': 'application/xml',
-      'Cache-Control': 'public, max-age=0, must-revalidate, s-maxage=86400'
-    }
-  });
 }

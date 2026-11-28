@@ -4,6 +4,7 @@
  */
 export const siteConfig = {
   siteUrl: "https://chitrasampada.com",
+  logoUrl: "/cs.webp?v=1",
   // Change this to your preferred brand name:
   name: "Chitra Sampada",
   shortName: "Chitra",

@@ -1,6 +1,6 @@
 ---
 // src/components/anime/TabWatchOrder.astro
-import { marked } from 'marked';
+import { renderWatchOrderMarkdown } from '../../lib/markdown.js';
 import { getWatchOrderLeadSentence } from '../../lib/seo-utils.ts';
 
 interface Props {
@@ -16,28 +16,8 @@ const hasFranchiseNote = franchiseWatchOrderNote.length > 0;
 const watchOrderNote = (anime.watchOrderNote || '').trim();
 const hasAnimeNote = watchOrderNote.length > 0;
 
-function renderCleanMarkdown(md: string): string {
-  if (!md) return '';
-  const html = marked.parse(md, { breaks: true, gfm: true }) as string;
-  // Strictly strip any <a> tags so links are never rendered inside the note
-  let clean = html.replace(/<a\b[^>]*>(.*?)<\/a>/gi, '$1');
-
-  // Cleanly format list items with line breaks so descriptions render beneath bold title line
-  clean = clean.replace(/<li>([\s\S]*?)<\/li>/gi, (match, itemContent) => {
-    if (/<br\s*\/?>/i.test(itemContent)) {
-      const parts = itemContent.split(/<br\s*\/?>/i);
-      const titlePart = parts[0].replace(/<\/?p>/gi, '').trim();
-      const descPart = parts.slice(1).join('<br />').replace(/<\/?p>/gi, '').trim();
-      return `<li><div class="font-bold text-slate-950">${titlePart}</div><div class="mt-1 text-slate-600 text-xs sm:text-sm font-normal leading-relaxed">${descPart}</div></li>`;
-    }
-    return match;
-  });
-
-  return clean;
-}
-
-const parsedFranchiseNote = hasFranchiseNote ? renderCleanMarkdown(franchiseWatchOrderNote) : '';
-const parsedAnimeNote = hasAnimeNote ? renderCleanMarkdown(watchOrderNote) : '';
+const parsedFranchiseNote = hasFranchiseNote ? renderWatchOrderMarkdown(franchiseWatchOrderNote) : '';
+const parsedAnimeNote = hasAnimeNote ? renderWatchOrderMarkdown(watchOrderNote) : '';
 
 interface ItemMetaInfo {
   formatLabel: string;

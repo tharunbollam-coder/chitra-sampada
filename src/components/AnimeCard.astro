@@ -1,19 +1,24 @@
 ---
 // src/components/AnimeCard.astro
 import HonestyBadge from './HonestyBadge.astro';
-import { optimizeAniListPoster } from '../lib/image-utils.js';
+import { getTmdbPosterSrcSet, optimizeAniListPoster } from '../lib/image-utils.js';
 import { isRecentlyAdded } from '../lib/date-utils.ts';
+import { getAnimeFillerBadge } from '../lib/filler-utils.js';
 
 interface Props {
   anime: any;
   priority?: boolean;
+  headingLevel?: 2 | 3;
+  wideGrid?: boolean;
 }
 
-const { anime, priority = false } = Astro.props;
+const { anime, priority = false, headingLevel = 3, wideGrid = false } = Astro.props;
+const TitleTag = headingLevel === 2 ? 'h2' : 'h3';
+const posterSrcSet = getTmdbPosterSrcSet(anime.poster);
+const posterSizes = `(min-width: 80rem) 249px, (min-width: 64rem) ${wideGrid ? 'calc((100vw - 120px) / 3 - 34px)' : 'calc(25vw - 71px)'}, (min-width: 48rem) calc(50vw - 72px), (min-width: 40rem) 112px, 96px`;
 
 const isNew = isRecentlyAdded(anime.createdAt || anime.created_at || anime.addedDate || anime.added_date);
-const hasFillerData = Boolean(anime.hasFillerData ?? (anime.fillerList && anime.fillerList.totalEpisodes > 0 && anime.sectionVisibility?.fillerList !== false));
-const isZeroFiller = hasFillerData && anime.fillerPercentage === 0;
+const { hasFillerData, isZeroFiller } = getAnimeFillerBadge(anime);
 const isMovie = anime.type === 'movie';
 
 // Format status styling
@@ -109,6 +114,8 @@ const hasEpisodes = !isNaN(numEpisodes) && numEpisodes > 0;
     <div class="w-full h-full rounded-lg md:rounded-xl overflow-hidden bg-slate-100 border border-slate-200/80 shadow-2xs">
       <img
         src={optimizeAniListPoster(anime.poster, 'w342')}
+        srcset={posterSrcSet}
+        sizes={posterSrcSet ? posterSizes : undefined}
         alt={`${anime.title} poster`}
         width="300"
         height="450"
@@ -124,14 +131,14 @@ const hasEpisodes = !isNaN(numEpisodes) && numEpisodes > 0;
   <div class="flex md:hidden flex-col justify-between flex-1 min-w-0 py-0.5">
     <div>
       <!-- Title -->
-      <h3 class:list={[
+      <TitleTag class:list={[
         'text-base font-bold text-gray-900 dark:text-white group-hover:text-[#6366F1] transition-colors line-clamp-2 leading-snug font-heading tracking-tight',
         isNew ? 'pr-12' : ''
       ]}>
         <a href={`/anime/${anime.slug}`} data-astro-prefetch="hover" class="hover:underline">
           {anime.title}
         </a>
-      </h3>
+      </TitleTag>
 
       <!-- Sub-meta Line (Year · episodes/runtime) -->
       <div class="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 font-medium mt-0.5">
@@ -236,11 +243,11 @@ const hasEpisodes = !isNaN(numEpisodes) && numEpisodes > 0;
 
       <!-- Title -->
       <div>
-        <h3 class="text-base font-bold text-[#0F172A] group-hover:text-[#6366F1] transition-colors line-clamp-1 leading-snug font-heading tracking-tight">
+        <TitleTag class="text-base font-bold text-[#0F172A] group-hover:text-[#6366F1] transition-colors line-clamp-1 leading-snug font-heading tracking-tight">
           <a href={`/anime/${anime.slug}`} data-astro-prefetch="hover" class="hover:underline">
             {anime.title}
           </a>
-        </h3>
+        </TitleTag>
       </div>
 
       <!-- Metadata (Year, Episodes / Runtime, Genres) -->

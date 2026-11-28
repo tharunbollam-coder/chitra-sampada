@@ -7,7 +7,7 @@
   class="fixed inset-0 z-50 hidden items-start justify-center pt-12 sm:pt-20 px-4 pb-8 overflow-y-auto"
   role="dialog"
   aria-modal="true"
-  aria-labelledby="global-search-input"
+  aria-label="Site search"
 >
   <!-- Lighter, Softer Translucent Backdrop -->
   <div
@@ -31,6 +31,7 @@
         id="global-search-input"
         class="w-full bg-transparent text-slate-900 placeholder-slate-400 text-sm sm:text-base font-medium focus:outline-none"
         placeholder="Search anime, watch orders, filler lists, articles..."
+        aria-label="Search anime and articles"
         autocomplete="off"
         spellcheck="false"
       />
@@ -63,11 +64,12 @@
     </div>
 
     <!-- Results / Content Area -->
+    <span id="search-announcement" class="sr-only" role="status"></span>
     <div id="search-results-area" class="overflow-y-auto divide-y divide-slate-100 p-2 sm:p-3 min-h-[120px] max-h-[65vh]">
       <!-- Loading State -->
       <div id="search-loading" class="hidden py-12 text-center text-slate-400">
-        <div class="inline-block w-6 h-6 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin mb-2"></div>
-        <p class="text-xs font-medium">Loading search catalog...</p>
+        <div data-search-spinner class="inline-block w-6 h-6 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin mb-2"></div>
+        <p data-search-loading-message class="text-xs font-medium">Loading search catalog...</p>
       </div>
 
       <!-- Simplified Initial Empty Query State -->
@@ -104,6 +106,41 @@
   </div>
 </div>
 
+<template id="anime-search-result-template">
+  <a class="search-result-item group p-2.5 rounded-xl hover:bg-slate-50 transition flex items-center justify-between gap-3 cursor-pointer">
+    <div class="flex items-center gap-3 min-w-0 flex-1">
+      <img alt="" class="w-10 h-13 object-cover rounded-lg shrink-0 border border-slate-200" />
+      <div data-result-placeholder class="w-10 h-13 bg-slate-100 rounded-lg shrink-0 flex items-center justify-center text-slate-400 text-xs font-bold font-heading">CS</div>
+      <div class="min-w-0 flex-1">
+        <div class="flex items-center gap-1.5 min-w-0">
+          <span data-result-title class="text-sm font-bold text-slate-900 group-hover:text-indigo-600 transition-colors truncate"></span>
+          <span data-result-new class="px-1.5 py-0.2 rounded bg-emerald-600 text-white text-[9px] font-extrabold uppercase tracking-wider shrink-0 border border-emerald-400/40">NEW</span>
+        </div>
+        <div data-result-subtitle class="text-xs text-slate-400 font-normal truncate"></div>
+      </div>
+    </div>
+    <svg class="w-4 h-4 text-slate-300 group-hover:text-indigo-600 group-hover:translate-x-0.5 transition-all shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+    </svg>
+  </a>
+</template>
+
+<template id="blog-search-result-template">
+  <a class="search-result-item group p-2.5 rounded-xl hover:bg-slate-50 transition flex items-center justify-between gap-3 cursor-pointer">
+    <div class="flex items-center gap-3 min-w-0 flex-1">
+      <img alt="" class="w-12 h-10 object-cover rounded-lg shrink-0 border border-slate-200" />
+      <div data-result-placeholder class="w-12 h-10 bg-indigo-50 text-indigo-600 rounded-lg shrink-0 flex items-center justify-center text-xs font-bold">📝</div>
+      <div class="min-w-0 flex-1">
+        <div data-result-title class="text-sm font-bold text-slate-900 group-hover:text-indigo-600 transition-colors truncate"></div>
+        <div data-result-subtitle class="text-xs text-slate-500 font-normal truncate"></div>
+      </div>
+    </div>
+    <svg class="w-4 h-4 text-slate-300 group-hover:text-indigo-600 group-hover:translate-x-0.5 transition-all shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+    </svg>
+  </a>
+</template>
+
 <style is:inline>
   /* Suppress native search cancel buttons in webkit browsers */
   input[type="text"]::-webkit-search-decoration,
@@ -116,9 +153,52 @@
 </style>
 
 <script>
+  import { SEARCH_INDEX_PATH, SEARCH_INDEX_TTL_SECONDS } from '../lib/search-cache.js';
+
   let searchDataCache: { anime: any[]; blogs: any[] } | null = null;
-  let isLoadingData = false;
-  let activeIndex = -1;
+  let searchDataExpiresAt = 0;
+  let searchDataRequest: Promise<void> | null = null;
+  const initializedModals = new WeakSet<HTMLElement>();
+  let openSearchFromShortcut: (() => void) | undefined;
+  let closeSearchForNavigation: (() => void) | undefined;
+
+  function fetchSearchIndex() {
+    searchDataRequest ??= fetch(SEARCH_INDEX_PATH)
+      .then(async (response) => {
+        if (!response.ok) throw new Error('Search index request failed');
+        searchDataCache = await response.json();
+        searchDataExpiresAt = Date.now() + SEARCH_INDEX_TTL_SECONDS * 1000;
+      })
+      .finally(() => {
+        searchDataRequest = null;
+      });
+    return searchDataRequest;
+  }
+
+  function renderResult(template: HTMLTemplateElement, section: 'anime' | 'blog', slug: string, title: string, subtitle: string, image: string | null) {
+    const result = template.content.cloneNode(true) as DocumentFragment;
+    result.querySelector('a')!.setAttribute('href', `/${section}/${encodeURIComponent(slug)}`);
+    result.querySelector('[data-result-title]')!.textContent = title;
+    result.querySelector('[data-result-subtitle]')!.textContent = subtitle;
+
+    const img = result.querySelector('img')!;
+    let url: URL | undefined;
+    if (image) {
+      try {
+        url = new URL(image, document.baseURI);
+      } catch {
+        // Invalid images use the same placeholder as absent images.
+      }
+    }
+    if (url && (url.protocol === 'https:' || url.protocol === 'http:')) {
+      img.src = url.href;
+      img.alt = title;
+      result.querySelector('[data-result-placeholder]')?.remove();
+    } else {
+      img.remove();
+    }
+    return result;
+  }
 
   function initGlobalSearch() {
     const modal = document.getElementById('global-search-modal');
@@ -135,50 +215,83 @@
     const animeListEl = document.getElementById('search-anime-list');
     const sectionBlogs = document.getElementById('search-section-blogs');
     const blogsListEl = document.getElementById('search-blogs-list');
+    const announcement = document.getElementById('search-announcement');
+    const spinner = loadingEl?.querySelector('[data-search-spinner]');
+    const loadingMessage = loadingEl?.querySelector('[data-search-loading-message]');
+    const animeTemplate = document.getElementById('anime-search-result-template');
+    const blogTemplate = document.getElementById('blog-search-result-template');
 
-    if (!modal || !input) return;
+    if (!modal || !input || !(animeTemplate instanceof HTMLTemplateElement) || !(blogTemplate instanceof HTMLTemplateElement)) return;
+    if (initializedModals.has(modal)) return;
+    initializedModals.add(modal);
+    const templates = { anime: animeTemplate, blog: blogTemplate };
+    let returnFocus: HTMLElement | null = null;
+    let previousOverflow = '';
+    let background: HTMLElement[] = [];
 
-    async function loadData() {
-      if (searchDataCache || isLoadingData) return;
-      isLoadingData = true;
-      if (loadingEl) loadingEl.classList.remove('hidden');
-      try {
-        const res = await fetch('/api/search.json');
-        if (res.ok) {
-          searchDataCache = await res.json();
-        }
-      } catch (e) {
-        console.warn('Could not load search index:', e);
-      } finally {
-        isLoadingData = false;
-        if (loadingEl) loadingEl.classList.add('hidden');
-        if (input && input.value.trim()) {
-          runSearch(input.value.trim());
-        }
-      }
+    function announce(message: string) {
+      if (announcement) announcement.textContent = message;
     }
 
-    function openModal() {
-      if (!modal) return;
+    let isLoadingData = false;
+    async function loadData() {
+      if (isLoadingData || (searchDataCache && Date.now() < searchDataExpiresAt)) return;
+      isLoadingData = true;
+      sectionAnime?.classList.add('hidden');
+      sectionBlogs?.classList.add('hidden');
+      noResults?.classList.add('hidden');
+      loadingEl?.classList.remove('hidden');
+      spinner?.classList.remove('hidden');
+      if (loadingMessage) loadingMessage.textContent = 'Loading search catalog...';
+      announce('Loading search catalog.');
+      try {
+        await fetchSearchIndex();
+      } catch (e) {
+        console.warn('Could not load search index:', e);
+        spinner?.classList.add('hidden');
+        if (loadingMessage) loadingMessage.textContent = 'Search is temporarily unavailable. Please try again.';
+        announce('Search is temporarily unavailable. Please try again.');
+        return;
+      } finally {
+        isLoadingData = false;
+      }
+      loadingEl?.classList.add('hidden');
+      if (input?.value.trim()) runSearch(input.value.trim());
+      else announce('Search catalog ready.');
+    }
+
+    const openModal = (trigger?: HTMLElement) => {
+      if (!modal.classList.contains('hidden')) {
+        input.focus();
+        return;
+      }
+      returnFocus = trigger || (document.activeElement instanceof HTMLElement ? document.activeElement : null);
+      if (returnFocus === document.body) returnFocus = document.getElementById('btn-open-search');
+      previousOverflow = document.body.style.overflow;
       modal.classList.remove('hidden');
       modal.classList.add('flex');
       document.body.style.overflow = 'hidden';
-      loadData();
-      setTimeout(() => {
-        if (input) {
-          input.focus();
-          input.select();
-        }
-      }, 50);
-    }
+      input.focus();
+      input.select();
+      background = Array.from(document.body.children).filter((element): element is HTMLElement =>
+        element instanceof HTMLElement && element !== modal && !element.contains(modal) && !element.inert
+      );
+      for (const element of background) element.inert = true;
+      closeSearchForNavigation = () => closeModal(false);
+      void loadData();
+    };
 
-    function closeModal() {
-      if (!modal) return;
+    const closeModal = (restoreFocus = true) => {
       modal.classList.add('hidden');
       modal.classList.remove('flex');
-      document.body.style.overflow = '';
-      activeIndex = -1;
-    }
+      document.body.style.overflow = previousOverflow;
+      for (const element of background) element.inert = false;
+      background = [];
+      if (restoreFocus && returnFocus?.isConnected) returnFocus.focus();
+      returnFocus = null;
+      closeSearchForNavigation = undefined;
+    };
+    openSearchFromShortcut = openModal;
 
     function runSearch(query: string) {
       const hasText = query.trim().length > 0;
@@ -190,14 +303,14 @@
         if (noResults) noResults.classList.add('hidden');
         if (sectionAnime) sectionAnime.classList.add('hidden');
         if (sectionBlogs) sectionBlogs.classList.add('hidden');
-        activeIndex = -1;
+        announce('');
         return;
       }
 
       if (emptyPrompt) emptyPrompt.classList.add('hidden');
 
-      if (!searchDataCache) {
-        if (loadingEl) loadingEl.classList.remove('hidden');
+      if (!searchDataCache || Date.now() >= searchDataExpiresAt) {
+        void loadData();
         return;
       }
 
@@ -309,87 +422,38 @@
         if (queryEcho) queryEcho.textContent = `"${query}"`;
         if (sectionAnime) sectionAnime.classList.add('hidden');
         if (sectionBlogs) sectionBlogs.classList.add('hidden');
-        activeIndex = -1;
+        announce('No search results.');
         return;
       }
 
       if (noResults) noResults.classList.add('hidden');
 
-      // Render anime items (clean single clickable card with right chevron, no pill buttons)
       if (matchedAnime.length > 0 && sectionAnime && animeListEl) {
         sectionAnime.classList.remove('hidden');
-        animeListEl.innerHTML = matchedAnime.slice(0, 7).map((a: any) => {
-          const poster = a.poster
-            ? `<img src="${a.poster}" alt="${a.title}" class="w-10 h-13 object-cover rounded-lg shrink-0 border border-slate-200" />`
-            : `<div class="w-10 h-13 bg-slate-100 rounded-lg shrink-0 flex items-center justify-center text-slate-400 text-xs font-bold font-heading">CS</div>`;
-
+        animeListEl.replaceChildren(...matchedAnime.slice(0, 7).map((a: any) => {
           const subtitle = `${a.year || ''} • ${a.type === 'movie' ? (a.runtime ? `${a.runtime}m Movie` : 'Movie') : `${a.episodes || '?'} eps`}`;
-          const isNew = a.createdAt && (Date.now() - new Date(a.createdAt).getTime()) <= (7 * 24 * 60 * 60 * 1000) && (Date.now() - new Date(a.createdAt).getTime()) >= 0;
-
-          return `
-            <a
-              href="/anime/${a.slug}"
-              class="search-result-item group p-2.5 rounded-xl hover:bg-slate-50 transition flex items-center justify-between gap-3 cursor-pointer"
-            >
-              <div class="flex items-center gap-3 min-w-0 flex-1">
-                ${poster}
-                <div class="min-w-0 flex-1">
-                  <div class="flex items-center gap-1.5 min-w-0">
-                    <span class="text-sm font-bold text-slate-900 group-hover:text-indigo-600 transition-colors truncate">
-                      ${a.title}
-                    </span>
-                    ${isNew ? `<span class="px-1.5 py-0.2 rounded bg-emerald-600 text-white text-[9px] font-extrabold uppercase tracking-wider shrink-0 border border-emerald-400/40">NEW</span>` : ''}
-                  </div>
-                  <div class="text-xs text-slate-400 font-normal truncate">
-                    ${subtitle}
-                  </div>
-                </div>
-              </div>
-              <svg class="w-4 h-4 text-slate-300 group-hover:text-indigo-600 group-hover:translate-x-0.5 transition-all shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-              </svg>
-            </a>
-          `;
-        }).join('');
+          const age = Date.now() - new Date(a.createdAt).getTime();
+          const isNew = a.createdAt && age >= 0 && age <= 7 * 24 * 60 * 60 * 1000;
+          const result = renderResult(templates.anime, 'anime', a.slug, a.title, subtitle, a.poster);
+          if (!isNew) result.querySelector('[data-result-new]')?.remove();
+          return result;
+        }));
       } else if (sectionAnime) {
         sectionAnime.classList.add('hidden');
       }
 
-      // Render blog items (clean single clickable card with right chevron)
       if (matchedBlogs.length > 0 && sectionBlogs && blogsListEl) {
         sectionBlogs.classList.remove('hidden');
-        blogsListEl.innerHTML = matchedBlogs.slice(0, 4).map((b: any) => {
-          const thumbnail = b.coverImage
-            ? `<img src="${b.coverImage}" alt="${b.title}" class="w-12 h-10 object-cover rounded-lg shrink-0 border border-slate-200" />`
-            : `<div class="w-12 h-10 bg-indigo-50 text-indigo-600 rounded-lg shrink-0 flex items-center justify-center text-xs font-bold">📝</div>`;
-
-          return `
-            <a
-              href="/blog/${b.slug}"
-              class="search-result-item group p-2.5 rounded-xl hover:bg-slate-50 transition flex items-center justify-between gap-3 cursor-pointer"
-            >
-              <div class="flex items-center gap-3 min-w-0 flex-1">
-                ${thumbnail}
-                <div class="min-w-0 flex-1">
-                  <div class="text-sm font-bold text-slate-900 group-hover:text-indigo-600 transition-colors truncate">
-                    ${b.title}
-                  </div>
-                  <div class="text-xs text-slate-500 font-normal truncate">
-                    ${b.excerpt || (b.readTime ? `Article • ${b.readTime}` : 'Article')}
-                  </div>
-                </div>
-              </div>
-              <svg class="w-4 h-4 text-slate-300 group-hover:text-indigo-600 group-hover:translate-x-0.5 transition-all shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-              </svg>
-            </a>
-          `;
-        }).join('');
+        blogsListEl.replaceChildren(...matchedBlogs.slice(0, 4).map((b: any) => {
+          const subtitle = b.excerpt || (b.readTime ? `Article • ${b.readTime}` : 'Article');
+          return renderResult(templates.blog, 'blog', b.slug, b.title, subtitle, b.coverImage);
+        }));
       } else if (sectionBlogs) {
         sectionBlogs.classList.add('hidden');
       }
 
-      activeIndex = -1;
+      const resultCount = Math.min(matchedAnime.length, 7) + Math.min(matchedBlogs.length, 4);
+      announce(`${resultCount} search ${resultCount === 1 ? 'result' : 'results'}.`);
     }
 
     // Input typing listener
@@ -407,10 +471,10 @@
     }
 
     // Close button
-    if (closeBtn) closeBtn.addEventListener('click', closeModal);
+    if (closeBtn) closeBtn.addEventListener('click', () => closeModal());
 
     // Outside click to close (clicking backdrop or modal container outside panel)
-    if (backdrop) backdrop.addEventListener('click', closeModal);
+    if (backdrop) backdrop.addEventListener('click', () => closeModal());
     modal.addEventListener('click', (e) => {
       if (e.target === modal) {
         closeModal();
@@ -418,38 +482,41 @@
     });
 
     // Keyboard navigation inside modal
-    input.addEventListener('keydown', (e) => {
-      const items = Array.from(modal.querySelectorAll<HTMLElement>('.search-result-item'));
-      if (items.length === 0) {
-        if (e.key === 'Escape') closeModal();
+    modal.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        e.stopPropagation();
+        closeModal();
         return;
       }
 
-      if (e.key === 'ArrowDown') {
-        e.preventDefault();
-        activeIndex = (activeIndex + 1) % items.length;
-        items[activeIndex]?.focus();
-      } else if (e.key === 'ArrowUp') {
-        e.preventDefault();
-        activeIndex = (activeIndex - 1 + items.length) % items.length;
-        items[activeIndex]?.focus();
-      } else if (e.key === 'Enter') {
-        if (activeIndex >= 0 && items[activeIndex]) {
+      if (e.key === 'Tab') {
+        const focusable = Array.from(modal.querySelectorAll<HTMLElement>('input, button, a[href]'))
+          .filter((element) => !element.matches(':disabled') && element.getClientRects().length);
+        const boundary = e.shiftKey ? focusable[0] : focusable.at(-1);
+        if (document.activeElement === boundary) {
           e.preventDefault();
-          items[activeIndex].click();
+          (e.shiftKey ? focusable.at(-1) : focusable[0])?.focus();
         }
-      } else if (e.key === 'Escape') {
-        closeModal();
+        return;
       }
+
+      if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+      const items = Array.from(modal.querySelectorAll<HTMLElement>('.search-result-item'))
+        .filter((item) => item.getClientRects().length);
+      const index = items.findIndex((item) => item === document.activeElement);
+      if (!items.length || (index < 0 && e.target !== input)) return;
+
+      e.preventDefault();
+      const step = e.key === 'ArrowDown' ? 1 : -1;
+      const next = index < 0 ? (step === 1 ? 0 : items.length - 1) : (index + step + items.length) % items.length;
+      items[next].focus();
     });
 
     // Wire open buttons
-    document.querySelectorAll('[data-action="open-search"]').forEach((btn) => {
-      btn.addEventListener('click', openModal);
+    document.querySelectorAll<HTMLElement>('#btn-open-search, [data-action="open-search"]').forEach((btn) => {
+      btn.addEventListener('click', () => openModal(btn));
     });
-
-    const openBtn = document.getElementById('btn-open-search');
-    if (openBtn) openBtn.addEventListener('click', openModal);
   }
 
   // Global hotkeys: Ctrl+K / Cmd+K or / (when not in input)
@@ -460,30 +527,16 @@
 
       if (isSearchShortcut || isSlash) {
         e.preventDefault();
-        const modal = document.getElementById('global-search-modal');
-        if (modal) {
-          if (modal.classList.contains('hidden')) {
-            const btn = document.getElementById('btn-open-search') || document.querySelector('[data-action="open-search"]');
-            if (btn instanceof HTMLElement) {
-              btn.click();
-            }
-          } else {
-            const input = document.getElementById('global-search-input');
-            input?.focus();
-          }
-        }
-      } else if (e.key === 'Escape') {
-        const modal = document.getElementById('global-search-modal');
-        if (modal && !modal.classList.contains('hidden')) {
-          modal.classList.add('hidden');
-          modal.classList.remove('flex');
-          document.body.style.overflow = '';
-        }
+        openSearchFromShortcut?.();
       }
     });
   }
 
   setupGlobalHotkeys();
+  document.addEventListener('astro:before-swap', () => {
+    closeSearchForNavigation?.();
+    openSearchFromShortcut = undefined;
+  });
   document.addEventListener('astro:page-load', initGlobalSearch);
   if (document.readyState !== 'loading') {
     initGlobalSearch();

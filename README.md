@@ -1,43 +1,25 @@
-# Astro Starter Kit: Minimal
+# Chitra Sampada
+
+Chitra Sampada is an Astro site for anime guides, watch orders, filler lists, and editorial articles. Public pages and the admin run on Cloudflare Workers, with D1 for site content.
+
+## Build, check, and preview
+
+Run these commands from the project root with Node.js 22.12 or later and npm.
 
 ```sh
-npm create astro@latest -- --template minimal
+npm ci
+npm run build
+npx astro check
+npm run preview -- --background
 ```
 
-> 🧑‍🚀 **Seasoned astronaut?** Delete this file. Have fun!
+The build writes the Worker and static assets to `dist/`. Astro Check reports TypeScript and Astro diagnostics separately from the build. Preview serves the built project locally in the Cloudflare Workers runtime. Open the URL printed by Astro and use `npm run astro -- preview stop` when finished. Rebuild after editing source files. Pages that use D1 need a configured local binding with data to show the full site.
 
-## 🚀 Project Structure
+For development with live reload, start Astro in the background using `npm run dev -- --background`. Use `npm run astro -- dev status`, `npm run astro -- dev logs`, and `npm run astro -- dev stop` to manage it.
 
-Inside of your Astro project, you'll see the following folders and files:
+## Separate D1 maintenance
 
-```text
-/
-├── public/
-├── src/
-│   └── pages/
-│       └── index.astro
-└── package.json
-```
+- `npm run db:pull` exports production data and replaces the local D1 state.
+- `npm run db:push` applies production migrations and imports local data into production D1.
 
-Astro looks for `.astro` or `.md` files in the `src/pages/` directory. Each page is exposed as a route based on its file name.
-
-There's nothing special about `src/components/`, but that's where we like to put any Astro/React/Vue/Svelte/Preact components.
-
-Any static assets, like images, can be placed in the `public/` directory.
-
-## 🧞 Commands
-
-All commands are run from the root of the project, from a terminal:
-
-| Command                   | Action                                           |
-| :------------------------ | :----------------------------------------------- |
-| `npm install`             | Installs dependencies                            |
-| `npm run dev`             | Starts local dev server at `localhost:4321`      |
-| `npm run build`           | Build your production site to `./dist/`          |
-| `npm run preview`         | Preview your build locally, before deploying     |
-| `npm run astro ...`       | Run CLI commands like `astro add`, `astro check` |
-| `npm run astro -- --help` | Get help using the Astro CLI                     |
-
-## 👀 Want to learn more?
-
-Feel free to check [our documentation](https://docs.astro.build) or jump into our [Discord server](https://astro.build/chat).
+Run these maintenance commands only when you intend to change the destination database. Build, check, and preview do not require running either sync command.

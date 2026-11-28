@@ -5,16 +5,20 @@ import AnimeCard from '../components/AnimeCard.astro';
 import PositivityNote from '../components/PositivityNote.astro';
 import AnnouncementBanner from '../components/AnnouncementBanner.astro';
 import { getCompactAnimeList, getHomepageAnnouncement } from '../lib/d1.js';
+import { publicDataUnavailable } from '../lib/public-response.js';
+import { serializeScriptJson } from '../lib/script-json.ts';
 import { siteConfig } from '../config/site.js';
 
 export const prerender = false;
 
-const [animeList, announcement] = await Promise.all([
-  getCompactAnimeList(Astro.locals),
+const data = await Promise.all([
+  getCompactAnimeList(Astro.locals, { strictReads: true }),
   getHomepageAnnouncement(Astro.locals)
-]);
+]).catch(publicDataUnavailable);
+if (data instanceof Response) return data;
+const [animeList, announcement] = data;
 
-Astro.response.headers.set('Cache-Control', 'public, max-age=0, must-revalidate, s-maxage=86400');
+const decorativePosterPlaceholder = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
 
 // Top 4 most recently added anime (ordered newest first: addedDate DESC, rowid DESC)
 const recentlyAddedAnime = [...animeList]
@@ -34,21 +38,13 @@ const recentlyAddedAnime = [...animeList]
   showWellnessNote={true}
 >
   <Fragment slot="structured-data">
-    <script type="application/ld+json" set:html={JSON.stringify({
+    <script type="application/ld+json" set:html={serializeScriptJson({
       "@context": "https://schema.org",
       "@type": "WebSite",
       "name": siteConfig.name,
       "alternateName": ["Chitra", "ChitraSampada"],
       "url": siteConfig.siteUrl || "https://chitrasampada.com",
-      "description": siteConfig.description,
-      "potentialAction": {
-        "@type": "SearchAction",
-        "target": {
-          "@type": "EntryPoint",
-          "urlTemplate": `${siteConfig.siteUrl || "https://chitrasampada.com"}/anime/catalog?q={search_term_string}`
-        },
-        "query-input": "required name=search_term_string"
-      }
+      "description": siteConfig.description
     })} />
   </Fragment>
 
@@ -60,10 +56,16 @@ const recentlyAddedAnime = [...animeList]
 
     <!-- Subtle Faint Floating Poster Accents (Left & Right desktop depth) -->
     <div class="hidden lg:block absolute left-8 xl:left-16 top-28 w-44 rounded-2xl overflow-hidden border border-slate-200/80 opacity-40 -rotate-6 pointer-events-none -z-10 shadow-lg bg-white p-1">
-      <img src="https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx113415-LHBAeoZDIsnF.jpg" alt="Jujutsu Kaisen anime poster background illustration" width="176" height="264" loading="eager" decoding="async" class="w-full aspect-[2/3] object-cover rounded-xl" />
+      <picture>
+        <source media="(min-width: 64rem)" srcset="https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx113415-LHBAeoZDIsnF.jpg" />
+        <img src={decorativePosterPlaceholder} alt="" width="176" height="264" loading="eager" decoding="async" fetchpriority="low" class="w-full aspect-[2/3] object-cover rounded-xl" />
+      </picture>
     </div>
     <div class="hidden lg:block absolute right-8 xl:right-16 top-28 w-44 rounded-2xl overflow-hidden border border-slate-200/80 opacity-40 rotate-6 pointer-events-none -z-10 shadow-lg bg-white p-1">
-      <img src="https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx154587-qQTzQnEJJ3oB.jpg" alt="Frieren: Beyond Journey's End anime poster background illustration" width="176" height="264" loading="eager" decoding="async" class="w-full aspect-[2/3] object-cover rounded-xl" />
+      <picture>
+        <source media="(min-width: 64rem)" srcset="https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx154587-qQTzQnEJJ3oB.jpg" />
+        <img src={decorativePosterPlaceholder} alt="" width="176" height="264" loading="eager" decoding="async" fetchpriority="low" class="w-full aspect-[2/3] object-cover rounded-xl" />
+      </picture>
     </div>
     
     <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
@@ -217,9 +219,9 @@ const recentlyAddedAnime = [...animeList]
   <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 border-t border-slate-200">
     <div class="p-7 sm:p-10 rounded-3xl bg-white border border-slate-200 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
       <div class="space-y-2 max-w-xl">
-        <h3 class="font-heading text-xl sm:text-2xl font-extrabold text-[#0F172A] tracking-tight">
+        <h2 class="font-heading text-xl sm:text-2xl font-extrabold text-[#0F172A] tracking-tight">
           Want to suggest something I should watch?
-        </h3>
+        </h2>
         <p class="text-sm text-slate-600 leading-relaxed font-normal">
           I want this list to grow with suggestions from real people. If you think an anime, movie, or series belongs here, send it over. If it gets added, it will be clearly marked as a user suggestion so everyone knows who suggested it.
         </p>

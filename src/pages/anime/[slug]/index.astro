@@ -1,5 +1,4 @@
 ---
-// src/pages/anime/[slug]/[...tab].astro
 import BaseLayout from '../../../layouts/BaseLayout.astro';
 import HonestyBadge from '../../../components/HonestyBadge.astro';
 import TabWatchOrder from '../../../components/anime/TabWatchOrder.astro';
@@ -13,40 +12,46 @@ import TabUniverse from '../../../components/anime/TabUniverse.astro';
 import TabRecommendations from '../../../components/anime/TabRecommendations.astro';
 import StreamingAvailability from '../../../components/anime/StreamingAvailability.astro';
 import RelatedBlogPosts from '../../../components/RelatedBlogPosts.astro';
-import { getAnimeDetailBySlugOrId, getAvailableTabs, getDefaultTabKey, optimizeAniListPoster } from '../../../lib/d1.js';
+import { getAnimeDetailBySlugOrId } from '../../../lib/d1.js';
+import { getAvailableTabs, type AnimeTabKey } from '../../../lib/anime-tabs.js';
+import { getAnimeFillerBadge } from '../../../lib/filler-utils.js';
+import { getTmdbPosterSrcSet, optimizeAniListPoster, resolveHttpImageUrl } from '../../../lib/image-utils.js';
+import { publicDataUnavailable } from '../../../lib/public-response.js';
+import { serializeScriptJson } from '../../../lib/script-json.ts';
 import { siteConfig } from '../../../config/site.js';
-import { buildAnimeTabMetadata } from '../../../lib/seo-utils.ts';
+import { buildAnimeMetadata } from '../../../lib/seo-utils.ts';
 import { formatSmartUpdatedDate } from '../../../lib/date-utils.ts';
 
 export const prerender = false;
 
-const { slug, tab } = Astro.params;
+const { slug } = Astro.params;
 
-const anime = await getAnimeDetailBySlugOrId(slug || '', Astro.locals);
-
+const anime = await getAnimeDetailBySlugOrId(slug || '', Astro.locals, { strictReads: true })
+  .catch(publicDataUnavailable);
+if (anime instanceof Response) return anime;
 if (!anime) {
-  return Astro.redirect('/404');
+  return new Response('Not Found', { status: 404 });
 }
 
-Astro.response.headers.set('Cache-Control', 'public, max-age=0, must-revalidate, s-maxage=86400');
-
-const availableTabs = getAvailableTabs(anime) || [];
-const hasTabs = availableTabs.length > 0;
-const TopSectionTag = hasTabs ? 'section' : 'main';
-const defaultTabKey = getDefaultTabKey(anime, availableTabs) || null;
-
-// If a specific tab is requested in the URL path, ensure it exists in availableTabs
-if (tab && !availableTabs.some((t: any) => t.key === tab)) {
-  return Astro.redirect(`/anime/${anime.slug}`, 302);
-}
-
-const activeTabKey = tab || defaultTabKey;
+const tabComponents = {
+  review: TabReview,
+  lessons: TabLessons,
+  'watch-order': TabWatchOrder,
+  'filler-list': TabFillerList,
+  characters: TabCharacters,
+  source: TabSource,
+  'power-system': TabPowerSystem,
+  universe: TabUniverse,
+  recommendations: TabRecommendations,
+} satisfies Record<AnimeTabKey, (props: { anime: typeof anime }) => unknown>;
+const availableTabs = getAvailableTabs(anime);
+const activeTab = availableTabs[0];
+const hasTabs = Boolean(activeTab);
 
 const rawLastUpdated = anime.lastUpdated || (anime as any).updatedAt;
 const smartUpdated = formatSmartUpdatedDate(rawLastUpdated);
 
-const hasFillerData = Boolean(anime.hasFillerData ?? (anime.fillerList && anime.fillerList.totalEpisodes > 0 && anime.sectionVisibility?.fillerList !== false));
-const isZeroFiller = hasFillerData && anime.fillerPercentage === 0;
+const { hasFillerData, isZeroFiller } = getAnimeFillerBadge(anime);
 const isMovie = anime.type === 'movie';
 const isAiring = (anime.status || '').toLowerCase().includes('airing');
 const isUpcoming = (anime.status || '').toLowerCase().includes('upcoming');
@@ -64,8 +69,6 @@ function formatRuntime(runtimeMinutes: any) {
   const remainingMins = mins % 60;
   return remainingMins > 0 ? `${hours}h ${remainingMins}m` : `${hours}h`;
 }
-const activeTab = availableTabs.find((t: any) => t.key === activeTabKey) || availableTabs[0] || null;
-
 function getAirStatusDetails(status: any) {
   const s = (status || '').trim();
   if (!s) return null;
@@ -126,8 +129,7 @@ const lessonText = isWatched && rawLesson
 
 const siteOrigin = (siteConfig.siteUrl || (Astro.site ? Astro.site.origin : 'https://chitrasampada.com')).replace(/\/+$/, '');
 
-// Tab-Specific SEO Metadata & Canonical URLs
-const { pageTitle, pageDescription, canonicalUrl } = buildAnimeTabMetadata(anime, tab, siteOrigin);
+const { pageTitle, pageDescription, canonicalUrl } = buildAnimeMetadata(anime, availableTabs, siteOrigin);
 
 // Structured Data Schemas
 const breadcrumbItems = [
@@ -147,18 +149,9 @@ const breadcrumbItems = [
     "@type": "ListItem",
     "position": 3,
     "name": anime.title,
-    "item": `${siteOrigin}/anime/${anime.slug}`
+    "item": canonicalUrl
   }
 ];
-
-if (tab && activeTab) {
-  breadcrumbItems.push({
-    "@type": "ListItem",
-    "position": 4,
-    "name": activeTab.label,
-    "item": `${siteOrigin}/anime/${anime.slug}/${activeTab.key}`
-  });
-}
 
 const breadcrumbSchema = {
   "@context": "https://schema.org",
@@ -166,27 +159,32 @@ const breadcrumbSchema = {
   "itemListElement": breadcrumbItems
 };
 
-const reviewBodyText = anime.review_paragraphs || (typeof anime.review?.paragraphs === 'string' ? anime.review.paragraphs : (anime.review?.text || '')) || anime.review?.heading || (anime.synopsis ? `${anime.title}: ${anime.synopsis}` : `${anime.title} guide`);
+const reviewBodyText = anime.review?.paragraphs?.trim();
+const rating = anime.personalRating;
+const hasEditorialReview = Boolean(reviewBodyText) && availableTabs.some((tab) => tab.key === 'review')
+  && typeof rating === 'number' && rating >= 1 && rating <= 10;
+const posterSrcSet = getTmdbPosterSrcSet(anime.poster);
+const posterUrl = resolveHttpImageUrl(anime.poster, siteOrigin);
+const animeEntity = {
+  "@type": isMovie ? 'Movie' : 'TVSeries',
+  "url": canonicalUrl,
+  "name": anime.title,
+  ...(anime.originalTitle ? { "alternateName": anime.originalTitle } : {}),
+  ...(posterUrl ? { "image": posterUrl } : {}),
+  ...(anime.synopsis ? { "description": anime.synopsis } : {}),
+  ...(anime.year ? { [isMovie ? "datePublished" : "startDate"]: String(anime.year) } : {}),
+  ...(!isMovie && anime.episodes ? { "numberOfEpisodes": anime.episodes } : {})
+};
 
-const schemaType = isMovie ? 'Movie' : 'TVSeries';
-
-let entitySchema;
-if (anime.honestyStatus === 'watched' && anime.personalRating !== undefined && anime.personalRating !== null) {
-  entitySchema = {
+const entitySchema = hasEditorialReview
+  ? {
     "@context": "https://schema.org",
     "@type": "Review",
-    "itemReviewed": {
-      "@type": schemaType,
-      "name": anime.title,
-      ...(anime.originalTitle ? { "alternateName": anime.originalTitle } : {}),
-      ...(anime.poster ? { "image": anime.poster } : {}),
-      ...(anime.synopsis ? { "description": anime.synopsis } : {}),
-      ...(anime.year ? { "startDate": String(anime.year) } : {}),
-      ...(!isMovie && anime.episodes ? { "numberOfEpisodes": anime.episodes } : {})
-    },
+    "url": canonicalUrl,
+    "itemReviewed": animeEntity,
     "reviewRating": {
       "@type": "Rating",
-      "ratingValue": anime.personalRating,
+      "ratingValue": rating,
       "bestRating": "10",
       "worstRating": "1"
     },
@@ -201,30 +199,23 @@ if (anime.honestyStatus === 'watched' && anime.personalRating !== undefined && a
       "url": siteOrigin
     },
     "reviewBody": reviewBodyText
-  };
-} else {
-  entitySchema = {
+  }
+  : {
     "@context": "https://schema.org",
-    "@type": schemaType,
-    "name": anime.title,
-    ...(anime.originalTitle ? { "alternateName": anime.originalTitle } : {}),
-    ...(anime.poster ? { "image": anime.poster } : {}),
-    ...(anime.synopsis ? { "description": anime.synopsis } : {}),
-    ...(anime.year ? { "startDate": String(anime.year) } : {}),
-    ...(!isMovie && anime.episodes ? { "numberOfEpisodes": anime.episodes } : {})
+    ...animeEntity
   };
-}
 ---
 
 <BaseLayout
   title={pageTitle}
   description={pageDescription}
   canonicalUrl={canonicalUrl}
-  ogImage={anime.poster || undefined}
+  ogImage={posterUrl}
+  ogImageAlt={`${anime.title} poster`}
 >
   <Fragment slot="structured-data">
-    <script type="application/ld+json" set:html={JSON.stringify(breadcrumbSchema)} />
-    <script type="application/ld+json" set:html={JSON.stringify(entitySchema)} />
+    <script type="application/ld+json" set:html={serializeScriptJson(breadcrumbSchema)} />
+    <script type="application/ld+json" set:html={serializeScriptJson(entitySchema)} />
   </Fragment>
 
   <div class:list={[
@@ -271,7 +262,7 @@ if (anime.honestyStatus === 'watched' && anime.personalRating !== undefined && a
     </nav>
 
     <!-- 2. SHARED TOP SECTION (Fixed across all sub-pages/tabs) -->
-    <TopSectionTag class="space-y-6">
+    <section class="space-y-6" aria-labelledby="anime-detail-title">
       <div class="grid grid-cols-1 md:grid-cols-12 gap-4 sm:gap-6 md:gap-8 items-start">
         
         <!-- Framed Poster Artwork -->
@@ -279,8 +270,8 @@ if (anime.honestyStatus === 'watched' && anime.personalRating !== undefined && a
           <div class="relative aspect-[2/3] rounded-2xl overflow-hidden bg-slate-100 border border-slate-200/90 shadow-sm">
             <img
               src={optimizeAniListPoster(anime.poster, 'w500')}
-              srcset={`${optimizeAniListPoster(anime.poster, 'w342')} 342w, ${optimizeAniListPoster(anime.poster, 'w500')} 500w`}
-              sizes="(min-width: 768px) 250px, 170px"
+              srcset={posterSrcSet}
+              sizes={posterSrcSet ? '(min-width: 48rem) 250px, (min-width: 40rem) 210px, 170px' : undefined}
               alt={`${anime.title} poster`}
               width="250"
               height="375"
@@ -464,7 +455,7 @@ if (anime.honestyStatus === 'watched' && anime.personalRating !== undefined && a
 
           <!-- Titles Block -->
           <div>
-            <h1 class="text-2xl sm:text-4xl lg:text-5xl font-extrabold text-[#0F172A] tracking-tight font-heading leading-tight">
+            <h1 id="anime-detail-title" class="text-2xl sm:text-4xl lg:text-5xl font-extrabold text-[#0F172A] tracking-tight font-heading leading-tight">
               {anime.title}
             </h1>
           </div>
@@ -536,43 +527,35 @@ if (anime.honestyStatus === 'watched' && anime.personalRating !== undefined && a
         </div>
 
       </div>
-    </TopSectionTag>
+    </section>
 
     <!-- 3. SECONDARY HORIZONTAL TAB NAVIGATION (STICKY / FULL WIDTH) -->
     {hasTabs && (
       <section id="tab-navigation" class="sticky top-18 z-40 bg-white/95 backdrop-blur-md border-y border-slate-200 py-3 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 shadow-2xs scroll-mt-20">
         <div class="max-w-7xl mx-auto flex items-center justify-between gap-4">
           
-          <!-- Tab Navigation Links -->
-          <div class="flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar py-0.5" id="anime-tabs-nav">
+          <div class="flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar py-0.5" id="anime-tabs-nav" role="tablist" aria-label="Anime details">
             {availableTabs.map((tab) => {
               const isActive = tab.key === activeTab?.key;
-              const isDefault = tab.key === 'review' || (!availableTabs.some((t: any) => t.key === 'review') && tab.key === defaultTabKey);
-              const tabUrl = isDefault ? `/anime/${anime.slug}` : `/anime/${anime.slug}/${tab.key}`;
 
               return (
-                <a
-                  href={tabUrl}
-                  data-tab-link={tab.key}
-                  data-astro-history="replace"
-                  aria-current={isActive ? 'page' : undefined}
-                  class:list={[
-                    'anime-tab-link px-3.5 sm:px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap transition-all duration-150 shrink-0 select-none flex items-center gap-1.5 cursor-pointer',
-                    isActive
-                      ? 'active-tab bg-[#6366F1] text-white shadow-sm shadow-indigo-500/20'
-                      : 'inactive-tab bg-white hover:bg-slate-100 text-slate-600 hover:text-slate-900 border border-slate-200/80'
-                  ]}
+                <button
+                  type="button"
+                  id={`tab-${tab.key}`}
+                  data-tab={tab.key}
+                  role="tab"
+                  aria-selected={isActive ? 'true' : 'false'}
+                  aria-controls={`panel-${tab.key}`}
+                  tabindex={isActive ? 0 : -1}
+                  class="group px-3.5 sm:px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap transition-all duration-150 shrink-0 select-none flex items-center gap-1.5 cursor-pointer aria-selected:bg-[#6366F1] aria-selected:text-white aria-selected:shadow-sm aria-selected:shadow-indigo-500/20 aria-[selected=false]:bg-white aria-[selected=false]:hover:bg-slate-100 aria-[selected=false]:text-slate-600 aria-[selected=false]:hover:text-slate-900 aria-[selected=false]:border aria-[selected=false]:border-slate-200/80"
                 >
                   <span>{tab.label}</span>
                   {tab.count !== undefined && (
-                    <span class:list={[
-                      'tab-counter text-[10px] font-bold px-1.5 py-0.2 rounded-full',
-                      isActive ? 'bg-[#4338CA] text-white' : 'bg-slate-100 text-slate-500'
-                    ]}>
+                    <span class="tab-counter text-[10px] font-bold px-1.5 py-0.2 rounded-full group-aria-selected:bg-[#4338CA] group-aria-selected:text-white group-aria-[selected=false]:bg-slate-100 group-aria-[selected=false]:text-slate-500">
                       {tab.count}
                     </span>
                   )}
-                </a>
+                </button>
               );
             })}
           </div>
@@ -581,30 +564,29 @@ if (anime.honestyStatus === 'watched' && anime.personalRating !== undefined && a
     )}
 
     <!-- 4. DYNAMIC BOTTOM SECTION -->
-    {hasTabs && activeTabKey && (
-      <main class="min-h-[250px] relative">
-        <div class="tab-panels">
-          <div
-            id={`panel-${activeTabKey}`}
-            class="tab-panel transition-opacity duration-150 block"
-            data-panel={activeTabKey}
-            role="tabpanel"
-          >
-            {activeTabKey === 'watch-order' && <TabWatchOrder anime={anime} />}
-            {activeTabKey === 'filler-list' && <TabFillerList anime={anime} />}
-            {activeTabKey === 'characters' && <TabCharacters anime={anime} />}
-            {activeTabKey === 'source' && <TabSource anime={anime} />}
-            {activeTabKey === 'power-system' && <TabPowerSystem anime={anime} />}
-            {activeTabKey === 'review' && <TabReview anime={anime} />}
-            {activeTabKey === 'lessons' && <TabLessons anime={anime} />}
-            {activeTabKey === 'universe' && <TabUniverse anime={anime} />}
-            {activeTabKey === 'recommendations' && <TabRecommendations anime={anime} />}
-          </div>
+    {hasTabs && (
+      <div class="min-h-[250px] relative">
+        <div class="tab-panels" id="anime-tab-panels">
+          {availableTabs.map((tab) => {
+            const Panel = tabComponents[tab.key];
+            return (
+              <div
+                id={`panel-${tab.key}`}
+                class="tab-panel transition-opacity duration-150 block"
+                role="tabpanel"
+                aria-labelledby={`tab-${tab.key}`}
+                tabindex="0"
+                hidden={tab.key !== activeTab?.key}
+              >
+                <Panel anime={anime} />
+              </div>
+            );
+          })}
         </div>
 
         <!-- Related Blog Posts / Articles discussing this anime -->
         <RelatedBlogPosts animeId={anime.id} animeTitle={anime.title} relatedBlogSlugs={anime.relatedBlogSlugs || []} />
-      </main>
+      </div>
     )}
 
     <!-- Related Blog Posts / Articles discussing this anime (when zero tabs are active) -->
@@ -646,28 +628,89 @@ if (anime.honestyStatus === 'watched' && anime.personalRating !== undefined && a
 
   </div>
 
-  <!-- Client-side Context-Aware Back Navigation -->
   <script>
-    // @ts-nocheck
-    function setupAnimeDetailInteractions() {
-      window.__animeDetailInteractionCleanup?.();
+    const initializedTabLists = new WeakSet<HTMLElement>();
 
-      const listeners = [];
-      const nativeAddEventListener = EventTarget.prototype.addEventListener;
+    function setupAnimeTabs() {
+      const tabList = document.getElementById('anime-tabs-nav');
+      const tabNavigation = document.getElementById('tab-navigation');
+      const panels = document.getElementById('anime-tab-panels');
+      const breadcrumb = document.getElementById('breadcrumb-current-tab');
+      if (!tabList || !tabNavigation || !panels || !breadcrumb || initializedTabLists.has(tabList)) return;
 
-      EventTarget.prototype.addEventListener = function (type, listener, options) {
-        listeners.push([this, type, listener, options]);
-        return nativeAddEventListener.call(this, type, listener, options);
+      initializedTabLists.add(tabList);
+      const tabs = Array.from(tabList.querySelectorAll<HTMLButtonElement>('[data-tab][role="tab"]'));
+      let selectedTab = tabs.find((tab) => tab.getAttribute('aria-selected') === 'true');
+
+      const selectTab = (nextTab: HTMLButtonElement) => {
+        if (nextTab === selectedTab) return;
+
+        for (const tab of tabs) {
+          const isSelected = tab === nextTab;
+          tab.setAttribute('aria-selected', String(isSelected));
+          tab.tabIndex = isSelected ? 0 : -1;
+          const panel = document.getElementById(tab.getAttribute('aria-controls') ?? '');
+          if (panel) panel.hidden = !isSelected;
+        }
+
+        selectedTab = nextTab;
+        breadcrumb.textContent = nextTab.firstElementChild?.textContent ?? '';
       };
 
-      queueMicrotask(() => {
-        EventTarget.prototype.addEventListener = nativeAddEventListener;
-        window.__animeDetailInteractionCleanup = () => {
-          for (const [target, type, listener, options] of listeners) {
-            target.removeEventListener(type, listener, options);
+      for (const [index, tab] of tabs.entries()) {
+        tab.addEventListener('click', () => {
+          if (tab === selectedTab) return;
+          selectTab(tab);
+          tab.focus({ preventScroll: true });
+
+          // Return to the tab strip's normal position even when it is already sticky.
+          const { top, marginBlockEnd } = getComputedStyle(tabNavigation);
+          const navTop = panels.getBoundingClientRect().top + window.scrollY
+            - tabNavigation.offsetHeight - parseFloat(top) - parseFloat(marginBlockEnd);
+          window.scrollTo({ top: Math.max(0, navTop), behavior: 'instant' });
+        });
+
+        tab.addEventListener('keydown', (event) => {
+          let nextIndex: number;
+          switch (event.key) {
+            case 'ArrowLeft':
+              nextIndex = (index + tabs.length - 1) % tabs.length;
+              break;
+            case 'ArrowRight':
+              nextIndex = (index + 1) % tabs.length;
+              break;
+            case 'Home':
+              nextIndex = 0;
+              break;
+            case 'End':
+              nextIndex = tabs.length - 1;
+              break;
+            default:
+              return;
           }
-        };
-      });
+
+          event.preventDefault();
+          const nextTab = tabs[nextIndex];
+          selectTab(nextTab);
+          nextTab.focus();
+        });
+      }
+    }
+
+    setupAnimeTabs();
+    document.addEventListener('astro:page-load', setupAnimeTabs);
+  </script>
+
+  <!-- Client-side Context-Aware Back Navigation and Badge Popovers -->
+  <script>
+    // @ts-nocheck
+    let detailListeners;
+    function setupAnimeDetailInteractions() {
+      detailListeners?.abort();
+      if (!document.getElementById('anime-detail-title')) return;
+      const controller = new AbortController();
+      detailListeners = controller;
+      const listenerOptions = { signal: controller.signal };
       // 1. DYNAMIC CONTEXT-AWARE BACK NAVIGATION
       const backButtons = document.querySelectorAll('[data-back-link]');
       let sourcePage = null;
@@ -792,7 +835,7 @@ if (anime.honestyStatus === 'watched' && anime.personalRating !== undefined && a
         }
 
         // Toggle on badge button click
-        btn.addEventListener('click', toggle);
+        btn.addEventListener('click', toggle, listenerOptions);
 
         // Immediate close on '✕' button click
         if (closeBtn) {
@@ -800,13 +843,13 @@ if (anime.honestyStatus === 'watched' && anime.personalRating !== undefined && a
             e.preventDefault();
             e.stopPropagation();
             close();
-          });
+          }, listenerOptions);
         }
 
         // Prevent clicks inside the popover from bubbling up to document
         popover.addEventListener('click', function (e) {
           e.stopPropagation();
-        });
+        }, listenerOptions);
       }
 
       // Close popover when clicking anywhere outside on the page
@@ -816,24 +859,25 @@ if (anime.honestyStatus === 'watched' && anime.personalRating !== undefined && a
             closeAllPopovers();
           }
         }
-      });
+      }, listenerOptions);
 
       // Close popover on Escape key
       document.addEventListener('keydown', function (e) {
         if (e.key === 'Escape') {
           closeAllPopovers();
         }
-      });
+      }, listenerOptions);
 
       // Close on window resize / orientation change to prevent stale positions
       window.addEventListener('resize', function () {
         closeAllPopovers();
-      });
+      }, listenerOptions);
 
       // Cleanup on Astro ViewTransitions navigation
       document.addEventListener('astro:before-swap', function () {
         closeAllPopovers();
-      });
+        controller.abort();
+      }, listenerOptions);
 
       // Initialize Air Status Popover
       setupPopover(
@@ -854,66 +898,20 @@ if (anime.honestyStatus === 'watched' && anime.personalRating !== undefined && a
     if (!window.__animeDetailInteractionsInitialized) {
       document.addEventListener('astro:page-load', setupAnimeDetailInteractions);
 
-      // Viewport scroll management on tab switching vs navigating to another anime
-      let shouldScrollToTabNav = false;
+      // Reset the viewport when navigating between anime pages.
       let shouldScrollToTop = false;
 
       document.addEventListener('astro:before-preparation', function (event) {
-        try {
-          if (event.navigationType === 'traverse') {
-            shouldScrollToTabNav = false;
-            shouldScrollToTop = false;
-            return;
-          }
-          const from = event.from.pathname;
-          const to = event.to.pathname;
-          const fromParts = from.split('/').filter(Boolean);
-          const toParts = to.split('/').filter(Boolean);
-          if (
-            fromParts[0] === 'anime' &&
-            toParts[0] === 'anime'
-          ) {
-            if (fromParts[1] && fromParts[1] === toParts[1]) {
-              // Switching tabs on the same anime -> smoothly scroll to tab nav
-              shouldScrollToTabNav = true;
-              shouldScrollToTop = false;
-            } else {
-              // Navigating to a different anime (e.g. via Watch Order quick-links) -> reset to top
-              shouldScrollToTabNav = false;
-              shouldScrollToTop = true;
-            }
-          } else {
-            shouldScrollToTabNav = false;
-            shouldScrollToTop = false;
-          }
-        } catch (e) {
-          shouldScrollToTabNav = false;
-          shouldScrollToTop = false;
-        }
+        const [, fromSection, fromSlug] = event.from.pathname.split('/');
+        const [, toSection, toSlug] = event.to.pathname.split('/');
+        shouldScrollToTop = event.navigationType !== 'traverse'
+          && fromSection === 'anime' && toSection === 'anime' && fromSlug !== toSlug;
       });
 
       document.addEventListener('astro:after-swap', function () {
-        if (shouldScrollToTabNav) {
-          const tabNav = document.getElementById('tab-navigation');
-          if (tabNav) {
-            const navTop = Math.max(0, tabNav.getBoundingClientRect().top + window.scrollY - 72);
-            window.scrollTo({ top: navTop, behavior: 'instant' });
-          }
-          shouldScrollToTabNav = false;
-        } else if (shouldScrollToTop) {
+        if (shouldScrollToTop) {
           window.scrollTo({ top: 0, behavior: 'instant' });
           shouldScrollToTop = false;
-        }
-      });
-
-      document.addEventListener('astro:after-swap', function () {
-        if (shouldScrollToTabNav) {
-          const tabNav = document.getElementById('tab-navigation');
-          if (tabNav) {
-            const navTop = Math.max(0, tabNav.getBoundingClientRect().top + window.scrollY - 72);
-            window.scrollTo({ top: navTop, behavior: 'instant' });
-          }
-          shouldScrollToTabNav = false;
         }
       });
 

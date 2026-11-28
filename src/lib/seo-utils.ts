@@ -41,20 +41,12 @@ export function truncateDescription(text: string | null | undefined, maxLen = 16
   if (cleaned.length <= maxLen) return cleaned;
 
   // Find the last word boundary before maxLen
-  const truncated = cleaned.slice(0, maxLen);
+  const truncated = cleaned.slice(0, maxLen - 3);
   const lastSpace = truncated.lastIndexOf(' ');
   const safeEnd = lastSpace >= minLen ? lastSpace : maxLen - 3;
   
   const result = cleaned.slice(0, safeEnd).replace(/[,;:\-\s]+$/, '');
   return `${result}...`;
-}
-
-/**
- * Strip leading labels from notes (e.g. "100% Canon —", "Canon Status —").
- */
-export function cleanNoteLeadingLabels(note: string | null | undefined): string {
-  if (!note || typeof note !== 'string') return '';
-  return cleanPlainText(note).replace(/^[\w\s%]+[—–-]\s*/, '').trim();
 }
 
 /**
@@ -77,7 +69,7 @@ export function cutAtSentenceBoundary(text: string | null | undefined, maxLen = 
   }
 
   if (result.length >= 60) return result;
-  return truncateDescription(cleaned, maxLen);
+  return truncateDescription(cleaned, maxLen - 3);
 }
 
 /**
@@ -120,205 +112,41 @@ export function getWatchOrderLeadSentence(
 }
 
 /**
- * Build page-specific SEO metadata for anime detail pages and their sub-tabs.
+ * Build metadata for the consolidated anime detail page.
  */
-export function buildAnimeTabMetadata(
-  anime: any,
-  tab: string | undefined,
+export function buildAnimeMetadata(
+  anime: { title: string; slug: string; year?: number | string | null; synopsis?: string | null },
+  tabs: ReadonlyArray<{ key: string; label: string }>,
   siteOrigin: string
 ): { pageTitle: string; pageDescription: string; canonicalUrl: string } {
-  const title = anime?.title || 'Anime';
-  const cleanTab = (tab || '').trim().toLowerCase();
-  const year = anime?.year ? ` (${anime.year})` : '';
+  const { title, slug } = anime;
+  const guideKeys = ['watch-order', 'filler-list'];
+  const guideLabels = guideKeys.flatMap((key) => tabs.find((tab) => tab.key === key)?.label ?? []);
+  const otherLabels = tabs.filter((tab) => !guideKeys.includes(tab.key)).map((tab) => tab.label);
 
-  let pageTitle: string;
-  let pageDescription: string;
-  let canonicalUrl: string;
+  const primaryTopic = guideLabels[0] ?? otherLabels[0] ?? 'Anime Guide';
+  const combinedTopic = guideLabels.length > 1 ? guideLabels.join(' & ') : primaryTopic;
+  const pageTitle = [`${title} | ${combinedTopic}`, `${title} | ${primaryTopic}`, title]
+    .find((candidate) => candidate.length <= 60) ?? truncateDescription(title, 57, 40);
 
-  if (!cleanTab) {
-    // 1. Main Anime Overview (/anime/[slug])
-    pageTitle = `${title}: Anime Guide & Watch Overview`;
-    
-    if (anime?.synopsis) {
-      const cleanSyn = cleanPlainText(anime.synopsis);
-      if (cleanSyn.length >= 100) {
-        pageDescription = truncateDescription(cleanSyn, 155);
-      } else {
-        pageDescription = truncateDescription(
-          `${cleanSyn} Explore watch orders, filler guides, characters, and reviews for ${title}.`,
-          155
-        );
-      }
-    } else {
-      pageDescription = `Guide for ${title}${year}. Explore curated chronological watch orders, filler episode breakdowns, character profiles, and honest reviews.`;
-    }
-    canonicalUrl = `${siteOrigin}/anime/${anime.slug}`;
+  const synopsis = cleanPlainText(anime.synopsis);
+  const topics = [...guideLabels, ...otherLabels].slice(0, 3).map((label) => label.toLowerCase());
+  const summary = topics.length
+    ? `Explore ${new Intl.ListFormat('en').format(topics)} for ${title}.`
+    : '';
+  const fallback = `Anime guide for ${title}${anime.year ? ` (${anime.year})` : ''}.`;
+  const pageDescription = cutAtSentenceBoundary([summary, synopsis].filter(Boolean).join(' ') || fallback);
 
-  } else if (cleanTab === 'filler-list' || cleanTab === 'filler') {
-    // 2. Filler List & Canon Guide (/anime/[slug]/filler-list)
-    pageTitle = `${title} Filler List and Canon Episode Guide`;
-    
-    const isMovie = anime?.type === 'movie';
-    const isZeroFiller = anime?.hasFillerData && anime?.fillerPercentage === 0;
-
-    if (isMovie) {
-      const candidate = `Discover the canon status and timeline placement for ${title}, with official continuity details and storyline viewing guidance.`;
-      pageDescription = candidate.length <= 155 ? candidate : truncateDescription(candidate, 155);
-    } else if (anime?.hasFillerData && typeof anime?.fillerPercentage === 'number' && anime.fillerPercentage > 0) {
-      const fl = anime.fillerList;
-      const fillerCount = fl?.fillerEpisodes ?? Math.round(((anime.fillerPercentage || 0) / 100) * (anime.episodes || 0));
-      const fillerPct = anime.fillerPercentage;
-      const mixedCount = fl?.mixedEpisodes || 0;
-      const mangaCanonCount = fl?.mangaCanonEpisodes || 0;
-
-      if (mixedCount > 0 && mangaCanonCount > 0) {
-        const candidate = `${title} filler list and canon guide. Track ${mangaCanonCount} manga canon, ${mixedCount} mixed, and ${fillerCount} filler episodes (${fillerPct}% filler) in story order.`;
-        if (candidate.length <= 155) {
-          pageDescription = candidate;
-        } else {
-          const fallback = `${title} filler list and canon guide. Track canon, ${mixedCount} mixed, and ${fillerCount} filler episodes (${fillerPct}% filler) in story order.`;
-          pageDescription = fallback.length <= 155 ? fallback : truncateDescription(candidate, 155);
-        }
-      } else {
-        const candidate = `${title} filler list and canon guide. Skip ${fillerCount} filler episode${fillerCount === 1 ? '' : 's'} (${fillerPct}% of the series) and stream the main storyline in order.`;
-        pageDescription = candidate.length <= 155 ? candidate : truncateDescription(candidate, 155);
-      }
-    } else if (anime?.fillerNote) {
-      const cleaned = cleanNoteLeadingLabels(anime.fillerNote);
-      const candidate = `${title} canon and filler guide. ${cleaned}`;
-      pageDescription = cutAtSentenceBoundary(candidate, 155);
-    } else if (isZeroFiller) {
-      const candidate = `${title} episode guide. With 0% filler content, stream every verified canon episode in chronological order.`;
-      pageDescription = candidate.length <= 155 ? candidate : truncateDescription(candidate, 155);
-    } else {
-      pageDescription = `Filler episode guide and canon breakdown for ${title}. Identify skippable episodes and watch the main storyline in order.`;
-    }
-    canonicalUrl = `${siteOrigin}/anime/${anime.slug}/filler-list`;
-
-  } else if (cleanTab === 'watch-order') {
-    // 3. Watch Order (/anime/[slug]/watch-order)
-    pageTitle = `${title} Watch Order: How to Watch in Order`;
-
-    const franchiseNote = anime?.franchiseWatchOrderNote || null;
-    const watchOrderNote = anime?.watchOrderNote || null;
-    const lead = getWatchOrderLeadSentence(
-      title,
-      franchiseNote ? anime?.franchiseName : null,
-      watchOrderNote
-    );
-    pageDescription = lead.length <= 155 ? lead : truncateDescription(lead, 155);
-    canonicalUrl = `${siteOrigin}/anime/${anime.slug}/watch-order`;
-
-  } else if (cleanTab === 'characters') {
-    // 4. Characters (/anime/[slug]/characters)
-    pageTitle = `${title} Characters: Cast & Profiles Guide`;
-    
-    const charNames = Array.isArray(anime?.characters)
-      ? anime.characters.slice(0, 3).map((c: any) => c.name).filter(Boolean)
-      : [];
-
-    if (charNames.length > 0) {
-      pageDescription = truncateDescription(
-        `Meet the main characters and cast of ${title}, including ${charNames.join(', ')}, with detailed character roles, ranks, and background highlights.`,
-        155
-      );
-    } else {
-      pageDescription = `Meet the character cast of ${title}, exploring key character profiles, affiliations, motivations, and narrative highlights.`;
-    }
-    canonicalUrl = `${siteOrigin}/anime/${anime.slug}/characters`;
-
-  } else if (cleanTab === 'review') {
-    // 5. Personal Take / Review (/anime/[slug]/review)
-    pageTitle = `${title} Review: Honest Rating & In-Depth Breakdown`;
-    
-    if (anime?.honestyStatus === 'watched' && anime?.personalRating !== undefined && anime.personalRating !== null) {
-      pageDescription = truncateDescription(
-        `Honest editorial review and ${anime.personalRating}/10 rating for ${title}. In-depth commentary on story pacing, animation quality, and character arcs.`,
-        155
-      );
-    } else {
-      pageDescription = truncateDescription(
-        `Read an honest editorial review and breakdown of ${title}, examining story quality, thematic depth, and viewer recommendations.`,
-        155
-      );
-    }
-    canonicalUrl = `${siteOrigin}/anime/${anime.slug}/review`;
-
-  } else if (cleanTab === 'source') {
-    // 6. Source Material (/anime/[slug]/source)
-    pageTitle = `${title} Manga & Source Guide: Where to Start Reading`;
-    pageDescription = truncateDescription(
-      `Discover the original source material for ${title}. Find manga chapter adaptation coverage, volume milestones, and where to pick up after the anime.`,
-      155
-    );
-    canonicalUrl = `${siteOrigin}/anime/${anime.slug}/source`;
-
-  } else if (cleanTab === 'power-system') {
-    // 7. Power System & Combat Lore (/anime/[slug]/power-system)
-    pageTitle = `${title} Power System Explained: Combat Lore & Mechanics`;
-    pageDescription = truncateDescription(
-      `In-depth breakdown of the power system and combat mechanics in ${title}, explaining abilities, limitations, and worldbuilding rules.`,
-      155
-    );
-    canonicalUrl = `${siteOrigin}/anime/${anime.slug}/power-system`;
-
-  } else if (cleanTab === 'lessons') {
-    // 8. What I Learned / Themes (/anime/[slug]/lessons)
-    pageTitle = `${title} Themes & Lessons: Philosophical Reflections`;
-    
-    const takeaway = anime?.lesson_takeaway || anime?.what_i_learned_paragraphs;
-    if (takeaway) {
-      const cleanT = cleanPlainText(takeaway);
-      pageDescription = truncateDescription(
-        `${cleanT} Key themes and philosophical reflections explored in ${title}.`,
-        155
-      );
-    } else {
-      pageDescription = truncateDescription(
-        `Explore meaningful life lessons, philosophical themes, and emotional takeaways drawn from the story, character journeys, and ending of ${title}.`,
-        155
-      );
-    }
-    canonicalUrl = `${siteOrigin}/anime/${anime.slug}/lessons`;
-
-  } else if (cleanTab === 'universe') {
-    // 9. Franchise Universe & Directory (/anime/[slug]/universe)
-    pageTitle = `${title} Franchise Universe & Media Directory`;
-    pageDescription = truncateDescription(
-      `Explore the franchise universe for ${title}. Navigate official canon storylines, spin-offs, feature films, and related multimedia entries.`,
-      155
-    );
-    canonicalUrl = `${siteOrigin}/anime/${anime.slug}/universe`;
-
-  } else if (cleanTab === 'recommendations') {
-    // 10. Recommendations (/anime/[slug]/recommendations)
-    pageTitle = `Anime Like ${title}: Curated Recommendations to Watch`;
-    pageDescription = truncateDescription(
-      `Discover curated anime recommendations similar to ${title}. Hand-picked series sharing comparable themes, storytelling styles, and character dynamics.`,
-      155
-    );
-    canonicalUrl = `${siteOrigin}/anime/${anime.slug}/recommendations`;
-
-  } else {
-    // Generic Tab Fallback
-    const label = cleanTab.charAt(0).toUpperCase() + cleanTab.slice(1);
-    pageTitle = `${title}: ${label} Guide`;
-    pageDescription = truncateDescription(
-      `Viewer guide and reference details for ${title}. Researched episode context, honest notes, and essential information.`,
-      155
-    );
-    canonicalUrl = `${siteOrigin}/anime/${anime.slug}/${cleanTab}`;
-  }
-
-  return { pageTitle, pageDescription, canonicalUrl };
+  return { pageTitle, pageDescription, canonicalUrl: `${siteOrigin}/anime/${slug}` };
 }
 
 /**
  * Build SEO metadata for curated Vibe/Tag pages.
  */
 export function buildVibeMetadata(vibe: any): { pageTitle: string; pageDescription: string } {
-  const name = vibe?.name || 'Anime';
-  const pageTitle = `${name} Anime: Curated Watch Guides & Recommendations`;
+  const name = (vibe?.name || '').trim();
+  const topic = !name || /\banime$/i.test(name) ? (name || 'Anime') : `${name} Anime`;
+  const pageTitle = `${topic} | Chitra Sampada`;
   
   let pageDescription: string;
   if (vibe?.metaDescription && cleanPlainText(vibe.metaDescription).length >= 50) {
@@ -331,7 +159,7 @@ export function buildVibeMetadata(vibe: any): { pageTitle: string; pageDescripti
       160
     );
   } else {
-    pageDescription = `Discover top-rated ${name.toLowerCase()} anime with curated chronological watch orders, canon episode guides, and honest recommendations on what to watch next.`;
+    pageDescription = `Browse the ${topic} collection for curated watch guides, filler lists, and editorial reviews where available.`;
   }
 
   return { pageTitle, pageDescription };

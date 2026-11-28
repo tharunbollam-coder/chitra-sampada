@@ -1,8 +1,10 @@
 ---
 // src/components/admin/AnimeEditor.astro
 import AdminLayout from '../../layouts/AdminLayout.astro';
-import { getAllFranchises, getAllAdminBlogPosts } from '../../lib/admin-db.js';
+import { getAllFranchises, getAdminBlogArticleChoices } from '../../lib/admin-db.js';
 import { getAnimeCompleteness } from '../../lib/completeness.ts';
+import { DEFAULT_ANIME_TAB_VISIBILITY } from '../../lib/anime-tabs.js';
+import { calculateFillerPercentage, summarizeFillerCounts } from '../../lib/filler-utils.js';
 import { getDatabase, getAllAdminVibes } from '../../lib/d1.js';
 import { vibes as fallbackVibes } from '../../data/vibes.js';
 
@@ -15,10 +17,13 @@ const anime: any = initialAnime;
 const isNew = !anime;
 const pageTitle = isNew ? 'Add New Anime' : `Edit Anime: ${anime?.title || ''}`;
 
-const [franchisesResult, adminBlogPostsResult, dbVibesResult] = await Promise.all([
+const db = await getDatabase(Astro.locals);
+const [franchisesResult, adminBlogPostsResult, dbVibesResult, existingGenreRows, platformAnimeRows] = await Promise.all([
   getAllFranchises(Astro.locals),
-  getAllAdminBlogPosts(Astro.locals),
-  getAllAdminVibes(Astro.locals).catch(() => [])
+  getAdminBlogArticleChoices(Astro.locals),
+  getAllAdminVibes(Astro.locals).catch(() => []),
+  db.query('SELECT DISTINCT genre FROM anime_genres ORDER BY genre ASC'),
+  db.query('SELECT id, title, slug FROM anime ORDER BY title ASC')
 ]);
 
 const franchises: any[] = franchisesResult || [];
@@ -37,34 +42,25 @@ const initialTickedBlogSlugs = (anime?.genres || [])
 
 const dbVibes: any[] = dbVibesResult || [];
 const editorVibes: any[] = dbVibes.length > 0 ? dbVibes : fallbackVibes;
-const db: any = await getDatabase(Astro.locals);
-const existingGenreRows: any[] = (await db.query('SELECT DISTINCT genre FROM anime_genres ORDER BY genre ASC')) || [];
 const existingGenres: string[] = Array.isArray(existingGenreRows)
   ? existingGenreRows.map((r: any) => r.genre).filter((g: string) => g && !g.startsWith('__blog__:'))
   : [];
 const defaultGenres = ['Adventure', 'Fantasy', 'Action', 'Drama', 'Comedy', 'Romance', 'Mystery', 'Sci-Fi', 'Slice of Life', 'Supernatural', 'Thriller'];
 const availableGenres: string[] = Array.from(new Set([...defaultGenres, ...existingGenres]));
-const platformAnimeList: any[] = (await db.query('SELECT id, title, slug FROM anime ORDER BY title ASC')) || [];
+const platformAnimeList: any[] = platformAnimeRows || [];
 
 const fillerBreakdown = anime?.fillerBreakdown || {};
 const initCounts = fillerBreakdown.counts || { mangaCanon: 0, animeCanon: 0, mixedCanon: 0, filler: 0 };
-const initTotal = fillerBreakdown.totalEpisodes ?? (initCounts.mangaCanon + initCounts.animeCanon + initCounts.mixedCanon + initCounts.filler);
-const initCanon = fillerBreakdown.canonEpisodes ?? (initCounts.mangaCanon + initCounts.animeCanon);
+const initSummary = summarizeFillerCounts(initCounts.mangaCanon, initCounts.animeCanon, initCounts.mixedCanon, initCounts.filler);
+const initTotal = fillerBreakdown.totalEpisodes ?? initSummary.totalEpisodes;
+const initCanon = fillerBreakdown.canonEpisodes ?? initSummary.canonEpisodes;
 const initMixed = initCounts.mixedCanon || 0;
 const initFiller = initCounts.filler || 0;
-const initPct = fillerBreakdown.fillerPercentage ?? (initTotal > 0 ? Math.round((initFiller / initTotal) * 100) : (anime?.fillerPercentage || 0));
+const initPct = fillerBreakdown.fillerPercentage ?? calculateFillerPercentage(initFiller, initTotal, {
+  fallback: anime?.fillerPercentage || 0
+});
 
-const sectionVisibility = anime?.sectionVisibility || {
-  review: true,
-  lessons: true,
-  watchOrder: true,
-  fillerList: true,
-  characters: true,
-  source: true,
-  powerSystem: true,
-  universe: true,
-  recommendations: true
-};
+const sectionVisibility = anime?.sectionVisibility || DEFAULT_ANIME_TAB_VISIBILITY;
 
 const initialReviewText = anime?.review_paragraphs ?? (typeof anime?.review?.paragraphs === 'string' ? anime.review.paragraphs : (anime?.review?.text || ''));
 const initialLessonsText = anime?.what_i_learned_paragraphs ?? anime?.lesson_takeaway ?? (typeof anime?.lessons?.takeaway === 'string' ? anime.lessons.takeaway : (anime?.lessons?.text || ''));

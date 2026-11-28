@@ -12,7 +12,7 @@ const currentPath = Astro.url.pathname;
     <!-- Logo & Brand Identity -->
     <a href="/" class="flex items-center gap-3 group shrink-0">
       <img
-        src="/cs.webp"
+        src={siteConfig.logoUrl}
         alt="Chitra Sampada Logo"
         width="40"
         height="40"
@@ -109,6 +109,8 @@ const currentPath = Astro.url.pathname;
         type="button"
         id="mobile-menu-toggle"
         aria-label="Toggle mobile menu"
+        aria-controls="mobile-menu"
+        aria-expanded="false"
         class="md:hidden p-2 rounded-xl bg-slate-100 border border-slate-200 text-slate-700 hover:text-slate-900 hover:bg-slate-200/70 transition-colors"
       >
         <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -167,7 +169,15 @@ const currentPath = Astro.url.pathname;
     const menu = document.getElementById('mobile-menu');
     if (btn && menu) {
       btn.onclick = () => {
-        menu.classList.toggle('hidden');
+        const hidden = menu.classList.toggle('hidden');
+        btn.setAttribute('aria-expanded', String(!hidden));
+      };
+      menu.onkeydown = btn.onkeydown = (event) => {
+        if (event.key === 'Escape' && !menu.classList.contains('hidden')) {
+          menu.classList.add('hidden');
+          btn.setAttribute('aria-expanded', 'false');
+          btn.focus();
+        }
       };
     }
   }

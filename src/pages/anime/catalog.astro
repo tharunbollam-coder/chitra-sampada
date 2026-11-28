@@ -3,22 +3,31 @@
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import AnimeCard from '../../components/AnimeCard.astro';
 import { getCompactAnimeList, getAllVibes } from '../../lib/d1.js';
+import { publicDataUnavailable } from '../../lib/public-response.js';
+import { serializeScriptJson } from '../../lib/script-json.ts';
+import { hasCatalogFilters } from '../../lib/catalog-filters.js';
+import { isZeroFiller } from '../../lib/filler-utils.js';
 import { siteConfig } from '../../config/site.js';
 
 export const prerender = false;
 
-const [animeList, vibes] = await Promise.all([
-  getCompactAnimeList(Astro.locals),
-  getAllVibes(Astro.locals)
-]);
+const data = await Promise.all([
+  getCompactAnimeList(Astro.locals, { strictReads: true }),
+  getAllVibes(Astro.locals, { strictReads: true })
+]).catch(publicDataUnavailable);
+if (data instanceof Response) return data;
+const [animeList, vibes] = data;
 
-Astro.response.headers.set('Cache-Control', 'public, max-age=0, must-revalidate, s-maxage=86400');
+if (hasCatalogFilters(Astro.url.searchParams)) {
+  Astro.response.headers.set('X-Robots-Tag', 'noindex');
+  Astro.response.headers.set('Cache-Control', 'no-store');
+}
 
 // Metrics
 const watchedCount = animeList.filter((a: any) => a.honestyStatus === 'watched').length;
 const watchlistCount = animeList.filter((a: any) => a.honestyStatus === 'watchlist').length;
 const referenceCount = animeList.filter((a: any) => a.honestyStatus === 'reference').length;
-const zeroFillerCount = animeList.filter((a: any) => a.hasFillerData && a.fillerPercentage === 0).length;
+const zeroFillerCount = animeList.filter(isZeroFiller).length;
 const communityCount = animeList.filter((a: any) => a.communitySuggested).length;
 const seriesCount = animeList.filter((a: any) => (a.type || 'series') === 'series').length;
 const movieCount = animeList.filter((a: any) => a.type === 'movie').length;
@@ -132,6 +141,7 @@ const breadcrumbSchema = {
           <button
             type="button"
             data-filter="all"
+            aria-pressed="true"
             class="filter-tab-btn active px-4 py-1.5 rounded-full text-xs font-bold tracking-wide transition-all bg-[#6366F1] text-white shadow-sm shadow-indigo-500/20"
           >
             All Titles ({animeList.length})
@@ -140,6 +150,7 @@ const breadcrumbSchema = {
           <button
             type="button"
             data-filter="watched"
+            aria-pressed="false"
             class="filter-tab-btn px-4 py-1.5 rounded-full text-xs font-semibold tracking-wide transition-all bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 flex items-center gap-1.5 shadow-2xs"
           >
             <span class="w-1.5 h-1.5 rounded-full bg-[#6366F1]"></span>
@@ -149,6 +160,7 @@ const breadcrumbSchema = {
           <button
             type="button"
             data-filter="watchlist"
+            aria-pressed="false"
             class="filter-tab-btn px-4 py-1.5 rounded-full text-xs font-semibold tracking-wide transition-all bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 flex items-center gap-1.5 shadow-2xs"
           >
             <span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
@@ -158,6 +170,7 @@ const breadcrumbSchema = {
           <button
             type="button"
             data-filter="reference"
+            aria-pressed="false"
             class="filter-tab-btn px-4 py-1.5 rounded-full text-xs font-semibold tracking-wide transition-all bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 flex items-center gap-1.5 shadow-2xs"
           >
             <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
@@ -167,6 +180,7 @@ const breadcrumbSchema = {
           <button
             type="button"
             data-filter="zero"
+            aria-pressed="false"
             class="filter-tab-btn px-4 py-1.5 rounded-full text-xs font-semibold tracking-wide transition-all bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 flex items-center gap-1.5 shadow-2xs"
           >
             <span class="w-1.5 h-1.5 rounded-full bg-[#6366F1]"></span>
@@ -176,6 +190,7 @@ const breadcrumbSchema = {
           <button
             type="button"
             data-filter="community"
+            aria-pressed="false"
             class="filter-tab-btn px-4 py-1.5 rounded-full text-xs font-semibold tracking-wide transition-all bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 flex items-center gap-1.5 shadow-2xs"
           >
             <span class="w-1.5 h-1.5 rounded-full bg-sky-500"></span>
@@ -190,6 +205,7 @@ const breadcrumbSchema = {
             <button
               type="button"
               data-format="all"
+              aria-pressed="true"
               class="format-tab-btn active px-3 py-1 rounded-full text-xs font-bold transition-all bg-[#6366F1] text-white shadow-2xs"
             >
               All Formats
@@ -197,6 +213,7 @@ const breadcrumbSchema = {
             <button
               type="button"
               data-format="series"
+              aria-pressed="false"
               class="format-tab-btn px-3 py-1 rounded-full text-xs font-semibold text-slate-700 hover:text-slate-900 transition-all"
             >
               TV Series ({seriesCount})
@@ -204,6 +221,7 @@ const breadcrumbSchema = {
             <button
               type="button"
               data-format="movie"
+              aria-pressed="false"
               class="format-tab-btn px-3 py-1 rounded-full text-xs font-semibold text-slate-700 hover:text-slate-900 transition-all"
             >
               Movies ({movieCount})
@@ -310,7 +328,7 @@ const breadcrumbSchema = {
     <!-- The Grid of All Anime Cards -->
     <div id="anime-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3.5 sm:gap-4 md:gap-7">
       {animeList.map((anime: any) => (
-        <AnimeCard anime={anime} />
+        <AnimeCard anime={anime} headingLevel={2} wideGrid />
       ))}
     </div>
 
@@ -365,7 +383,7 @@ const breadcrumbSchema = {
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
       </div>
-      <h3 class="text-lg font-bold text-[#0F172A] mb-1 font-heading">No anime found matching your filter</h3>
+      <h2 class="text-lg font-bold text-[#0F172A] mb-1 font-heading">No anime found matching your filter</h2>
       <p class="text-xs text-slate-500 max-w-sm mx-auto mb-5 font-normal">
         Try resetting the search or selecting another vibe or status tab.
       </p>
@@ -380,7 +398,7 @@ const breadcrumbSchema = {
   </section>
 </BaseLayout>
 
-  <script type="application/json" id="catalog-vibes-data" set:html={JSON.stringify(vibes.map((v: any) => ({
+  <script type="application/json" id="catalog-vibes-data" set:html={serializeScriptJson(vibes.map((v: any) => ({
     id: v.id,
     slug: v.slug,
     h1: v.h1,
@@ -393,9 +411,12 @@ const breadcrumbSchema = {
   <!-- CLIENT-SIDE FILTERING & PAGINATION SCRIPT -->
   <script>
     // @ts-nocheck
+    import { CATALOG_FILTERS, CATALOG_FORMATS, CATALOG_SORTS, CATALOG_QUERY_PARAMETERS } from '../../lib/catalog-filters.js';
     const STORAGE_KEY = 'chitra_catalog_state';
     const NAV_AWAY_KEY = 'chitra_catalog_nav_away';
     let isPopStateActive = false;
+    let catalogListeners;
+    let activeGrid;
 
     window.addEventListener('popstate', () => {
       isPopStateActive = true;
@@ -422,7 +443,12 @@ const breadcrumbSchema = {
 
     function setupCatalogFiltering() {
       const grid = document.getElementById('anime-grid');
-      if (!grid) return;
+      if (!grid || grid === activeGrid) return;
+      catalogListeners?.abort();
+      catalogListeners = new AbortController();
+      activeGrid = grid;
+      const listenerOptions = { signal: catalogListeners.signal };
+      const catalogPath = window.location.pathname;
 
       const vibesEl = document.getElementById('catalog-vibes-data');
       let vibes = [];
@@ -432,12 +458,21 @@ const breadcrumbSchema = {
         } catch (e) {}
       }
 
-      const cards = Array.from(document.querySelectorAll('#anime-grid > article'));
-      cards.forEach((card, idx) => {
-        if (!card.dataset.defaultIndex) {
-          card.dataset.defaultIndex = String(idx);
-        }
-      });
+      const cards = Array.from(grid.querySelectorAll(':scope > article'), (element, index) => ({
+        element,
+        index,
+        status: element.dataset.status,
+        filler: element.dataset.filler,
+        type: element.dataset.type || 'series',
+        community: element.dataset.community === 'true',
+        vibes: (element.dataset.vibe || '').split(' '),
+        title: element.dataset.title || '',
+        rating: parseFloat(element.dataset.rating),
+        episodes: parseInt(element.dataset.episodes, 10),
+      }));
+      let orderedCards = cards;
+      let appliedSort = 'default';
+      let visibleCards = new Set(cards.map(({ element }) => element).filter((element) => !element.classList.contains('hidden')));
       const tabBtns = Array.from(document.querySelectorAll('.filter-tab-btn'));
       const formatBtns = Array.from(document.querySelectorAll('.format-tab-btn'));
       const sortContainer = document.getElementById('catalog-sort-container');
@@ -540,7 +575,7 @@ const breadcrumbSchema = {
       isPopStateActive = false;
 
       // 1. Current Filter
-      const validFilters = ['watched', 'watchlist', 'reference', 'zero', 'community'];
+      const validFilters = CATALOG_FILTERS;
       let currentFilter = 'all';
       if (urlParams.has('filter') && validFilters.includes(urlParams.get('filter'))) {
         currentFilter = urlParams.get('filter');
@@ -549,7 +584,7 @@ const breadcrumbSchema = {
       }
 
       // 2. Current Format
-      const validFormats = ['series', 'movie'];
+      const validFormats = CATALOG_FORMATS;
       let currentFormat = 'all';
       if (urlParams.has('format') && validFormats.includes(urlParams.get('format'))) {
         currentFormat = urlParams.get('format');
@@ -566,7 +601,7 @@ const breadcrumbSchema = {
       }
 
       // 4. Current Sort
-      const validSorts = ['default', 'rating-desc', 'rating-asc', 'episodes-desc', 'episodes-asc'];
+      const validSorts = CATALOG_SORTS;
       let currentSort = 'default';
       if (urlParams.has('sort') && validSorts.includes(urlParams.get('sort'))) {
         currentSort = urlParams.get('sort');
@@ -662,6 +697,7 @@ const breadcrumbSchema = {
       function updateTabButtonUI() {
         tabBtns.forEach((btn) => {
           const filterVal = btn.getAttribute('data-filter');
+          btn.setAttribute('aria-pressed', String(filterVal === currentFilter));
           if (filterVal === currentFilter) {
             btn.classList.add('bg-[#6366F1]', 'text-white', 'shadow-sm', 'shadow-indigo-500/20');
             btn.classList.remove('bg-white', 'text-slate-700');
@@ -675,6 +711,7 @@ const breadcrumbSchema = {
       function updateFormatButtonUI() {
         formatBtns.forEach((btn) => {
           const formatVal = btn.getAttribute('data-format');
+          btn.setAttribute('aria-pressed', String(formatVal === currentFormat));
           if (formatVal === currentFormat) {
             btn.classList.add('bg-[#6366F1]', 'text-white', 'shadow-2xs');
             btn.classList.remove('text-slate-700', 'hover:text-slate-900');
@@ -686,7 +723,8 @@ const breadcrumbSchema = {
       }
 
       function updateUrl(push = false) {
-        const params = new URLSearchParams();
+        const params = new URLSearchParams(window.location.search);
+        CATALOG_QUERY_PARAMETERS.forEach((key) => params.delete(key));
         if (currentFilter && currentFilter !== 'all') params.set('filter', currentFilter);
         if (currentFormat && currentFormat !== 'all') params.set('format', currentFormat);
         if (currentVibe) params.set('vibe', currentVibe);
@@ -799,15 +837,14 @@ const breadcrumbSchema = {
         }
 
         const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-        const endIndex = startIndex + ITEMS_PER_PAGE;
-
-        currentMatchingCards.forEach((card, idx) => {
-          if (idx >= startIndex && idx < endIndex) {
-            card.classList.remove('hidden');
-          } else {
-            card.classList.add('hidden');
-          }
-        });
+        const nextVisible = new Set(currentMatchingCards.slice(startIndex, startIndex + ITEMS_PER_PAGE));
+        for (const card of visibleCards) {
+          if (!nextVisible.has(card)) card.classList.add('hidden');
+        }
+        for (const card of nextVisible) {
+          if (!visibleCards.has(card)) card.classList.remove('hidden');
+        }
+        visibleCards = nextVisible;
 
         renderPaginationControls(totalMatches, totalPages);
       }
@@ -829,102 +866,36 @@ const breadcrumbSchema = {
         const vibeObj = vibes.find((v) => v.id === currentVibe || v.slug === currentVibe);
         updateHeaderForVibe(vibeObj);
 
-        currentMatchingCards = [];
-        cards.forEach((card) => {
-          const cardStatus = card.getAttribute('data-status');
-          const cardFiller = card.getAttribute('data-filler');
-          const cardType = card.getAttribute('data-type') || 'series';
-          const cardCommunity = card.getAttribute('data-community');
-          const cardVibes = (card.getAttribute('data-vibe') || '').split(' ');
-          const cardTitle = card.getAttribute('data-title') || '';
+        if (currentSort !== appliedSort) {
+          const nextOrder = currentSort === 'default' ? cards : [...cards].sort((a, b) => {
+            const byRating = currentSort.startsWith('rating-');
+            const first = byRating ? a.rating : a.episodes;
+            const second = byRating ? b.rating : b.episodes;
+            const firstValid = first > 0;
+            const secondValid = second > 0;
+            if (firstValid !== secondValid) return firstValid ? -1 : 1;
+            if (!firstValid || first === second) return a.index - b.index;
+            return currentSort.endsWith('-desc') ? second - first : first - second;
+          });
 
-          // Status match
-          let matchesTab = true;
-          if (currentFilter === 'watched') matchesTab = (cardStatus === 'watched');
-          if (currentFilter === 'watchlist') matchesTab = (cardStatus === 'watchlist');
-          if (currentFilter === 'reference') matchesTab = (cardStatus === 'reference');
-          if (currentFilter === 'zero') matchesTab = (cardFiller === 'zero');
-          if (currentFilter === 'community') matchesTab = (cardCommunity === 'true');
-
-          // Format match
-          let matchesFormat = true;
-          if (currentFormat === 'series') matchesFormat = (cardType === 'series');
-          if (currentFormat === 'movie') matchesFormat = (cardType === 'movie');
-
-          // Vibe match
-          let matchesVibe = true;
-          if (currentVibe) {
-            matchesVibe = cardVibes.includes(currentVibe) || (vibeObj && cardVibes.includes(vibeObj.id));
+          if (nextOrder.some((card, index) => card !== orderedCards[index])) {
+            const fragment = document.createDocumentFragment();
+            for (const { element } of nextOrder) fragment.appendChild(element);
+            grid.appendChild(fragment);
           }
+          orderedCards = nextOrder;
+          appliedSort = currentSort;
+        }
 
-          // Search match
-          let matchesSearch = true;
-          if (searchQuery.trim()) {
-            matchesSearch = cardTitle.includes(searchQuery.toLowerCase().trim());
-          }
-
-          if (matchesTab && matchesFormat && matchesVibe && matchesSearch) {
-            currentMatchingCards.push(card);
-          } else {
-            card.classList.add('hidden');
-          }
-        });
-
-        // Apply selected sort order across all matching cards before pagination slicing
-        currentMatchingCards.sort((a, b) => {
-          const idxA = parseInt(a.dataset.defaultIndex, 10) || 0;
-          const idxB = parseInt(b.dataset.defaultIndex, 10) || 0;
-
-          if (currentSort === 'rating-desc' || currentSort === 'rating-asc') {
-            const rawA = a.getAttribute('data-rating');
-            const rawB = b.getAttribute('data-rating');
-            const valA = parseFloat(rawA);
-            const valB = parseFloat(rawB);
-            const hasA = !isNaN(valA) && valA > 0;
-            const hasB = !isNaN(valB) && valB > 0;
-
-            // Missing, null, or 0 ratings always appear at the bottom
-            if (!hasA && hasB) return 1;
-            if (hasA && !hasB) return -1;
-            if (!hasA && !hasB) return idxA - idxB;
-
-            if (currentSort === 'rating-desc') {
-              if (valB !== valA) return valB - valA;
-            } else {
-              if (valA !== valB) return valA - valB;
-            }
-            return idxA - idxB;
-          }
-
-          if (currentSort === 'episodes-desc' || currentSort === 'episodes-asc') {
-            const rawA = a.getAttribute('data-episodes');
-            const rawB = b.getAttribute('data-episodes');
-            const valA = parseInt(rawA, 10);
-            const valB = parseInt(rawB, 10);
-            const hasA = !isNaN(valA) && valA > 0;
-            const hasB = !isNaN(valB) && valB > 0;
-
-            // Missing, null, or 0 episode counts always appear at the bottom
-            if (!hasA && hasB) return 1;
-            if (hasA && !hasB) return -1;
-            if (!hasA && !hasB) return idxA - idxB;
-
-            if (currentSort === 'episodes-desc') {
-              if (valB !== valA) return valB - valA;
-            } else {
-              if (valA !== valB) return valA - valB;
-            }
-            return idxA - idxB;
-          }
-
-          // Default catalog order
-          return idxA - idxB;
-        });
-
-        // Reorder DOM nodes inside #anime-grid so CSS grid flow matches sorted order
-        currentMatchingCards.forEach((card) => {
-          grid.appendChild(card);
-        });
+        const query = searchQuery.toLowerCase().trim();
+        currentMatchingCards = orderedCards.filter((card) => {
+          const matchesStatus = currentFilter === 'zero' ? card.filler === 'zero'
+            : currentFilter === 'community' ? card.community
+            : currentFilter === 'all' || card.status === currentFilter;
+          const matchesFormat = currentFormat === 'all' || card.type === currentFormat;
+          const matchesVibe = !currentVibe || card.vibes.includes(currentVibe) || card.vibes.includes(vibeObj?.id);
+          return matchesStatus && matchesFormat && matchesVibe && card.title.includes(query);
+        }).map(({ element }) => element);
 
         const totalMatches = currentMatchingCards.length;
 
@@ -1019,17 +990,25 @@ const breadcrumbSchema = {
           closeSortMenu();
         }
       }
-      document.removeEventListener('click', handleSortDocClick);
-      document.addEventListener('click', handleSortDocClick);
+      document.addEventListener('click', handleSortDocClick, listenerOptions);
 
       function handleSortKeydown(e) {
+        if (!sortMenu || sortMenu.classList.contains('hidden') || !sortContainer?.contains(e.target)) return;
         if (e.key === 'Escape') {
           closeSortMenu();
-          if (sortTrigger) sortTrigger.focus();
+          sortTrigger?.focus();
+          return;
         }
+        if (!['ArrowUp', 'ArrowDown', 'Home', 'End'].includes(e.key)) return;
+        e.preventDefault();
+        const focused = sortMenuItems.indexOf(document.activeElement);
+        const last = sortMenuItems.length - 1;
+        const next = e.key === 'Home' ? 0 : e.key === 'End' ? last
+          : e.key === 'ArrowUp' ? (focused <= 0 ? last : focused - 1)
+          : (focused + 1) % sortMenuItems.length;
+        sortMenuItems[next]?.focus();
       }
-      document.removeEventListener('keydown', handleSortKeydown);
-      document.addEventListener('keydown', handleSortKeydown);
+      document.addEventListener('keydown', handleSortKeydown, listenerOptions);
 
       if (searchInput) {
         searchInput.oninput = (e) => {
@@ -1062,26 +1041,17 @@ const breadcrumbSchema = {
           saveCatalogState();
         }
       }
-      grid.removeEventListener('click', handleCardLinkClick);
-      grid.addEventListener('click', handleCardLinkClick);
+      grid.addEventListener('click', handleCardLinkClick, listenerOptions);
 
       function handlePageHide() {
         saveCatalogState();
       }
-      window.removeEventListener('pagehide', handlePageHide);
-      window.addEventListener('pagehide', handlePageHide);
-
-      function handleBeforeUnload() {
-        saveCatalogState();
-      }
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-      window.addEventListener('beforeunload', handleBeforeUnload);
+      window.addEventListener('pagehide', handlePageHide, listenerOptions);
 
       function handleBeforePreparation() {
         saveCatalogState();
       }
-      document.removeEventListener('astro:before-preparation', handleBeforePreparation);
-      document.addEventListener('astro:before-preparation', handleBeforePreparation);
+      document.addEventListener('astro:before-preparation', handleBeforePreparation, listenerOptions);
 
       function handleDocClick(e) {
         const anchor = e.target.closest('a');
@@ -1091,10 +1061,10 @@ const breadcrumbSchema = {
           } catch (err) {}
         }
       }
-      document.removeEventListener('click', handleDocClick);
-      document.addEventListener('click', handleDocClick);
+      document.addEventListener('click', handleDocClick, listenerOptions);
 
       function handlePopState() {
+        if (window.location.pathname !== catalogPath) return;
         const p = new URLSearchParams(window.location.search);
         const f = p.get('filter');
         currentFilter = validFilters.includes(f) ? f : 'all';
@@ -1127,8 +1097,7 @@ const breadcrumbSchema = {
         }
       }
 
-      window.removeEventListener('popstate', handlePopState);
-      window.addEventListener('popstate', handlePopState);
+      window.addEventListener('popstate', handlePopState, listenerOptions);
 
       function handlePageShow(event) {
         if (event.persisted) {
@@ -1161,8 +1130,7 @@ const breadcrumbSchema = {
           }
         }
       }
-      window.removeEventListener('pageshow', handlePageShow);
-      window.addEventListener('pageshow', handlePageShow);
+      window.addEventListener('pageshow', handlePageShow, listenerOptions);
 
       updateTabButtonUI();
       updateFormatButtonUI();
@@ -1174,5 +1142,9 @@ const breadcrumbSchema = {
       }
     }
 
+    document.addEventListener('astro:before-swap', () => {
+      catalogListeners?.abort();
+      activeGrid = undefined;
+    });
     document.addEventListener('astro:page-load', setupCatalogFiltering);
   </script>

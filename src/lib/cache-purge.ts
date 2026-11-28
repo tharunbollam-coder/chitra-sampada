@@ -2,13 +2,8 @@
 // Centralized Cloudflare Edge Cache Purge Utility
 
 import { siteConfig } from '../config/site.js';
-import {
-  getDatabase,
-  invalidateAllCaches,
-  invalidateAnimeCache,
-  invalidateBlogCache,
-  invalidateSiteSettingsCache
-} from './d1.js';
+import { SEARCH_INDEX_PATH } from './search-cache.js';
+import { getDatabase } from './d1.js';
 
 export interface CloudflareConfig {
   zoneId?: string;
@@ -154,14 +149,16 @@ export async function purgeCloudflareCache(
       locals = pathsOrOptions.contextOrLocals || contextOrLocals;
     }
 
-    // Invalidate Workers runtime cache if active
-    try {
-      const cf = await import('cloudflare:workers');
-      if (cf && typeof (cf as any).cache?.purge === 'function') {
-        await (cf as any).cache.purge({ purgeEverything: true });
-        console.log('[Cache Purge] Successfully purged Workers runtime cache.');
+    if (purgeEverything) {
+      try {
+        const cf = await import('cloudflare:workers');
+        if (typeof (cf as any).cache?.purge === 'function') {
+          await (cf as any).cache.purge({ purgeEverything: true });
+        }
+      } catch (error) {
+        console.warn('[Cache Purge] Workers runtime cache purge failed:', error);
       }
-    } catch {}
+    }
 
     const { zoneId, apiToken, siteUrl } = await getCloudflareConfig(locals);
 
@@ -239,205 +236,169 @@ export async function purgeCloudflareCache(
  * Purge Homepage Cache
  */
 export async function purgeHomepageCache(contextOrLocals?: any): Promise<PurgeCacheResult> {
-  invalidateSiteSettingsCache();
-  invalidateAnimeCache();
   return purgeCloudflareCache(['/', '/anime', '/sitemap.xml'], contextOrLocals);
 }
 
-/**
- * Purge Franchise and Watch Order Cache.
- * Discovers all anime associated with this franchise in D1,
- * and purges all of their individual detail routes, sub-tabs, catalog, hub, and homepage.
- */
-export async function purgeFranchiseCache(
-  franchiseId?: string | null,
-  contextOrLocals?: any
-): Promise<PurgeCacheResult> {
-  invalidateAnimeCache();
+const animeListingPaths = ['/', '/anime', '/anime/catalog', '/sitemap.xml', SEARCH_INDEX_PATH];
+const blogListingPaths = ['/', '/blog', '/sitemap.xml', SEARCH_INDEX_PATH];
 
-  const paths = new Set<string>(['/anime', '/anime/catalog', '/', '/sitemap.xml']);
-
-  if (franchiseId && typeof franchiseId === 'string' && franchiseId.trim().length > 0) {
-    const cleanFid = franchiseId.trim();
-    try {
-      const db = await getDatabase(contextOrLocals);
-      const rows = await db.query(`
-        SELECT DISTINCT slug FROM anime WHERE franchise_id = ?
-      `, cleanFid);
-
-      if (Array.isArray(rows)) {
-        for (const row of rows) {
-          if (row?.slug) {
-            const s = String(row.slug).trim().toLowerCase();
-            paths.add(`/anime/${s}`);
-            paths.add(`/anime/${s}/watch-order`);
-            paths.add(`/anime/${s}/filler-list`);
-            paths.add(`/anime/${s}/characters`);
-            paths.add(`/anime/${s}/review`);
-            paths.add(`/anime/${s}/lessons`);
-            paths.add(`/anime/${s}/source`);
-            paths.add(`/anime/${s}/power-system`);
-            paths.add(`/anime/${s}/universe`);
-            paths.add(`/anime/${s}/recommendations`);
-          }
-        }
-      }
-    } catch (err) {
-      console.warn('[Cache Purge] Could not query anime slugs for franchise:', cleanFid, err);
-    }
+function addSlugPaths(paths: Set<string>, prefix: string, rows: { slug?: string }[]) {
+  for (const { slug } of rows) {
+    if (slug) paths.add(prefix + encodeURIComponent(slug));
   }
-
-  return purgeCloudflareCache(Array.from(paths), contextOrLocals);
 }
 
-/**
- * Purge Anime Page and related sub-tabs and catalog indexes
- */
-export async function purgeAnimeCache(slug: string, contextOrLocals?: any): Promise<PurgeCacheResult> {
-  invalidateAnimeCache();
-  if (!slug) {
-    return purgeCloudflareCache(['/anime', '/anime/catalog', '/', '/sitemap.xml'], contextOrLocals);
-  }
-
-  const cleanSlug = slug.trim().toLowerCase();
-  const tabs = [
-    'watch-order',
-    'filler-list',
-    'characters',
-    'review',
-    'lessons',
-    'source',
-    'power-system',
-    'universe',
-    'recommendations'
-  ];
-
-  const paths = [
-    `/anime/${cleanSlug}`,
-    ...tabs.map((tab) => `/anime/${cleanSlug}/${tab}`),
-    '/anime',
-    '/anime/catalog',
-    '/',
-    '/sitemap.xml'
-  ];
-
-  return purgeCloudflareCache(paths, contextOrLocals);
-}
-
-/**
- * Helper to resolve anime slug, franchise connections, and vibe tags,
- * and purge all associated edge cache URLs across Cloudflare.
- */
-export async function purgeAnimeCacheByIdOrSlug(
+/** Snapshot public URLs that use an anime and its relationships. */
+export async function getAnimePurgePaths(
   idOrSlug: string,
-  contextOrLocals?: any
-): Promise<PurgeCacheResult> {
-  invalidateAnimeCache();
-  if (!idOrSlug) {
-    return purgeAnimeCache('', contextOrLocals);
-  }
+  contextOrLocals?: any,
+  { includeReferences = false, fallbackSlug }: { includeReferences?: boolean; fallbackSlug?: string } = {}
+): Promise<string[]> {
+  const paths = new Set(animeListingPaths);
+  const key = String(idOrSlug || '').trim();
+  if (!key) return [...paths];
 
-  const paths = new Set<string>(['/anime', '/anime/catalog', '/', '/sitemap.xml']);
-  let resolvedSlug = String(idOrSlug).trim().toLowerCase();
-  let franchiseId: string | null = null;
-  let animeId = String(idOrSlug).trim();
-
+  let slug = fallbackSlug;
   try {
     const db = await getDatabase(contextOrLocals);
-    const row = await db.queryOne('SELECT id, slug, franchise_id FROM anime WHERE id = ? OR slug = ? LIMIT 1', idOrSlug, idOrSlug);
-    if (row && row.slug) {
-      resolvedSlug = String(row.slug).trim().toLowerCase();
-      franchiseId = row.franchise_id || null;
-      animeId = row.id;
+    const anime = await db.queryOne('SELECT id, slug, franchise_id FROM anime WHERE id = ? OR slug = ? LIMIT 1', key, key);
+    if (anime) {
+      slug = anime.slug;
+      const [vibes, siblings, recommendations, articles] = await Promise.all([
+        db.query(`
+          SELECT v.slug FROM anime_vibes av JOIN vibes v ON v.id = av.vibe_id WHERE av.anime_id = ?
+        `, anime.id),
+        anime.franchise_id ? db.query(`
+          SELECT slug FROM anime WHERE franchise_id = ? AND id != ?
+        `, anime.franchise_id, anime.id) : [],
+        includeReferences ? db.query(`
+          SELECT DISTINCT a.slug FROM anime_recommendations r JOIN anime a ON a.id = r.anime_id
+          WHERE r.target_anime_id = ?
+        `, anime.id) : [],
+        includeReferences ? db.query(`
+          SELECT p.slug FROM blog_post_anime bpa JOIN blog_posts p ON p.id = bpa.post_id
+          WHERE bpa.anime_id = ? AND p.status = 'published'
+        `, anime.id) : []
+      ]);
+      addSlugPaths(paths, '/anime/tag/', vibes);
+      addSlugPaths(paths, '/anime/', siblings);
+      addSlugPaths(paths, '/anime/', recommendations);
+      addSlugPaths(paths, '/blog/', articles);
+      if (articles.length) paths.add('/blog');
     }
-
-    // Query associated vibe tags to purge corresponding vibe catalog pages
-    const vibeRows = await db.query(`
-      SELECT v.slug FROM anime_vibes av
-      JOIN vibes v ON v.id = av.vibe_id
-      WHERE av.anime_id = ?
-    `, animeId);
-
-    if (Array.isArray(vibeRows)) {
-      for (const vr of vibeRows) {
-        if (vr?.slug) paths.add(`/anime/tag/${String(vr.slug).trim().toLowerCase()}`);
-      }
-    }
-
-    // If part of a franchise, also purge sibling franchise anime watch order tabs
-    if (franchiseId) {
-      const siblingRows = await db.query(`
-        SELECT slug FROM anime WHERE franchise_id = ? AND slug != ?
-      `, franchiseId, resolvedSlug);
-      if (Array.isArray(siblingRows)) {
-        for (const sr of siblingRows) {
-          if (sr?.slug) {
-            const sibSlug = String(sr.slug).trim().toLowerCase();
-            paths.add(`/anime/${sibSlug}`);
-            paths.add(`/anime/${sibSlug}/watch-order`);
-          }
-        }
-      }
-    }
-  } catch (err) {
-    console.warn('[Cache Purge] Could not query anime details for ID:', idOrSlug, err);
+  } catch (error) {
+    console.warn('[Cache Purge] Could not resolve anime dependencies:', error);
   }
 
-  const tabs = [
-    'watch-order',
-    'filler-list',
-    'characters',
-    'review',
-    'lessons',
-    'source',
-    'power-system',
-    'universe',
-    'recommendations'
-  ];
+  if (slug) addSlugPaths(paths, '/anime/', [{ slug }]);
+  return [...paths];
+}
 
-  paths.add(`/anime/${resolvedSlug}`);
-  for (const tab of tabs) {
-    paths.add(`/anime/${resolvedSlug}/${tab}`);
+export async function purgeAnimeCacheByIdOrSlug(
+  idOrSlug: string,
+  contextOrLocals?: any,
+  before: string[] = [],
+  { includeReferences = false, fallbackSlug = idOrSlug }: { includeReferences?: boolean; fallbackSlug?: string } = {}
+): Promise<PurgeCacheResult> {
+  const after = await getAnimePurgePaths(idOrSlug, contextOrLocals, { includeReferences, fallbackSlug });
+  return purgeCloudflareCache([...before, ...after], contextOrLocals);
+}
+
+/** Include both franchise members and the former siblings of anime being assigned. */
+export async function getFranchisePurgePaths(
+  franchiseIds: (string | null | undefined)[] | null,
+  contextOrLocals?: any,
+  pickedAnimeIds: unknown[] = []
+): Promise<string[]> {
+  const paths = new Set(animeListingPaths.filter((path) => path !== SEARCH_INDEX_PATH));
+  const ids = (franchiseIds || []).filter(Boolean);
+  const pickedIds = Array.isArray(pickedAnimeIds) ? pickedAnimeIds.map((id) => String(id).trim()) : [];
+  if (franchiseIds !== null && !ids.length && !pickedIds.length) return [...paths];
+
+  try {
+    const db = await getDatabase(contextOrLocals, { strictReads: true });
+    const rows = franchiseIds === null
+      ? await db.query(`
+        SELECT slug FROM anime WHERE franchise_id IS NOT NULL OR NULLIF(TRIM(watch_order_note), '') IS NOT NULL
+      `)
+      : await db.query(`
+        SELECT slug FROM anime
+        WHERE franchise_id IN (SELECT value FROM json_each(?))
+          OR id IN (SELECT value FROM json_each(?))
+          OR franchise_id IN (
+            SELECT former.franchise_id FROM anime former WHERE former.id IN (SELECT value FROM json_each(?))
+          )
+      `, JSON.stringify(ids), JSON.stringify(pickedIds), JSON.stringify(pickedIds));
+    addSlugPaths(paths, '/anime/', rows);
+  } catch (error) {
+    if (franchiseIds === null) throw error;
+    console.warn('[Cache Purge] Could not resolve franchise dependencies:', error);
+  }
+  return [...paths];
+}
+
+export async function purgeWatchOrdersCache(contextOrLocals?: any): Promise<PurgeCacheResult> {
+  try {
+    return await purgeCloudflareCache(await getFranchisePurgePaths(null, contextOrLocals), contextOrLocals);
+  } catch (error) {
+    console.warn('[Cache Purge] Could not resolve watch-order pages:', error);
+    return { success: false, error: 'Could not resolve watch-order pages' };
+  }
+}
+
+/** Read editorial links, character article links, and blog-to-anime associations. */
+export async function getBlogPurgePaths(
+  idOrSlug: string,
+  contextOrLocals?: any,
+  fallbackSlug?: string
+): Promise<string[]> {
+  const paths = new Set(blogListingPaths);
+  let slug = fallbackSlug;
+  try {
+    const db = await getDatabase(contextOrLocals);
+    const post = await db.queryOne('SELECT id, slug FROM blog_posts WHERE id = ? OR slug = ? LIMIT 1', idOrSlug, idOrSlug);
+    if (post) {
+      slug = post.slug;
+      const rows = await db.query(`
+        SELECT a.slug FROM blog_post_anime bpa JOIN anime a ON a.id = bpa.anime_id
+        WHERE bpa.post_id = ?
+        UNION
+        SELECT a.slug FROM anime_genres g JOIN anime a ON a.id = g.anime_id
+        WHERE g.genre IN (?, ?)
+        UNION
+        SELECT slug FROM anime WHERE character_related_post_slug = ?
+      `, post.id, '__blog__:' + post.slug, '__blog__:' + post.id, post.slug);
+      addSlugPaths(paths, '/anime/', rows);
+    }
+  } catch (error) {
+    console.warn('[Cache Purge] Could not resolve blog dependencies:', error);
   }
 
-  return purgeCloudflareCache(Array.from(paths), contextOrLocals);
+  if (slug) addSlugPaths(paths, '/blog/', [{ slug }]);
+  return [...paths];
+}
+
+export async function getVibePurgePaths(idOrSlug: string, contextOrLocals?: any, fallbackSlug?: string): Promise<string[]> {
+  const paths = new Set(['/', '/anime', '/anime/catalog', '/sitemap.xml']);
+  try {
+    const db = await getDatabase(contextOrLocals, { strictReads: true });
+    // Every nonempty vibe page can surface another active vibe in its browse links.
+    const rows = await db.query(`
+      SELECT v.slug FROM vibes v WHERE v.id = ? OR v.slug = ? OR EXISTS (
+        SELECT 1 FROM anime_vibes av JOIN anime a ON a.id = av.anime_id WHERE av.vibe_id = v.id
+      )
+    `, idOrSlug, idOrSlug);
+    addSlugPaths(paths, '/anime/tag/', rows);
+  } catch (error) {
+    console.warn('[Cache Purge] Could not resolve vibe dependencies:', error);
+  }
+  if (fallbackSlug) addSlugPaths(paths, '/anime/tag/', [{ slug: fallbackSlug }]);
+  return [...paths];
 }
 
 /**
- * Purge Blog Posts, Blog Index, and linked anime entry pages
- */
-export async function purgeBlogCache(slug?: string | null, contextOrLocals?: any): Promise<PurgeCacheResult> {
-  invalidateBlogCache();
-  const paths = new Set<string>(['/blog', '/', '/sitemap.xml']);
-
-  if (slug && typeof slug === 'string' && slug.trim().length > 0) {
-    const cleanSlug = slug.trim().toLowerCase();
-    paths.add(`/blog/${cleanSlug}`);
-
-    try {
-      const db = await getDatabase(contextOrLocals);
-      const linked = await db.query(`
-        SELECT a.slug FROM blog_post_anime bpa
-        JOIN blog_posts bp ON bp.id = bpa.post_id
-        JOIN anime a ON a.id = bpa.anime_id
-        WHERE bp.slug = ? OR bp.id = ?
-      `, cleanSlug, cleanSlug);
-
-      if (Array.isArray(linked)) {
-        for (const l of linked) {
-          if (l?.slug) paths.add(`/anime/${String(l.slug).trim().toLowerCase()}`);
-        }
-      }
-    } catch {}
-  }
-
-  return purgeCloudflareCache(Array.from(paths), contextOrLocals);
-}
-
-/**
- * Purge Full Site (Entire Cloudflare Edge Cache) and all in-memory caches
+ * Purge the full site at the Cloudflare edge.
  */
 export async function purgeEntireSiteCache(contextOrLocals?: any): Promise<PurgeCacheResult> {
-  invalidateAllCaches();
   return purgeCloudflareCache({ purgeEverything: true, contextOrLocals });
 }

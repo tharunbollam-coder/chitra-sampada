@@ -26,4 +26,23 @@ export function optimizeAniListPoster(url, size = 'w342') {
   return url;
 }
 
-export const optimizePoster = optimizeAniListPoster;
+/**
+ * @param {string | null | undefined} url
+ * @returns {string | undefined}
+ */
+export function getTmdbPosterSrcSet(url) {
+  const poster = typeof url === 'string' && url.match(/^(https?:)?\/\/image\.(?:tmdb|themoviedb)\.org\/t\/p\/(?:original|w\d+)\//i);
+  if (!poster) return undefined;
+  return [185, 342, 500].map((width) => `${url.replace(/\/t\/p\/[^/]+\//, `/t/p/w${width}/`)} ${width}w`).join(', ');
+}
+
+/**
+ * @param {string | null | undefined} url
+ * @param {string} origin
+ * @returns {string | undefined}
+ */
+export function resolveHttpImageUrl(url, origin) {
+  if (typeof url !== 'string' || !url.trim()) return undefined;
+  const resolved = URL.parse(url, origin);
+  return resolved && (resolved.protocol === 'https:' || resolved.protocol === 'http:') ? resolved.href : undefined;
+}

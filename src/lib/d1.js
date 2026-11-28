@@ -2,6 +2,8 @@ import { DatabaseSync } from 'node:sqlite';
 import path from 'node:path';
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { parseAnimeSectionVisibility } from './anime-tabs.js';
+import { calculateFillerPercentage, FILLER_CATEGORY, getFillerCategoryRank, getStoredEpisodeCount, summarizeFillerEntries } from './filler-utils.js';
 
 let cachedDb = null;
 
@@ -59,14 +61,14 @@ function recordD1Timing(contextOrLocals, startedAt) {
   if (!context) return;
 
   const metrics = context.__chitraPerformance || (context.__chitraPerformance = {
-    d1Duration: 0,
+    d1TotalDuration: 0,
     d1Queries: 0
   });
-  metrics.d1Duration += performance.now() - startedAt;
+  metrics.d1TotalDuration += performance.now() - startedAt;
   metrics.d1Queries += 1;
 }
 
-function wrapD1(cfDb, contextOrLocals = null) {
+function wrapD1(cfDb, contextOrLocals = null, strictReads = false) {
   const sanitize = (params) => params.map((p) => (p === undefined ? null : p));
 
   return {
@@ -80,6 +82,9 @@ function wrapD1(cfDb, contextOrLocals = null) {
         const res = await stmt.all();
         return res?.results || [];
       } catch (err) {
+        if (strictReads) throw err;
+        const context = getDiagnosticsContext(contextOrLocals);
+        if (context) context.__chitraD1ReadFailed = true;
         console.error('D1 query error:', err, 'SQL:', sql);
         return [];
       } finally {
@@ -94,6 +99,9 @@ function wrapD1(cfDb, contextOrLocals = null) {
         if (safeParams.length > 0) stmt = stmt.bind(...safeParams);
         return (await stmt.first()) || null;
       } catch (err) {
+        if (strictReads) throw err;
+        const context = getDiagnosticsContext(contextOrLocals);
+        if (context) context.__chitraD1ReadFailed = true;
         console.error('D1 queryOne error:', err, 'SQL:', sql);
         return null;
       } finally {
@@ -124,8 +132,9 @@ function wrapD1(cfDb, contextOrLocals = null) {
  */
 /**
  * @param {any} [contextOrLocals]
+ * @param {{strictReads?: boolean}} [options]
  */
-export async function getDatabase(contextOrLocals = null) {
+export async function getDatabase(contextOrLocals = null, { strictReads = false } = {}) {
   let cfDb = null;
 
   // 1. Direct binding or context object passed
@@ -167,7 +176,7 @@ export async function getDatabase(contextOrLocals = null) {
   }
 
   if (cfDb && typeof cfDb.prepare === 'function') {
-    return wrapD1(cfDb, contextOrLocals);
+    return wrapD1(cfDb, contextOrLocals, strictReads);
   }
 
   // 4. Check if running in Cloudflare Workers runtime where Node SQLite is completely unavailable
@@ -222,13 +231,21 @@ function getRequestCache(contextOrLocals) {
   return target.__chitraRequestCache;
 }
 
-export { optimizeAniListPoster, optimizePoster } from './image-utils.js';
+function parseSiblingVisibility(value) {
+  try {
+    return (typeof value === 'string' ? JSON.parse(value) : value) || {};
+  } catch {
+    return {};
+  }
+}
 
 export function invalidateAnimeCache(contextOrLocals = null) {
   const reqCache = getRequestCache(contextOrLocals);
   if (reqCache) {
     reqCache.delete('anime');
     reqCache.delete('compactAnime');
+    reqCache.delete('compactAnimeStrict');
+    reqCache.delete('searchAnimeStrict');
   }
 }
 
@@ -239,20 +256,28 @@ export function invalidateAnimeCache(contextOrLocals = null) {
  * Uses request-scoped deduplication so components in the same request share data without redundant D1 queries.
  * @param {any} [contextOrLocals]
  */
-export async function getCompactAnimeList(contextOrLocals = null) {
+export async function getCompactAnimeList(contextOrLocals = null, { strictReads = false, forSearch = false } = {}) {
   const reqCache = getRequestCache(contextOrLocals);
-  if (reqCache?.has('compactAnime')) {
-    return reqCache.get('compactAnime');
+  const cacheKey = forSearch ? 'searchAnimeStrict' : strictReads ? 'compactAnimeStrict' : 'compactAnime';
+  if (reqCache?.has(cacheKey)) {
+    return reqCache.get(cacheKey);
   }
 
-  const db = await getDatabase(contextOrLocals);
+  const db = await getDatabase(contextOrLocals, { strictReads: strictReads || forSearch });
 
   const [animeRes, genresRes, vibesRes, fillerRes] = await Promise.allSettled([
-    db.query(`SELECT rowid, id, slug, title, year, type, runtime, episodes, status, poster, honesty_status, filler_percentage, section_visibility, trending, community_suggested, personal_rating, added_date FROM anime ORDER BY year DESC, title ASC`),
+    db.query(forSearch
+      ? `SELECT id, slug, title, year, type, runtime, episodes, poster, section_visibility, added_date FROM anime ORDER BY year DESC, title ASC`
+      : `SELECT rowid, id, slug, title, year, type, runtime, episodes, status, poster, honesty_status, filler_percentage, section_visibility, trending, community_suggested, personal_rating, added_date FROM anime ORDER BY year DESC, title ASC`),
     db.query(`SELECT anime_id, genre FROM anime_genres`),
-    db.query(`SELECT anime_id, vibe_id FROM anime_vibes`),
+    forSearch ? [] : db.query(`SELECT anime_id, vibe_id FROM anime_vibes`),
     db.query(`SELECT anime_id, type, episodes, episode_count FROM anime_filler_ranges`)
   ]);
+
+  if (strictReads || forSearch) {
+    const failure = [animeRes, genresRes, vibesRes, fillerRes].find((result) => result.status === 'rejected');
+    if (failure) throw failure.reason;
+  }
 
   const animeRows = animeRes.status === 'fulfilled' ? animeRes.value : [];
   const genresRows = genresRes.status === 'fulfilled' ? genresRes.value : [];
@@ -283,12 +308,10 @@ export async function getCompactAnimeList(contextOrLocals = null) {
     if (!fillerMap.has(row.anime_id)) fillerMap.set(row.anime_id, { fillerCount: 0, totalCount: 0 });
     const stat = fillerMap.get(row.anime_id);
     const epVal = row.episodes || '';
-    const epCount = typeof row.episode_count === 'number' && row.episode_count > 0
-      ? row.episode_count
-      : (epVal ? epVal.split(',').length : 0);
+    const epCount = getStoredEpisodeCount(epVal, row.episode_count, 'positive');
     if (epVal && epVal.trim().length > 0) {
       stat.totalCount += epCount;
-      if (row.type === 'Filler') {
+      if (row.type === FILLER_CATEGORY.filler) {
         stat.fillerCount += epCount;
       }
     }
@@ -300,7 +323,7 @@ export async function getCompactAnimeList(contextOrLocals = null) {
     let episodes = row.episodes || 0;
 
     if (fillerInfo && fillerInfo.totalCount > 0) {
-      fillerPercentage = Math.round((fillerInfo.fillerCount / fillerInfo.totalCount) * 100);
+      fillerPercentage = calculateFillerPercentage(fillerInfo.fillerCount, fillerInfo.totalCount);
       episodes = episodes || fillerInfo.totalCount;
     }
 
@@ -344,7 +367,7 @@ export async function getCompactAnimeList(contextOrLocals = null) {
   });
 
   if (reqCache) {
-    reqCache.set('compactAnime', formatted);
+    reqCache.set(cacheKey, formatted);
   }
   return formatted;
 }
@@ -353,7 +376,9 @@ export function invalidateBlogCache(contextOrLocals = null) {
   const reqCache = getRequestCache(contextOrLocals);
   if (reqCache) {
     reqCache.delete('blog_published');
+    reqCache.delete('blog_published_strict');
     reqCache.delete('blog_all');
+    reqCache.delete('blog_all_strict');
   }
 }
 
@@ -370,6 +395,7 @@ export function invalidateVibesCache(contextOrLocals = null) {
   const reqCache = getRequestCache(contextOrLocals);
   if (reqCache) {
     reqCache.delete('vibes');
+    reqCache.delete('vibesStrict');
   }
 }
 
@@ -468,9 +494,7 @@ export async function getAllAnime(contextOrLocals = null) {
   for (const row of fillerRows) {
     if (!fillerMap.has(row.anime_id)) fillerMap.set(row.anime_id, []);
     const epVal = row.episodes || row.range || '';
-    const epCount = typeof row.episode_count === 'number'
-      ? row.episode_count
-      : (epVal ? epVal.split(',').length : 0);
+    const epCount = getStoredEpisodeCount(epVal, row.episode_count);
     fillerMap.get(row.anime_id).push({
       type: row.type,
       episodes: epVal,
@@ -575,7 +599,7 @@ export async function getAllAnime(contextOrLocals = null) {
       episodes: s.episodes,
       runtime: s.runtime,
       franchiseStepOrder: s.franchise_step_order,
-      sectionVisibility: typeof s.section_visibility === 'string' ? JSON.parse(s.section_visibility || '{}') : (s.section_visibility || {}),
+      sectionVisibility: parseSiblingVisibility(s.section_visibility),
       isCurrent: s.id === row.id
     }));
 
@@ -585,35 +609,11 @@ export async function getAllAnime(contextOrLocals = null) {
     const activeFillerTypes = rawFillerEntries.filter(e => e.episodes && e.episodes.trim().length > 0);
 
     if (activeFillerTypes.length > 0) {
-      let mangaCanonCount = 0;
-      let animeCanonCount = 0;
-      let mixedCount = 0;
-      let fillerCount = 0;
-
-      for (const entry of activeFillerTypes) {
-        if (entry.type === 'Manga Canon') mangaCanonCount = entry.count;
-        else if (entry.type === 'Anime Canon') animeCanonCount = entry.count;
-        else if (entry.type === 'Mixed Canon/Filler') mixedCount = entry.count;
-        else if (entry.type === 'Filler') fillerCount = entry.count;
-      }
-
-      const totalCanonCount = mangaCanonCount + animeCanonCount;
-      const totalEpisodes = mangaCanonCount + animeCanonCount + mixedCount + fillerCount;
-      const calculatedFillerPercentage = totalEpisodes > 0 ? Math.round((fillerCount / totalEpisodes) * 100) : 0;
-
+      const counts = summarizeFillerEntries(activeFillerTypes, 'last');
       fillerList = {
-        totalEpisodes,
-        fillerEpisodes: fillerCount,
-        canonEpisodes: totalCanonCount,
-        mangaCanonEpisodes: mangaCanonCount,
-        animeCanonEpisodes: animeCanonCount,
-        mixedEpisodes: mixedCount,
-        fillerPercentage: calculatedFillerPercentage,
-        types: activeFillerTypes.map(t => ({
-          type: t.type,
-          episodes: t.episodes,
-          count: t.count
-        }))
+        ...counts,
+        fillerPercentage: calculateFillerPercentage(counts.fillerEpisodes, counts.totalEpisodes),
+        types: activeFillerTypes
       };
     }
 
@@ -655,24 +655,7 @@ export async function getAllAnime(contextOrLocals = null) {
       };
     }
 
-    // Reconstruct sectionVisibility
-    let sectionVisibility = {
-      review: true,
-      lessons: true,
-      watchOrder: true,
-      fillerList: true,
-      characters: true,
-      source: true,
-      powerSystem: true,
-      universe: true,
-      recommendations: true,
-      streaming: true
-    };
-    if (row.section_visibility) {
-      try {
-        sectionVisibility = { ...sectionVisibility, ...JSON.parse(row.section_visibility) };
-      } catch {}
-    }
+    const sectionVisibility = parseAnimeSectionVisibility(row.section_visibility);
 
     const rawRecs = recsMap.get(row.id) || [];
     const recommendations = rawRecs.map(rec => {
@@ -761,15 +744,15 @@ export async function getAllAnime(contextOrLocals = null) {
  * @param {string} slugOrId
  * @param {any} [contextOrLocals]
  */
-export async function getAnimeDetailBySlugOrId(slugOrId, contextOrLocals = null) {
+export async function getAnimeDetailBySlugOrId(slugOrId, contextOrLocals = null, { strictReads = false } = {}) {
   if (!slugOrId) return null;
 
   try {
-    const db = await getDatabase(contextOrLocals);
+    const primaryDb = await getDatabase(contextOrLocals, { strictReads });
     const lookupKey = String(slugOrId).trim();
     if (!lookupKey) return null;
 
-    const anime = await db.queryOne(`
+    const anime = await primaryDb.queryOne(`
       SELECT
         a.id, a.slug, a.title, a.original_title, a.year, a.type, a.runtime,
         a.movie_canon_type, a.episodes, a.status, a.personal_rating,
@@ -790,6 +773,7 @@ export async function getAnimeDetailBySlugOrId(slugOrId, contextOrLocals = null)
 
     if (!anime || !anime.id) return null;
 
+    const db = strictReads ? await getDatabase(contextOrLocals) : primaryDb;
     const animeId = anime.id;
     const franchiseId = anime.franchise_id || null;
     const charPostSlug = anime.character_related_post_slug || null;
@@ -854,9 +838,9 @@ export async function getAnimeDetailBySlugOrId(slugOrId, contextOrLocals = null)
       `, animeId),
       charPostSlug
         ? db.queryOne(`
-            SELECT id, slug, title, status
+            SELECT id, slug, title
             FROM blog_posts
-            WHERE slug = ?
+            WHERE slug = ? AND status = 'published'
             LIMIT 1
           `, charPostSlug)
         : Promise.resolve(null),
@@ -880,71 +864,19 @@ export async function getAnimeDetailBySlugOrId(slugOrId, contextOrLocals = null)
       return {
         type: row.type,
         episodes,
-        count: typeof row.episode_count === 'number' && row.episode_count >= 0
-          ? row.episode_count
-          : (episodes ? episodes.split(',').length : 0)
+        count: getStoredEpisodeCount(episodes, row.episode_count, 'nonnegative')
       };
     }).filter((row) => row.episodes.trim().length > 0);
 
-    const FILLER_CATEGORY_ORDER = {
-      'Manga Canon': 1,
-      'Anime Canon': 2,
-      'Mixed Canon': 3,
-      'Mixed Canon/Filler': 3,
-      'Mixed Canon / Filler': 3,
-      'Filler': 4,
-      'Filler Episodes': 4,
-      'Filler Episodes (Skippable)': 4
-    };
-
-    const getFillerOrder = (type) => {
-      if (!type) return 99;
-      const t = String(type).trim();
-      if (FILLER_CATEGORY_ORDER[t] !== undefined) return FILLER_CATEGORY_ORDER[t];
-      const l = t.toLowerCase();
-      if (l.includes('manga')) return 1;
-      if (l.includes('anime')) return 2;
-      if (l.includes('mixed')) return 3;
-      if (l.includes('filler')) return 4;
-      return 99;
-    };
-
-    fillerEntries.sort((a, b) => getFillerOrder(a.type) - getFillerOrder(b.type));
-
-    const countFor = (type) => fillerEntries.find((entry) => entry.type === type)?.count || 0;
-    const mangaCanonEpisodes = countFor('Manga Canon');
-    const animeCanonEpisodes = countFor('Anime Canon');
-    const mixedEpisodes = countFor('Mixed Canon/Filler');
-    const fillerEpisodes = countFor('Filler');
-    const totalEpisodes = mangaCanonEpisodes + animeCanonEpisodes + mixedEpisodes + fillerEpisodes;
+    fillerEntries.sort((a, b) => getFillerCategoryRank(a.type) - getFillerCategoryRank(b.type));
+    const counts = summarizeFillerEntries(fillerEntries);
     const fillerList = fillerEntries.length > 0 ? {
-      totalEpisodes,
-      fillerEpisodes,
-      canonEpisodes: mangaCanonEpisodes + animeCanonEpisodes,
-      mangaCanonEpisodes,
-      animeCanonEpisodes,
-      mixedEpisodes,
-      fillerPercentage: totalEpisodes > 0 ? Math.round((fillerEpisodes / totalEpisodes) * 100) : 0,
+      ...counts,
+      fillerPercentage: calculateFillerPercentage(counts.fillerEpisodes, counts.totalEpisodes),
       types: fillerEntries
     } : null;
 
-    let sectionVisibility = {
-      review: true,
-      lessons: true,
-      watchOrder: true,
-      fillerList: true,
-      characters: true,
-      source: true,
-      powerSystem: true,
-      universe: true,
-      recommendations: true,
-      streaming: true
-    };
-    if (anime.section_visibility) {
-      try {
-        sectionVisibility = { ...sectionVisibility, ...JSON.parse(anime.section_visibility) };
-      } catch {}
-    }
+    const sectionVisibility = parseAnimeSectionVisibility(anime.section_visibility);
 
     const reviewText = anime.review_paragraphs || '';
     const powerText = anime.power_system_paragraphs || '';
@@ -1003,7 +935,7 @@ export async function getAnimeDetailBySlugOrId(slugOrId, contextOrLocals = null)
         episodes: s.episodes,
         runtime: s.runtime,
         franchiseStepOrder: s.franchise_step_order,
-        sectionVisibility: typeof s.section_visibility === 'string' ? JSON.parse(s.section_visibility || '{}') : (s.section_visibility || {}),
+        sectionVisibility: parseSiblingVisibility(s.section_visibility),
         isCurrent: s.id === anime.id
       })),
       watchOrderNote: anime.watch_order_note || null,
@@ -1011,7 +943,7 @@ export async function getAnimeDetailBySlugOrId(slugOrId, contextOrLocals = null)
       fillerNote: anime.filler_note || null,
       characters: safeCharacters,
       characterRelatedPostSlug: anime.character_related_post_slug || null,
-      characterRelatedPost: relatedPost || (anime.character_related_post_slug ? { slug: anime.character_related_post_slug, title: 'Related Article' } : null),
+      characterRelatedPost: relatedPost,
       source: anime.source_title || anime.source_type ? {
         title: anime.source_title,
         originalTitle: anime.source_original_title,
@@ -1071,113 +1003,10 @@ export async function getAnimeDetailBySlugOrId(slugOrId, contextOrLocals = null)
       sectionVisibility
     };
   } catch (error) {
+    if (strictReads) throw error;
     console.error('getAnimeDetailBySlugOrId error:', error);
     return null;
   }
-}
-
-/**
- * Helper function to retrieve all available section tabs for an anime object.
- * Returns only tabs that have actual data AND have their Admin visibility toggle set to "Show".
- * "My Take" ('review') is placed in the FIRST position when present.
- */
-export function getAvailableTabs(anime) {
-  if (!anime) return [];
-  const tabs = [];
-  const vis = anime.sectionVisibility || {};
-
-  // 1. My Take / Quick Take (FIRST position when present; NEVER for reference guides, un-watched, or when no review text is written)
-  const isWatched = anime.honestyStatus === 'watched';
-  const hasReviewContent = isWatched && Boolean(
-    anime.review && (
-      (anime.review.heading && anime.review.heading.trim().length > 0) ||
-      (typeof anime.review.paragraphs === 'string' && anime.review.paragraphs.trim().length > 0) ||
-      (typeof anime.review.text === 'string' && anime.review.text.trim().length > 0) ||
-      (typeof anime.review_paragraphs === 'string' && anime.review_paragraphs.trim().length > 0)
-    )
-  );
-
-  if (hasReviewContent && vis.review !== false) {
-    const reviewTabLabel = anime.review?.type === 'quick' ? 'Quick Take' : 'My Take';
-    tabs.push({ key: 'review', label: reviewTabLabel });
-  }
-
-  // 2. What I Learned (Personal reflections / philosophical takeaways)
-  const hasLessonsContent = isWatched && Boolean(
-    anime.lessons && (
-      (typeof anime.lessons === 'string' && anime.lessons.trim().length > 0) ||
-      (anime.lessons.takeaway && anime.lessons.takeaway.trim().length > 0) ||
-      (typeof anime.lessons.paragraphs === 'string' && anime.lessons.paragraphs.trim().length > 0) ||
-      (typeof anime.lesson_takeaway === 'string' && anime.lesson_takeaway.trim().length > 0) ||
-      (typeof anime.what_i_learned_paragraphs === 'string' && anime.what_i_learned_paragraphs.trim().length > 0)
-    )
-  );
-  if (hasLessonsContent && vis.lessons !== false) {
-    tabs.push({ key: 'lessons', label: 'What I Learned' });
-  }
-
-  // 3. Watch Order
-  const hasFranchiseNote = Boolean(anime.franchiseWatchOrderNote && anime.franchiseWatchOrderNote.trim().length > 0);
-  const hasAnimeNote = Boolean(anime.watchOrderNote && anime.watchOrderNote.trim().length > 0);
-  const franchiseAnimeCount = Array.isArray(anime.franchiseAnime) ? anime.franchiseAnime.length : 0;
-  if ((hasFranchiseNote || hasAnimeNote) && vis.watchOrder !== false) {
-    tabs.push({
-      key: 'watch-order',
-      label: 'Watch Order',
-      ...(hasFranchiseNote && franchiseAnimeCount > 0 ? { count: franchiseAnimeCount } : {})
-    });
-  }
-
-  // 4. Filler List (Movies can show Filler tab if fillerNote exists)
-  const hasFillerData = anime.type !== 'movie' && anime.fillerList && anime.fillerList.types && anime.fillerList.types.length > 0;
-  const hasFillerNote = Boolean(anime.fillerNote && anime.fillerNote.trim().length > 0);
-  if ((hasFillerData || hasFillerNote) && vis.fillerList !== false) {
-    tabs.push({ key: 'filler-list', label: 'Filler List' });
-  }
-
-  // 4. Characters
-  if (anime.characters && anime.characters.length > 0 && vis.characters !== false) {
-    tabs.push({ key: 'characters', label: 'Characters', count: anime.characters.length });
-  }
-
-  // 5. Manga & Light Novel
-  const hasSourceContent = Boolean(
-    anime.source && (
-      (anime.source.title && anime.source.title.trim().length > 0) ||
-      (anime.source.coverage && anime.source.coverage.trim().length > 0) ||
-      (anime.source.volumes && anime.source.volumes.trim().length > 0) ||
-      (anime.source.notes && anime.source.notes.trim().length > 0) ||
-      (anime.source.author && anime.source.author.trim().length > 0)
-    )
-  );
-  if (hasSourceContent && vis.source !== false) {
-    tabs.push({ key: 'source', label: 'Manga & Light Novel' });
-  }
-
-  // 6. Power System
-  const hasPowerContent = Boolean(
-    anime.powerSystem && (
-      (anime.powerSystem.name && anime.powerSystem.name.trim().length > 0) ||
-      (typeof anime.powerSystem.paragraphs === 'string' && anime.powerSystem.paragraphs.trim().length > 0) ||
-      (typeof anime.powerSystem.text === 'string' && anime.powerSystem.text.trim().length > 0) ||
-      (typeof anime.power_system_paragraphs === 'string' && anime.power_system_paragraphs.trim().length > 0)
-    )
-  );
-  if (hasPowerContent && vis.powerSystem !== false) {
-    tabs.push({ key: 'power-system', label: 'Power System' });
-  }
-
-  // 7. Related & Universe Media
-  if (anime.universe && anime.universe.length > 0 && vis.universe !== false) {
-    tabs.push({ key: 'universe', label: 'Related & Universe', count: anime.universe.length });
-  }
-
-  // 8. Shows Like This (Recommendations)
-  if (anime.recommendations && anime.recommendations.length > 0 && vis.recommendations !== false) {
-    tabs.push({ key: 'recommendations', label: 'Shows Like This', count: anime.recommendations.length });
-  }
-
-  return tabs;
 }
 
 /**
@@ -1187,12 +1016,14 @@ export function getAvailableTabs(anime) {
  */
 export async function getAllBlogPosts(optionsOrContext = {}, contextOrLocals = null) {
   let includeDrafts = false;
+  let strictReads = false;
   let ctx = contextOrLocals;
 
   if (optionsOrContext) {
     if (optionsOrContext.locals || optionsOrContext.env || optionsOrContext.DB || optionsOrContext.prepare) {
       ctx = optionsOrContext;
     } else {
+      strictReads = optionsOrContext.strictReads === true;
       if (typeof optionsOrContext.includeDrafts === 'boolean') {
         includeDrafts = optionsOrContext.includeDrafts;
       }
@@ -1203,12 +1034,12 @@ export async function getAllBlogPosts(optionsOrContext = {}, contextOrLocals = n
   }
 
   const reqCache = getRequestCache(ctx);
-  const cacheKey = includeDrafts ? 'blog_all' : 'blog_published';
+  const cacheKey = (includeDrafts ? 'blog_all' : 'blog_published') + (strictReads ? '_strict' : '');
   if (reqCache?.has(cacheKey)) {
     return reqCache.get(cacheKey);
   }
 
-  const db = await getDatabase(ctx);
+  const db = await getDatabase(ctx, { strictReads });
   const query = includeDrafts
     ? `
         SELECT id, slug, title, excerpt, cover_image, published_date, last_updated, status,
@@ -1234,6 +1065,11 @@ export async function getAllBlogPosts(optionsOrContext = {}, contextOrLocals = n
       ORDER BY a.title ASC
     `)
   ]);
+
+  if (strictReads) {
+    if (postsRes.status === 'rejected') throw postsRes.reason;
+    if (linksRes.status === 'rejected') throw linksRes.reason;
+  }
 
   const postRows = postsRes.status === 'fulfilled' ? postsRes.value : [];
   const linkRows = linksRes.status === 'fulfilled' ? linksRes.value : [];
@@ -1289,8 +1125,9 @@ export async function getBlogPostBySlug(slug, optionsOrContext = {}, contextOrLo
     includeDrafts = optionsOrContext.includeDrafts;
   }
 
-  const db = await getDatabase(ctx);
-  const post = await db.queryOne(
+  const strictReads = optionsOrContext?.strictReads === true;
+  const primaryDb = await getDatabase(ctx, { strictReads });
+  const post = await primaryDb.queryOne(
     includeDrafts
       ? `SELECT id, slug, title, excerpt, content, cover_image, published_date, last_updated, status FROM blog_posts WHERE slug = ? LIMIT 1`
       : `SELECT id, slug, title, excerpt, content, cover_image, published_date, last_updated, status FROM blog_posts WHERE slug = ? AND status = 'published' LIMIT 1`,
@@ -1298,6 +1135,7 @@ export async function getBlogPostBySlug(slug, optionsOrContext = {}, contextOrLo
   );
   if (!post) return null;
 
+  const db = strictReads ? await getDatabase(ctx) : primaryDb;
   const linkedAnimeRows = await db.query(`
     SELECT a.id, a.slug, a.title, a.year, a.honesty_status
     FROM blog_post_anime bpa
@@ -1326,39 +1164,6 @@ export async function getBlogPostBySlug(slug, optionsOrContext = {}, contextOrLo
       honestyStatus: row.honesty_status
     }))
   };
-}
-
-/**
- * Fetch all published blog posts linked to a specific anime ID
- * @param {string} animeId
- * @param {any} [contextOrLocals]
- */
-export async function getBlogPostsForAnime(animeId, contextOrLocals = null) {
-  if (!animeId) return [];
-  const db = await getDatabase(contextOrLocals);
-  const rows = await db.query(`
-    SELECT bp.id, bp.slug, bp.title, bp.excerpt, bp.content, bp.cover_image, bp.published_date, bp.last_updated, bp.status
-    FROM blog_post_anime bpa
-    JOIN blog_posts bp ON bp.id = bpa.post_id
-    WHERE bpa.anime_id = ? AND bp.status = 'published'
-    ORDER BY bp.published_date DESC
-    LIMIT 6
-  `, animeId);
-
-  return rows.map((row) => {
-    const wordCount = row.content ? row.content.trim().split(/\s+/).length : 0;
-    return {
-      id: row.id,
-      slug: row.slug,
-      title: row.title,
-      excerpt: row.excerpt,
-      publishedDate: row.published_date,
-      lastUpdated: row.last_updated,
-      status: row.status,
-      coverImage: row.cover_image || null,
-      readTime: `${Math.max(1, Math.ceil(wordCount / 200))} min read`
-    };
-  });
 }
 
 /**
@@ -1394,32 +1199,7 @@ export async function getBlogPostsBySlugs(slugsOrIds, contextOrLocals = null) {
 }
 
 /**
- * Fetch single anime by slug, ID, or alias
- * @param {string} slugOrId
- * @param {any} [contextOrLocals]
- */
-export async function getAnimeBySlugOrId(slugOrId, contextOrLocals = null) {
-  if (!slugOrId) return null;
-  return await getAnimeDetailBySlugOrId(slugOrId, contextOrLocals);
-}
-
-/**
- * Helper function to determine the preferred default tab.
- * Prefers "My Take" ('review') if available; otherwise falls back to the first available tab.
- * @param {any} [_anime]
- * @param {any} [availableTabs]
- */
-export function getDefaultTabKey(_anime, availableTabs) {
-  if (!availableTabs || availableTabs.length === 0) return null;
-  const reviewTab = availableTabs.find((t) => t.key === 'review');
-  if (reviewTab) {
-    return 'review';
-  }
-  return availableTabs[0]?.key || null;
-}
-
-/**
- * Fetch a site-wide setting value from D1 with in-memory caching (60s TTL)
+ * Fetch a site-wide setting value from D1 with request-scoped caching.
  * @param {string} key
  * @param {any} [defaultValue]
  * @param {any} [contextOrLocals]
@@ -1460,7 +1240,7 @@ export async function setSiteSetting(key, value, contextOrLocals = null) {
     VALUES (?, ?, datetime('now'))
     ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at
   `, key, cleanVal);
-  invalidateSiteSettingsCache();
+  invalidateSiteSettingsCache(contextOrLocals);
   return { key, value: cleanVal };
 }
 
@@ -1521,13 +1301,14 @@ export async function setHomepageAnnouncement(data, contextOrLocals = null) {
  * Formatted with camelCase and UI compatibility fields.
  * @param {any} [contextOrLocals]
  */
-export async function getAllVibes(contextOrLocals = null) {
+export async function getAllVibes(contextOrLocals = null, { strictReads = false } = {}) {
   const reqCache = getRequestCache(contextOrLocals);
-  if (reqCache?.has('vibes')) {
-    return reqCache.get('vibes');
+  const cacheKey = strictReads ? 'vibesStrict' : 'vibes';
+  if (reqCache?.has(cacheKey)) {
+    return reqCache.get(cacheKey);
   }
 
-  const db = await getDatabase(contextOrLocals);
+  const db = await getDatabase(contextOrLocals, { strictReads });
   const rows = await db.query(`
     SELECT v.*, COUNT(DISTINCT a.id) as anime_count
     FROM vibes v
@@ -1562,48 +1343,9 @@ export async function getAllVibes(contextOrLocals = null) {
   }));
 
   if (reqCache) {
-    reqCache.set('vibes', formatted);
+    reqCache.set(cacheKey, formatted);
   }
   return formatted;
-}
-
-/**
- * Look up a vibe by slug or ID
- * @param {string} slugOrId
- * @param {any} [contextOrLocals]
- */
-export async function getVibeBySlug(slugOrId, contextOrLocals = null) {
-  if (!slugOrId) return null;
-  const db = await getDatabase(contextOrLocals);
-  const row = await db.queryOne(`
-    SELECT id, slug, name, tagline, group_label, color_theme, seo_intro, meta_description, is_active, created_at, updated_at
-    FROM vibes
-    WHERE slug = ? OR id = ?
-    LIMIT 1
-  `, slugOrId, slugOrId);
-  if (!row) return null;
-  return {
-    id: row.id,
-    slug: row.slug,
-    name: row.name,
-    title: row.name,
-    fullName: `${row.name} Anime`,
-    h1: `${row.name} Anime`,
-    tagline: row.tagline || '',
-    groupLabel: row.group_label || '',
-    group_label: row.group_label || '',
-    badge: row.group_label || 'CURATED',
-    colorTheme: row.color_theme || 'indigo',
-    color_theme: row.color_theme || 'indigo',
-    seoIntro: row.seo_intro || '',
-    intro: row.seo_intro || '',
-    metaDescription: row.meta_description || '',
-    pageTitle: `${row.name} Anime — Honest Watch Orders & Episode Guides`,
-    isActive: Boolean(row.is_active),
-    is_active: row.is_active,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at
-  };
 }
 
 /**
